@@ -148,6 +148,13 @@ textarea{min-height:80px;line-height:1.6;}
 .modal-actions{display:flex;gap:10px;margin-top:16px;}
 .modal-hint{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;margin-top:12px;line-height:1.6;}
 .differentiator-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid rgba(95,173,138,0.3);background:rgba(95,173,138,0.06);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--success);margin-top:12px;}
+.rw-nudge{margin-top:20px;border:1px solid rgba(200,169,110,0.25);background:rgba(200,169,110,0.04);padding:16px 20px;}
+.rw-nudge-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:6px;}
+.rw-nudge-hint{font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:10px;}
+.rw-nudge-row{display:flex;gap:8px;}
+.rw-nudge-row input{flex:1;font-size:12px;}
+.rw-nudge.anchored{border-color:rgba(95,173,138,0.3);background:rgba(95,173,138,0.04);}
+.rw-nudge.anchored .rw-nudge-label{color:var(--success);}
 
 /* ── Weekly Schedule Tab ── */
 .week-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
@@ -304,6 +311,15 @@ textarea{min-height:80px;line-height:1.6;}
             <button class="action-btn" onclick="copyHashtags()">Copy Hashtags</button>
             <span class="char-count" id="char-count">0 / 3000</span>
           </div>
+          <!-- Real World Nudge -->
+          <div class="rw-nudge" id="rw-nudge-li">
+            <div class="rw-nudge-label">✦ Make It Real — Your Authentic Edge</div>
+            <div class="rw-nudge-hint">Read your post above, then add a real job, client conversation, or field observation. One real detail makes this 10× more credible than generic AI content.</div>
+            <div class="rw-nudge-row">
+              <input type="text" id="rw-input" placeholder='e.g. "We just finished a frameless staircase in Prosper where the builder pushed the schedule up three weeks..."' />
+              <button class="search-btn" onclick="weaveExperience()">Weave It In</button>
+            </div>
+          </div>
         </div>
 
         <!-- Blog Tab -->
@@ -315,6 +331,15 @@ textarea{min-height:80px;line-height:1.6;}
           <div class="action-bar">
             <button class="action-btn primary" onclick="copyBlog()">Copy Blog Content</button>
             <button class="action-btn" onclick="copyBlogHTML()">Copy as HTML</button>
+          </div>
+          <!-- Real World Nudge (mirrors LinkedIn tab) -->
+          <div class="rw-nudge" id="rw-nudge-blog">
+            <div class="rw-nudge-label">✦ Make It Real — Your Authentic Edge</div>
+            <div class="rw-nudge-hint">Add a real job site experience or client observation. It gets woven into your LinkedIn post — your content, not just AI content.</div>
+            <div class="rw-nudge-row">
+              <input type="text" id="rw-input-blog" placeholder='e.g. "On our last Prosper build the builder moved the schedule up three weeks..."' />
+              <button class="search-btn" onclick="weaveExperienceFromBlog()">Weave It In</button>
+            </div>
           </div>
         </div>
 
@@ -451,20 +476,6 @@ textarea{min-height:80px;line-height:1.6;}
   </div>
 </div>
 
-<!-- Real World Experience Modal -->
-<div class="modal-overlay" id="rw-modal">
-  <div class="modal">
-    <div class="modal-badge">✦ Make It Real</div>
-    <div class="modal-title">Add a real-world tie-in before you publish.</div>
-    <div class="modal-subtitle">AI can write about the DFW market. Only you can say what happened on your last job site. One real detail makes this 10× more credible than anything generic. What's a recent experience, client conversation, or field observation that connects to this topic?</div>
-    <textarea class="modal-textarea" id="rw-input" placeholder='e.g. "We just finished a frameless staircase in Prosper where the builder pushed the schedule up three weeks because their buyer moved the closing date forward..."'></textarea>
-    <div class="modal-hint">This will be woven naturally into your LinkedIn post and briefing talking points — not bolted on.</div>
-    <div class="modal-actions">
-      <button class="generate-btn" onclick="weaveExperience()" style="flex:1">✦ Weave It In</button>
-      <button class="action-btn" onclick="closeModal()" style="padding:14px 20px">Skip for now</button>
-    </div>
-  </div>
-</div>
 
 <div class="status-bar">
   <div class="status-dot" id="status-dot"></div>
@@ -625,10 +636,11 @@ FORMAT EXACTLY:
     // Display hashtags
     document.getElementById('hashtags-container').innerHTML=generatedHashtags.map(h=>`<span class="hashtag">${h}</span>`).join('');
 
-    // Display blog
+    // Display blog — strip any stray delimiters
     const blogOut=document.getElementById('blog-output');
     blogOut.innerHTML='';
-    if(generatedBlog) blogOut.innerHTML=formatBlogHTML(generatedBlog);
+    const cleanBlog=(generatedBlog||'').replace(/^===BLOG===\s*/i,'').trim();
+    if(cleanBlog) blogOut.innerHTML=formatBlogHTML(cleanBlog);
     else blogOut.textContent='Select "Blog + LinkedIn" format to generate a full blog post.';
 
     updateCharCount();
@@ -638,9 +650,6 @@ FORMAT EXACTLY:
     setStatus('Ready',false);
     showToast('Content generated!','success');
 
-    // Trigger real-world prompt after short delay
-    setTimeout(()=>openModal(),800);
-
   } catch(e) {
     showToast('Generation failed: '+e.message,'error');
     setStatus('Error',false);
@@ -649,16 +658,23 @@ FORMAT EXACTLY:
   }
 }
 
-// ── Real World Modal ──
-function openModal(){document.getElementById('rw-modal').classList.add('open');}
-function closeModal(){document.getElementById('rw-modal').classList.remove('open');}
-
+// ── Real World Weave ──
 async function weaveExperience() {
   const experience=document.getElementById('rw-input').value.trim();
-  if(!experience){showToast('Please share a real experience first','error');return;}
+  if(!experience){showToast('Type a real experience first','error');return;}
+  await doWeave(experience,'rw-nudge-li','rw-input');
+}
 
-  const btn=document.querySelector('#rw-modal .generate-btn');
-  btn.disabled=true; btn.textContent='⏳ Weaving it in...';
+async function weaveExperienceFromBlog() {
+  const experience=document.getElementById('rw-input-blog').value.trim();
+  if(!experience){showToast('Type a real experience first','error');return;}
+  await doWeave(experience,'rw-nudge-blog','rw-input-blog');
+}
+
+async function doWeave(experience, nudgeId, inputId) {
+  const btn=document.querySelector(`#${nudgeId} .search-btn`);
+  const origText=btn.textContent;
+  btn.disabled=true; btn.textContent='Weaving...';
 
   const prompt=`You are editing a LinkedIn post for Erika González of Eridion Glass, a luxury glass subcontractor in Dallas TX.
 
@@ -668,7 +684,7 @@ ${generatedLinkedIn}
 REAL WORLD EXPERIENCE TO WEAVE IN:
 "${experience}"
 
-Rewrite the LinkedIn post to naturally integrate this real experience. It should feel like it was always part of the post — not bolted on. Keep the same length and structure. Keep the brand voice (confident, data-informed, builder-focused). The real experience should appear early or mid-post as a grounding detail that makes the data feel lived-in.
+Rewrite the LinkedIn post to naturally integrate this real experience. It should feel like it was always part of the post — not bolted on. Keep the same length and structure. Keep the brand voice (confident, data-informed, builder-focused). The real experience should appear early or mid-post as a grounding detail that makes the data feel lived-in and authentic.
 
 Return ONLY the rewritten post. No preamble.`;
 
@@ -682,19 +698,27 @@ Return ONLY the rewritten post. No preamble.`;
       const liOut=document.getElementById('linkedin-output');
       liOut.innerHTML=''; liOut.textContent=newPost;
 
+      // Mark both nudge banners as anchored
+      document.getElementById('rw-nudge-li').classList.add('anchored');
+      document.getElementById('rw-nudge-blog').classList.add('anchored');
+      document.querySelectorAll('.rw-nudge-label').forEach(el=>el.textContent='✓ Anchored to real field experience — your authentic edge');
+
       // Add differentiator badge
       const badge=`<div class="differentiator-badge">✓ Anchored to real field experience — your authentic edge</div>`;
       document.getElementById('auth-badge-li').innerHTML=badge;
       document.getElementById('auth-badge-blog').innerHTML=badge;
 
+      // Clear both inputs
+      document.getElementById('rw-input').value='';
+      document.getElementById('rw-input-blog').value='';
+
       updateCharCount();
       showToast('Real experience woven in!','success');
     }
-    closeModal();
   } catch(e) {
-    showToast('Could not weave experience in','error');
+    showToast('Could not weave experience — try again','error');
   } finally {
-    btn.disabled=false; btn.textContent='✦ Weave It In';
+    btn.disabled=false; btn.textContent=origText;
   }
 }
 
