@@ -1036,8 +1036,14 @@ function copyLinkedIn(){
   navigator.clipboard.writeText(ht?`${text}\n\n${ht}`:text).then(()=>showToast('Copied!','success'));
 }
 function copyHashtags(){navigator.clipboard.writeText(generatedHashtags.join(' ')).then(()=>showToast('Hashtags copied!','success'));}
-function copyBlog(){navigator.clipboard.writeText(document.getElementById('blog-output').innerText).then(()=>showToast('Blog copied!','success'));}
-function copyBlogHTML(){navigator.clipboard.writeText(document.getElementById('blog-output').innerHTML).then(()=>showToast('HTML copied!','success'));}
+function copyBlog(){
+  const clean = generatedBlog || document.getElementById('blog-output').innerText;
+  navigator.clipboard.writeText(clean).then(()=>showToast('Blog copied!','success'));
+}
+function copyBlogHTML(){
+  const clean = generatedBlog || document.getElementById('blog-output').innerText;
+  navigator.clipboard.writeText(clean).then(()=>showToast('Blog copied!','success'));
+}
 function copyText(id){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>showToast('Copied!','success'));}
 function openLinkedIn(){window.open('https://www.linkedin.com/post/new/','_blank');setTimeout(()=>copyLinkedIn(),300);}
 
@@ -1122,20 +1128,23 @@ function toggleKB(){
 
 function saveKB(){
   const val=document.getElementById('kb-input').value.trim();
+  if(!val){showToast('Knowledge Base is empty — nothing saved','error');return;}
   localStorage.setItem('eridion_kb',val);
-  showToast('Knowledge Base saved','success');
+  showToast('Knowledge Base saved — takes effect on next Generate','success');
 }
 
 function resetKB(){
+  if(!confirm('Reset to defaults? Your edits will be lost.')) return;
   document.getElementById('kb-input').value=KB_DEFAULT;
   localStorage.setItem('eridion_kb',KB_DEFAULT);
   showToast('Knowledge Base reset to defaults','success');
 }
 
 function loadKB(){
-  const saved=localStorage.getItem('eridion_kb')||KB_DEFAULT;
-  document.getElementById('kb-input').value=saved;
-  if(!localStorage.getItem('eridion_kb')) localStorage.setItem('eridion_kb',KB_DEFAULT);
+  const saved=localStorage.getItem('eridion_kb');
+  const toLoad = saved && saved.trim().length > 10 ? saved : KB_DEFAULT;
+  document.getElementById('kb-input').value=toLoad;
+  if(!saved) localStorage.setItem('eridion_kb',KB_DEFAULT);
 }
 
 function getKB(){
