@@ -770,9 +770,10 @@ Return ONLY the rewritten blog post. No preamble.` : null;
     parts.forEach(p => {
       const m = p.match(/^<HIGHLIGHT>([\s\S]*?)<\/HIGHLIGHT>$/);
       if(m) {
-        html += `<span class="real-highlight">${m[1].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</span>`;
+        const safe = m[1].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        html += `<span class="real-highlight">${safe}</span>`;
       } else {
-        html += p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+        html += p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       }
     });
     return html;
@@ -801,12 +802,14 @@ Return ONLY the rewritten blog post. No preamble.` : null;
       generatedLinkedIn = newLI.replace(/<HIGHLIGHT>/g,'').replace(/<\/HIGHLIGHT>/g,'').trim();
       const liOut = document.getElementById('linkedin-output');
       liOut.setAttribute('contenteditable','true');
+      liOut.style.whiteSpace = 'pre-wrap';
       liOut.innerHTML = renderHighlighted(newLI);
 
       // Update Blog
       if(newBlog && newBlog.length > 50) {
         generatedBlog = newBlog.replace(/<HIGHLIGHT>/g,'').replace(/<\/HIGHLIGHT>/g,'').trim();
         const blogOut = document.getElementById('blog-output');
+        blogOut.style.whiteSpace = 'pre-wrap';
         blogOut.innerHTML = renderHighlighted(newBlog);
       }
 
