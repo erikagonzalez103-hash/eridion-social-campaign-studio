@@ -741,18 +741,30 @@ Return ONLY the rewritten post with those markers. No preamble.`;
     const data=await response.json();
     if(data.error) throw new Error(data.error.message);
     const newPost=data.content?.[0]?.text||'';
+    console.log('Weave response:', newPost.substring(0,300));
 
     if(newPost){
       // Store clean version (no markers) as the real generatedLinkedIn
       generatedLinkedIn=newPost.replace(/\[\[REAL:\s*([\s\S]*?)\]\]/g,'$1').trim();
 
-      // Render highlighted version
-      const highlighted=newPost.replace(/\[\[REAL:\s*([\s\S]*?)\]\]/g,
-        '<span class="real-highlight">$1</span>');
-
+      // Render highlighted version in a read-only display
       const liOut=document.getElementById('linkedin-output');
+      liOut.setAttribute('contenteditable','false');
       liOut.style.whiteSpace='pre-wrap';
-      liOut.innerHTML=highlighted;
+
+      // Build highlighted HTML — escape plain text, then apply highlight spans
+      const parts = newPost.split(/\[\[REAL:\s*([\s\S]*?)\]\]/g);
+      let htmlOut = '';
+      for(let i=0; i<parts.length; i++){
+        if(i % 2 === 0){
+          // plain text — escape HTML
+          htmlOut += parts[i].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        } else {
+          // highlighted real-world content
+          htmlOut += `<span class="real-highlight">${parts[i].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
+        }
+      }
+      liOut.innerHTML = htmlOut || generatedLinkedIn;
 
       // Mark nudge banners as anchored
       document.getElementById('rw-nudge-li').classList.add('anchored');
