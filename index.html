@@ -713,9 +713,9 @@ async function weaveExperienceFromBlog() {
 }
 
 async function doWeave(experience, nudgeId, inputId) {
-  // Get the actual displayed LinkedIn text directly from the DOM as backup
   const domText = document.getElementById('linkedin-output').innerText || document.getElementById('linkedin-output').textContent;
   const postToEdit = (generatedLinkedIn && generatedLinkedIn.length > 50) ? generatedLinkedIn : domText;
+  const blogToEdit = generatedBlog || document.getElementById('blog-output').innerText || '';
 
   if(!postToEdit || postToEdit.length < 50) {
     showToast('Generate a LinkedIn post first','error'); return;
@@ -723,11 +723,11 @@ async function doWeave(experience, nudgeId, inputId) {
 
   const nudgeEl = document.getElementById(nudgeId);
   const btn = nudgeEl ? nudgeEl.querySelector('button') : null;
-  if(btn){ btn.disabled=true; btn.textContent='Weaving...'; }
+  if(btn){ btn.disabled=true; btn.textContent='Weaving into both...'; }
+  setStatus('Weaving into LinkedIn and blog...', true);
 
-  setStatus('Weaving in real experience...', true);
-
-  const prompt=`You are editing a LinkedIn post for Erika González, co-founder of Eridion Glass — a luxury glass and mirror subcontractor in Dallas TX. She has 20+ years in advertising and deeply understands brand voice.
+  // LinkedIn prompt — concise, seamless injection
+  const liPrompt=`You are editing a LinkedIn post for Erika González, co-founder of Eridion Glass — a luxury glass and mirror subcontractor in Dallas TX. She has 20+ years in advertising and deeply understands brand voice.
 
 CURRENT POST:
 ${postToEdit}
@@ -736,61 +736,79 @@ REAL EXPERIENCE TO WEAVE IN:
 "${experience}"
 
 YOUR TASK:
-1. Read the experience carefully — understand what it actually says, its tone, and what it reveals about the business
-2. Find the most natural place in the post where this experience adds credibility — usually after a data point it confirms, not at the top
-3. Write a transition that flows from the surrounding text into the experience organically — no template phrases like "Just last week" or "We saw this firsthand" unless they genuinely fit
-4. The injected content should feel like it was always part of the post — a colleague reading it should not be able to spot the seam
-5. Keep the same overall post length and structure
-6. Keep Erika's brand voice: confident, data-informed, builder-focused, never salesy
+1. Read the experience carefully — understand what it says and what it reveals about the business
+2. Find the most natural place — usually after a data point it confirms, not at the top
+3. Write a transition that flows organically — no template phrases like "Just last week" unless they genuinely fit
+4. The injection should feel like it was always there — a colleague should not spot the seam
+5. Keep the same overall length and structure
+6. Keep Erika's voice: confident, data-informed, builder-focused, never salesy
 
-Wrap ONLY the sentence(s) you added or significantly rewrote with <HIGHLIGHT> and </HIGHLIGHT> tags.
+Wrap ONLY the added/rewritten sentence(s) with <HIGHLIGHT> and </HIGHLIGHT> tags.
+Return ONLY the rewritten post. No preamble.`;
 
-Return ONLY the rewritten post. No explanation, no preamble.`;
+  // Blog prompt — richer, more detailed injection
+  const blogPrompt = blogToEdit.length > 100 ? `You are editing a blog post for Erika González, co-founder of Eridion Glass — a luxury glass and mirror subcontractor in Dallas TX.
+
+CURRENT BLOG POST:
+${blogToEdit}
+
+REAL EXPERIENCE TO WEAVE IN:
+"${experience}"
+
+YOUR TASK:
+1. Find the section of the blog where this experience adds the most credibility — usually near a data point or claim it supports
+2. Write a richer 2-3 sentence injection that expands on the experience with business context and builder impact
+3. The injection should feel editorial and authoritative — not a personal anecdote bolted on, but a natural part of the expert narrative
+4. Keep Erika's voice: confident, data-informed, builder-focused
+
+Wrap ONLY the added/rewritten sentence(s) with <HIGHLIGHT> and </HIGHLIGHT> tags.
+Return ONLY the rewritten blog post. No preamble.` : null;
+
+  function renderHighlighted(text) {
+    const parts = text.split(/(<HIGHLIGHT>[\s\S]*?<\/HIGHLIGHT>)/g);
+    let html = '';
+    parts.forEach(p => {
+      const m = p.match(/^<HIGHLIGHT>([\s\S]*?)<\/HIGHLIGHT>$/);
+      if(m) {
+        html += `<span class="real-highlight">${m[1].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</span>`;
+      } else {
+        html += p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+      }
+    });
+    return html;
+  }
 
   try {
-    const response = await fetch(WORKER, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{role:'user', content:prompt}]
-      })
-    });
-
-    const data = await response.json();
-    console.log('Weave raw response:', JSON.stringify(data).substring(0,400));
-
-    if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-
-    const newPost = data.content?.[0]?.text || '';
-    console.log('Weave post text:', newPost.substring(0,300));
-
-    if(!newPost || newPost.length < 20) {
-      showToast('Empty response from API — try again','error'); return;
+    // Run both API calls in parallel
+    const calls = [
+      fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:liPrompt}]})})
+    ];
+    if(blogPrompt) {
+      calls.push(fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:blogPrompt}]})}));
     }
 
-    // Defer DOM updates to avoid browser extension message channel conflicts
+    const responses = await Promise.all(calls);
+    const [liData, blogData] = await Promise.all(responses.map(r=>r.json()));
+
+    if(liData.error) throw new Error(liData.error.message);
+    const newLI = liData.content?.[0]?.text || '';
+    const newBlog = blogData ? (blogData.content?.[0]?.text || '') : '';
+
+    if(!newLI || newLI.length < 20) { showToast('Empty response — try again','error'); return; }
+
     setTimeout(() => {
-      // Store clean version without tags
-      generatedLinkedIn = newPost.replace(/<HIGHLIGHT>/g,'').replace(/<\/HIGHLIGHT>/g,'').trim();
-
-      // Build highlighted HTML
-      const escaped = newPost
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'§LT§')
-        .replace(/>/g,'§GT§');
-
-      const htmlOut = escaped
-        .replace(/§LT§HIGHLIGHT§GT§([\s\S]*?)§LT§\/HIGHLIGHT§GT§/g,
-          '<span class="real-highlight">$1</span>')
-        .replace(/§LT§/g,'<')
-        .replace(/§GT§/g,'>')
-        .replace(/\n/g,'<br>');
-
+      // Update LinkedIn
+      generatedLinkedIn = newLI.replace(/<HIGHLIGHT>/g,'').replace(/<\/HIGHLIGHT>/g,'').trim();
       const liOut = document.getElementById('linkedin-output');
       liOut.setAttribute('contenteditable','true');
-      liOut.innerHTML = htmlOut;
+      liOut.innerHTML = renderHighlighted(newLI);
+
+      // Update Blog
+      if(newBlog && newBlog.length > 50) {
+        generatedBlog = newBlog.replace(/<HIGHLIGHT>/g,'').replace(/<\/HIGHLIGHT>/g,'').trim();
+        const blogOut = document.getElementById('blog-output');
+        blogOut.innerHTML = renderHighlighted(newBlog);
+      }
 
       // Update nudge banners
       ['rw-nudge-li','rw-nudge-blog'].forEach(id => {
@@ -800,18 +818,16 @@ Return ONLY the rewritten post. No explanation, no preamble.`;
       document.querySelectorAll('.rw-nudge-label').forEach(el =>
         el.textContent = '✓ Anchored to real field experience — your authentic edge'
       );
-
       const badge = `<div class="differentiator-badge">✓ Anchored to real field experience — your authentic edge</div>`;
       document.getElementById('auth-badge-li').innerHTML = badge;
       document.getElementById('auth-badge-blog').innerHTML = badge;
 
       document.getElementById('rw-input').value = '';
-      if(document.getElementById('rw-input-blog'))
-        document.getElementById('rw-input-blog').value = '';
+      if(document.getElementById('rw-input-blog')) document.getElementById('rw-input-blog').value = '';
 
       updateCharCount();
       setStatus('Ready', false);
-      showToast('Woven in — green text shows what was added','success');
+      showToast('Woven into both posts — green text shows what was added','success');
     }, 100);
 
   } catch(e) {
