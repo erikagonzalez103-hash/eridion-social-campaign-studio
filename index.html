@@ -6,706 +6,196 @@
 <title>Eridion | Social Campaign Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #080A0E;
-    --surface: #0F1218;
-    --surface2: #161B24;
-    --surface3: #1D2430;
-    --gold: #C8A96E;
-    --gold-dim: #8A6F3E;
-    --gold-bright: #E8C98E;
-    --text: #E8E4DC;
-    --text-dim: #8A8680;
-    --text-muted: #4A4845;
-    --border: rgba(200, 169, 110, 0.15);
-    --border-bright: rgba(200, 169, 110, 0.4);
-    --eridion: #4A9EBF;
-    --erika: #BF7E9E;
-    --success: #5FAD8A;
-    --error: #BF5F5F;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Outfit', sans-serif;
-    font-weight: 300;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Background texture */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: 
-      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(74,158,191,0.04) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(200,169,110,0.05) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 24px 80px; }
-
-  /* Header */
-  header {
-    padding: 32px 0 28px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 36px;
-  }
-
-  .logo {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-  }
-
-  .logo-name {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 26px;
-    font-weight: 300;
-    letter-spacing: 0.12em;
-    color: var(--gold);
-    text-transform: uppercase;
-  }
-
-  .logo-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    color: var(--text-dim);
-    text-transform: uppercase;
-  }
-
-  .header-meta {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--text-muted);
-    letter-spacing: 0.15em;
-    text-align: right;
-  }
-
-  /* Stream selector */
-  .stream-selector {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 32px;
-  }
-
-  .stream-btn {
-    padding: 20px 24px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: left;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .stream-btn::before {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 2px;
-    transform: scaleX(0);
-    transition: transform 0.3s;
-  }
-
-  .stream-btn.eridion::before { background: var(--eridion); }
-  .stream-btn.erika::before { background: var(--erika); }
-
-  .stream-btn.active::before { transform: scaleX(1); }
-  .stream-btn.active { background: var(--surface2); border-color: var(--border-bright); }
-
-  .stream-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-
-  .stream-btn.eridion .stream-label { color: var(--eridion); }
-  .stream-btn.erika .stream-label { color: var(--erika); }
-
-  .stream-title {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 20px;
-    font-weight: 400;
-    color: var(--text);
-  }
-
-  .stream-desc {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 4px;
-    line-height: 1.5;
-  }
-
-  /* Main grid */
-  .main-grid {
-    display: grid;
-    grid-template-columns: 340px 1fr;
-    gap: 20px;
-    align-items: start;
-  }
-
-  /* Panel */
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 24px;
-  }
-
-  .panel-title {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--gold-dim);
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  /* Bucket selector */
-  .bucket-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-
-  .bucket-btn {
-    padding: 10px 14px;
-    background: var(--surface2);
-    border: 1px solid transparent;
-    color: var(--text-dim);
-    cursor: pointer;
-    font-family: 'Outfit', sans-serif;
-    font-size: 13px;
-    font-weight: 300;
-    text-align: left;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .bucket-btn:hover { border-color: var(--border); color: var(--text); }
-  .bucket-btn.active { background: var(--surface3); border-color: var(--gold-dim); color: var(--gold); }
-
-  .bucket-icon { font-size: 14px; }
-
-  /* Form fields */
-  .field { margin-bottom: 16px; }
-
-  .field-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 8px;
-    display: block;
-  }
-
-  input, textarea, select {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'Outfit', sans-serif;
-    font-size: 13px;
-    font-weight: 300;
-    padding: 10px 12px;
-    outline: none;
-    transition: border-color 0.2s;
-    resize: none;
-  }
-
-  input:focus, textarea:focus, select:focus { border-color: var(--gold-dim); }
-  input::placeholder, textarea::placeholder { color: var(--text-muted); }
-
-  select option { background: var(--surface2); }
-
-  textarea { min-height: 80px; line-height: 1.6; }
-
-  /* Settings */
-  .settings-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  /* Generate button */
-  .generate-btn {
-    width: 100%;
-    padding: 14px;
-    background: transparent;
-    border: 1px solid var(--gold-dim);
-    color: var(--gold);
-    font-family: 'Outfit', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .generate-btn:hover:not(:disabled) {
-    background: rgba(200,169,110,0.08);
-    border-color: var(--gold);
-  }
-
-  .generate-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .generate-btn.loading {
-    color: transparent;
-  }
-
-  .generate-btn.loading::after {
-    content: '';
-    position: absolute;
-    width: 16px; height: 16px;
-    border: 1px solid var(--gold-dim);
-    border-top-color: var(--gold);
-    border-radius: 50%;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    animation: spin 0.8s linear infinite;
-  }
-
-  @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
-
-  /* API Keys section */
-  .keys-toggle {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    cursor: pointer;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: color 0.2s;
-  }
-
-  .keys-toggle:hover { color: var(--text-dim); }
-
-  .keys-section { display: none; margin-bottom: 16px; }
-  .keys-section.open { display: block; }
-
-  /* Output panel */
-  .output-panel { min-height: 500px; }
-
-  /* Tabs */
-  .tabs {
-    display: flex;
-    gap: 0;
-    margin-bottom: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .tab {
-    padding: 10px 20px;
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    transition: all 0.2s;
-  }
-
-  .tab:hover { color: var(--text-dim); }
-  .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
-
-  .tab-content { display: none; padding: 24px 0 0; }
-  .tab-content.active { display: block; }
-
-  /* Content display */
-  .content-display {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 24px;
-    min-height: 300px;
-    font-size: 14px;
-    line-height: 1.8;
-    color: var(--text);
-    white-space: pre-wrap;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 300;
-    outline: none;
-  }
-
-  .content-display[contenteditable="true"]:focus {
-    border-color: var(--gold-dim);
-  }
-
-  .content-display h1, .content-display h2, .content-display h3 {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 400;
-    color: var(--gold-bright);
-    margin: 16px 0 8px;
-  }
-
-  .content-display h1 { font-size: 26px; }
-  .content-display h2 { font-size: 20px; }
-
-  .content-placeholder {
-    color: var(--text-muted);
-    font-style: italic;
-    font-size: 13px;
-  }
-
-  /* Action bar */
-  .action-bar {
-    display: flex;
-    gap: 10px;
-    margin-top: 16px;
-    align-items: center;
-  }
-
-  .action-btn {
-    padding: 9px 18px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-dim);
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .action-btn:hover { border-color: var(--border-bright); color: var(--text); }
-
-  .action-btn.primary {
-    border-color: var(--gold-dim);
-    color: var(--gold);
-  }
-
-  .action-btn.primary:hover {
-    background: rgba(200,169,110,0.08);
-    border-color: var(--gold);
-  }
-
-  .action-btn.success {
-    border-color: var(--success);
-    color: var(--success);
-  }
-
-  .char-count {
-    margin-left: auto;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--text-muted);
-  }
-
-  /* Image search */
-  .image-search-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-
-  .image-search-row input { flex: 1; }
-
-  .search-btn {
-    padding: 10px 16px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
-
-  .search-btn:hover { border-color: var(--border-bright); color: var(--text); }
-
-  .image-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-
-  .image-thumb {
-    aspect-ratio: 16/9;
-    object-fit: cover;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: all 0.2s;
-    opacity: 0.7;
-  }
-
-  .image-thumb:hover { opacity: 1; }
-  .image-thumb.selected { border-color: var(--gold); opacity: 1; }
-
-  .selected-image-preview {
-    width: 100%;
-    aspect-ratio: 16/9;
-    object-fit: cover;
-    margin-bottom: 8px;
-    display: none;
-  }
-
-  .selected-image-preview.visible { display: block; }
-
-  .image-credit {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    color: var(--text-muted);
-    letter-spacing: 0.1em;
-    margin-bottom: 16px;
-  }
-
-  /* Upload zone */
-  .upload-zone {
-    border: 1px dashed var(--border);
-    padding: 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s;
-    margin-bottom: 16px;
-  }
-
-  .upload-zone:hover { border-color: var(--gold-dim); }
-
-  .upload-zone p {
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  .upload-zone .upload-icon { font-size: 24px; margin-bottom: 6px; }
-
-  #file-input { display: none; }
-
-  /* Status bar */
-  .status-bar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    padding: 10px 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    z-index: 100;
-  }
-
-  .status-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--text-muted);
-  }
-
-  .status-dot.active { background: var(--success); box-shadow: 0 0 6px var(--success); }
-  .status-dot.error { background: var(--error); }
-
-  .status-text { color: var(--text-dim); }
-
-  .status-spacer { flex: 1; }
-
-  .api-indicator {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--text-muted);
-  }
-
-  /* Toast */
-  .toast {
-    position: fixed;
-    top: 24px; right: 24px;
-    background: var(--surface2);
-    border: 1px solid var(--border-bright);
-    padding: 12px 20px;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--text);
-    z-index: 1000;
-    transform: translateY(-60px);
-    opacity: 0;
-    transition: all 0.3s;
-  }
-
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { border-color: rgba(95,173,138,0.4); color: var(--success); }
-  .toast.error { border-color: rgba(191,95,95,0.4); color: var(--error); }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
-
-  /* Hashtags display */
-  .hashtags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 12px;
-  }
-
-  .hashtag {
-    padding: 4px 10px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 0.05em;
-  }
-
-  /* Wix connect section */
-  .connect-section {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 16px;
-    margin-top: 16px;
-  }
-
-  .connect-title {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 12px;
-  }
-
-  .connect-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
-  @media (max-width: 900px) {
-    .main-grid { grid-template-columns: 1fr; }
-    .stream-selector { grid-template-columns: 1fr; }
-  }
-
-  /* ── Briefing / Podcast Tab ── */
-  .briefing-player {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    padding: 24px;
-    margin-bottom: 16px;
-    text-align: center;
-  }
-  .briefing-title {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 20px; font-weight: 400;
-    color: var(--gold-bright);
-    margin-bottom: 4px;
-  }
-  .briefing-subtitle {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px; letter-spacing: 0.2em;
-    color: var(--text-muted); text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-  .player-controls {
-    display: flex; align-items: center;
-    justify-content: center; gap: 16px; margin-bottom: 16px;
-  }
-  .play-btn {
-    width: 56px; height: 56px; border-radius: 50%;
-    border: 1px solid var(--gold-dim); background: transparent;
-    color: var(--gold); font-size: 20px; cursor: pointer;
-    transition: all 0.2s; display: flex;
-    align-items: center; justify-content: center;
-  }
-  .play-btn:hover { background: rgba(200,169,110,0.1); border-color: var(--gold); }
-  .play-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  .speed-btns { display: flex; gap: 6px; }
-  .speed-btn {
-    padding: 5px 10px; border: 1px solid var(--border);
-    background: transparent; color: var(--text-muted);
-    font-family: 'DM Mono', monospace; font-size: 9px;
-    letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s;
-  }
-  .speed-btn:hover { border-color: var(--border-bright); color: var(--text-dim); }
-  .speed-btn.active { border-color: var(--gold-dim); color: var(--gold); }
-  .now-reading {
-    font-size: 12px; color: var(--text-dim);
-    line-height: 1.6; font-style: italic;
-    min-height: 40px; padding: 0 8px;
-  }
-  .briefing-script {
-    background: var(--surface2); border: 1px solid var(--border);
-    padding: 20px; margin-bottom: 16px;
-    font-size: 13px; line-height: 1.9; color: var(--text);
-    max-height: 220px; overflow-y: auto; white-space: pre-wrap;
-  }
-  .talking-points {
-    background: var(--surface2); border: 1px solid var(--border);
-    padding: 20px; margin-bottom: 16px;
-  }
-  .talking-point {
-    padding: 10px 0; border-bottom: 1px solid var(--border);
-    font-size: 13px; line-height: 1.6; color: var(--text);
-    display: flex; gap: 10px;
-  }
-  .talking-point:last-child { border-bottom: none; }
-  .tp-number {
-    font-family: 'DM Mono', monospace; font-size: 10px;
-    color: var(--gold-dim); min-width: 20px; padding-top: 2px;
-  }
-  .research-box {
-    background: var(--surface2); border: 1px solid var(--border);
-    padding: 20px; margin-bottom: 16px;
-  }
-  .research-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
-  .research-input-row input { flex: 1; }
-  .research-answer {
-    font-size: 13px; line-height: 1.8; color: var(--text);
-    min-height: 60px; white-space: pre-wrap;
-  }
-  .research-answer.loading { color: var(--text-muted); font-style: italic; }
-  .waveform {
-    display: flex; align-items: center;
-    justify-content: center; gap: 3px; height: 24px; margin: 8px 0;
-  }
-  .wave-bar {
-    width: 3px; background: var(--gold-dim);
-    border-radius: 2px; animation: wave 1.2s ease-in-out infinite;
-  }
-  .wave-bar:nth-child(2) { animation-delay: 0.1s; }
-  .wave-bar:nth-child(3) { animation-delay: 0.2s; }
-  .wave-bar:nth-child(4) { animation-delay: 0.3s; }
-  .wave-bar:nth-child(5) { animation-delay: 0.2s; }
-  .wave-bar:nth-child(6) { animation-delay: 0.1s; }
-  @keyframes wave { 0%, 100% { height: 4px; } 50% { height: 20px; } }
-  .waveform.paused .wave-bar { animation-play-state: paused; height: 4px; }
+:root {
+  --bg:#080A0E; --surface:#0F1218; --surface2:#161B24; --surface3:#1D2430;
+  --gold:#C8A96E; --gold-dim:#8A6F3E; --gold-bright:#E8C98E;
+  --text:#E8E4DC; --text-dim:#8A8680; --text-muted:#4A4845;
+  --border:rgba(200,169,110,0.15); --border-bright:rgba(200,169,110,0.4);
+  --eridion:#4A9EBF; --erika:#BF7E9E; --success:#5FAD8A; --error:#BF5F5F;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(74,158,191,0.04) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(200,169,110,0.05) 0%,transparent 60%);pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:0 24px 80px;}
+header{padding:32px 0 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;margin-bottom:36px;}
+.logo{display:flex;align-items:baseline;gap:12px;}
+.logo-name{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;letter-spacing:0.12em;color:var(--gold);text-transform:uppercase;}
+.logo-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--text-dim);text-transform:uppercase;}
+.header-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:0.15em;text-align:right;}
+.stream-selector{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:32px;}
+.stream-btn{padding:20px 24px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.2s;text-align:left;position:relative;overflow:hidden;}
+.stream-btn::before{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;transform:scaleX(0);transition:transform 0.3s;}
+.stream-btn.eridion::before{background:var(--eridion);}
+.stream-btn.erika::before{background:var(--erika);}
+.stream-btn.active::before{transform:scaleX(1);}
+.stream-btn.active{background:var(--surface2);border-color:var(--border-bright);}
+.stream-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;}
+.stream-btn.eridion .stream-label{color:var(--eridion);}
+.stream-btn.erika .stream-label{color:var(--erika);}
+.stream-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text);}
+.stream-desc{font-size:12px;color:var(--text-dim);margin-top:4px;line-height:1.5;}
+.main-grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;}
+.panel{background:var(--surface);border:1px solid var(--border);padding:24px;}
+.panel-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.bucket-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.bucket-btn{padding:10px 14px;background:var(--surface2);border:1px solid transparent;color:var(--text-dim);cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:300;text-align:left;transition:all 0.2s;display:flex;align-items:center;gap:10px;}
+.bucket-btn:hover{border-color:var(--border);color:var(--text);}
+.bucket-btn.active{background:var(--surface3);border-color:var(--gold-dim);color:var(--gold);}
+.bucket-icon{font-size:14px;}
+.field{margin-bottom:16px;}
+.field-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;display:block;}
+input,textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;font-weight:300;padding:10px 12px;outline:none;transition:border-color 0.2s;resize:none;}
+input:focus,textarea:focus,select:focus{border-color:var(--gold-dim);}
+input::placeholder,textarea::placeholder{color:var(--text-muted);}
+select option{background:var(--surface2);}
+textarea{min-height:80px;line-height:1.6;}
+.settings-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.generate-btn{width:100%;padding:14px;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+.generate-btn:hover:not(:disabled){background:rgba(200,169,110,0.08);border-color:var(--gold);}
+.generate-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.generate-btn.loading{color:transparent;}
+.generate-btn.loading::after{content:'';position:absolute;width:16px;height:16px;border:1px solid var(--gold-dim);border-top-color:var(--gold);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg);}}
+.keys-toggle{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;margin-bottom:12px;display:flex;align-items:center;gap:6px;transition:color 0.2s;}
+.keys-toggle:hover{color:var(--text-dim);}
+.keys-section{display:none;margin-bottom:16px;}
+.keys-section.open{display:block;}
+.output-panel{min-height:500px;}
+.tabs{display:flex;gap:0;margin-bottom:0;border-bottom:1px solid var(--border);overflow-x:auto;}
+.tab{padding:10px 16px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.2s;white-space:nowrap;}
+.tab:hover{color:var(--text-dim);}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab-content{display:none;padding:24px 0 0;}
+.tab-content.active{display:block;}
+.content-display{background:var(--surface2);border:1px solid var(--border);padding:24px;min-height:300px;font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;font-family:'Outfit',sans-serif;font-weight:300;outline:none;}
+.content-display[contenteditable="true"]:focus{border-color:var(--gold-dim);}
+.content-display h1,.content-display h2,.content-display h3{font-family:'Cormorant Garamond',serif;font-weight:400;color:var(--gold-bright);margin:16px 0 8px;}
+.content-display h1{font-size:26px;}
+.content-display h2{font-size:20px;}
+.content-placeholder{color:var(--text-muted);font-style:italic;font-size:13px;}
+.action-bar{display:flex;gap:10px;margin-top:16px;align-items:center;}
+.action-btn{padding:9px 18px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;}
+.action-btn:hover{border-color:var(--border-bright);color:var(--text);}
+.action-btn.primary{border-color:var(--gold-dim);color:var(--gold);}
+.action-btn.primary:hover{background:rgba(200,169,110,0.08);border-color:var(--gold);}
+.action-btn.success{border-color:var(--success);color:var(--success);}
+.char-count{margin-left:auto;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);}
+.hashtags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+.hashtag{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:0.05em;}
+.image-search-row{display:flex;gap:8px;margin-bottom:16px;}
+.image-search-row input{flex:1;}
+.search-btn{padding:10px 16px;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.search-btn:hover{border-color:var(--border-bright);color:var(--text);}
+.image-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.image-thumb{aspect-ratio:16/9;object-fit:cover;cursor:pointer;border:2px solid transparent;transition:all 0.2s;opacity:0.7;width:100%;}
+.image-thumb:hover{opacity:1;}
+.image-thumb.selected{border-color:var(--gold);opacity:1;}
+.selected-image-preview{width:100%;aspect-ratio:16/9;object-fit:cover;margin-bottom:8px;display:none;}
+.selected-image-preview.visible{display:block;}
+.image-credit{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;margin-bottom:16px;}
+.upload-zone{border:1px dashed var(--border);padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s;margin-bottom:16px;}
+.upload-zone:hover{border-color:var(--gold-dim);}
+.upload-zone p{font-size:12px;color:var(--text-muted);}
+.upload-zone .upload-icon{font-size:24px;margin-bottom:6px;}
+#file-input{display:none;}
+.connect-section{background:var(--surface2);border:1px solid var(--border);padding:16px;margin-top:16px;}
+.connect-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;}
+.connect-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+/* ── Briefing ── */
+.briefing-player{background:var(--surface2);border:1px solid var(--border);padding:24px;margin-bottom:16px;text-align:center;}
+.briefing-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--gold-bright);margin-bottom:4px;}
+.briefing-subtitle{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;color:var(--text-muted);text-transform:uppercase;margin-bottom:20px;}
+.player-controls{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px;}
+.play-btn{width:56px;height:56px;border-radius:50%;border:1px solid var(--gold-dim);background:transparent;color:var(--gold);font-size:20px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;}
+.play-btn:hover{background:rgba(200,169,110,0.1);border-color:var(--gold);}
+.play-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.speed-btns{display:flex;gap:6px;}
+.speed-btn{padding:5px 10px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;}
+.speed-btn:hover{border-color:var(--border-bright);color:var(--text-dim);}
+.speed-btn.active{border-color:var(--gold-dim);color:var(--gold);}
+.now-reading{font-size:12px;color:var(--text-dim);line-height:1.6;font-style:italic;min-height:40px;padding:0 8px;}
+.briefing-script{background:var(--surface2);border:1px solid var(--border);padding:20px;margin-bottom:16px;font-size:13px;line-height:1.9;color:var(--text);max-height:220px;overflow-y:auto;white-space:pre-wrap;}
+.talking-points{background:var(--surface2);border:1px solid var(--border);padding:20px;margin-bottom:16px;}
+.talking-point{padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--text);display:flex;gap:10px;}
+.talking-point:last-child{border-bottom:none;}
+.tp-number{font-family:'DM Mono',monospace;font-size:10px;color:var(--gold-dim);min-width:20px;padding-top:2px;}
+.research-box{background:var(--surface2);border:1px solid var(--border);padding:20px;margin-bottom:16px;}
+.research-input-row{display:flex;gap:8px;margin-bottom:12px;}
+.research-input-row input{flex:1;}
+.research-answer{font-size:13px;line-height:1.8;color:var(--text);min-height:60px;white-space:pre-wrap;}
+.research-answer.loading{color:var(--text-muted);font-style:italic;}
+.waveform{display:flex;align-items:center;justify-content:center;gap:3px;height:24px;margin:8px 0;}
+.wave-bar{width:3px;background:var(--gold-dim);border-radius:2px;animation:wave 1.2s ease-in-out infinite;}
+.wave-bar:nth-child(2){animation-delay:0.1s;}
+.wave-bar:nth-child(3){animation-delay:0.2s;}
+.wave-bar:nth-child(4){animation-delay:0.3s;}
+.wave-bar:nth-child(5){animation-delay:0.2s;}
+.wave-bar:nth-child(6){animation-delay:0.1s;}
+@keyframes wave{0%,100%{height:4px;}50%{height:20px;}}
+.waveform.paused .wave-bar{animation-play-state:paused;height:4px;}
+
+/* ── Real World Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(8,10,14,0.92);z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity 0.3s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border-bright);padding:36px;max-width:620px;width:100%;position:relative;}
+.modal-badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--text);margin-bottom:8px;line-height:1.3;}
+.modal-subtitle{font-size:13px;color:var(--text-dim);line-height:1.7;margin-bottom:24px;}
+.modal-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;font-weight:300;padding:14px;outline:none;resize:none;min-height:100px;line-height:1.6;transition:border-color 0.2s;}
+.modal-textarea:focus{border-color:var(--gold-dim);}
+.modal-textarea::placeholder{color:var(--text-muted);}
+.modal-actions{display:flex;gap:10px;margin-top:16px;}
+.modal-hint{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;margin-top:12px;line-height:1.6;}
+.differentiator-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid rgba(95,173,138,0.3);background:rgba(95,173,138,0.06);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--success);margin-top:12px;}
+
+/* ── Weekly Schedule Tab ── */
+.week-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.week-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;color:var(--gold-bright);}
+.week-grid{display:flex;flex-direction:column;gap:12px;}
+.day-card{background:var(--surface2);border:1px solid var(--border);overflow:hidden;transition:border-color 0.2s;}
+.day-card:hover{border-color:var(--border-bright);}
+.day-header{padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.day-name{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-muted);min-width:80px;}
+.day-account{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;padding:3px 8px;border-radius:2px;}
+.day-account.eridion{background:rgba(74,158,191,0.1);color:var(--eridion);border:1px solid rgba(74,158,191,0.2);}
+.day-account.erika{background:rgba(191,126,158,0.1);color:var(--erika);border:1px solid rgba(191,126,158,0.2);}
+.day-type{font-size:11px;color:var(--text-dim);margin-left:auto;}
+.day-body{padding:16px;}
+.day-post-text{font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:120px;overflow:hidden;position:relative;}
+.day-post-text.expanded{max-height:none;}
+.day-post-text::after{content:'';position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,var(--surface2));pointer-events:none;}
+.day-post-text.expanded::after{display:none;}
+.day-actions{display:flex;gap:8px;margin-top:12px;align-items:center;}
+.day-expand{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);cursor:pointer;letter-spacing:0.1em;margin-left:auto;}
+.day-expand:hover{color:var(--text-dim);}
+.placeholder-card{background:var(--surface2);border:1px dashed var(--border);padding:24px;text-align:center;}
+.placeholder-card p{font-size:13px;color:var(--text-muted);font-style:italic;}
+
+/* ── Cross-post section ── */
+.crosspost-section{background:var(--surface2);border:1px solid var(--border);padding:20px;margin-bottom:12px;}
+.crosspost-arrow{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.crosspost-text{font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;}
+
+/* ── Status bar ── */
+.status-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;font-family:'DM Mono',monospace;font-size:10px;z-index:100;}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);}
+.status-dot.active{background:var(--success);box-shadow:0 0 6px var(--success);}
+.status-dot.error{background:var(--error);}
+.status-text{color:var(--text-dim);}
+.status-spacer{flex:1;}
+.api-indicator{display:flex;align-items:center;gap:6px;color:var(--text-muted);}
+.toast{position:fixed;top:24px;right:24px;background:var(--surface2);border:1px solid var(--border-bright);padding:12px 20px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--text);z-index:1000;transform:translateY(-60px);opacity:0;transition:all 0.3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:rgba(95,173,138,0.4);color:var(--success);}
+.toast.error{border-color:rgba(191,95,95,0.4);color:var(--error);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+@media(max-width:900px){.main-grid{grid-template-columns:1fr;}.stream-selector{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
-
 <div class="app">
   <header>
     <div class="logo">
@@ -714,11 +204,10 @@
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v1.0 · Content Automation</div>
+      <div style="margin-top:2px">v2.0 · Content Automation</div>
     </div>
   </header>
 
-  <!-- Stream Selector -->
   <div class="stream-selector">
     <button class="stream-btn eridion active" onclick="setStream('eridion')">
       <div class="stream-label">Stream 01</div>
@@ -733,32 +222,21 @@
   </div>
 
   <div class="main-grid">
-    <!-- Left Panel -->
     <div>
       <div class="panel">
         <div class="panel-title">Content Configuration</div>
-
-        <!-- Content Buckets -->
         <div class="field">
           <label class="field-label">Content Bucket</label>
-          <div class="bucket-grid" id="bucket-grid">
-            <!-- Populated by JS -->
-          </div>
+          <div class="bucket-grid" id="bucket-grid"></div>
         </div>
-
-        <!-- Topic -->
         <div class="field">
           <label class="field-label">Topic / Angle</label>
           <input type="text" id="topic-input" placeholder="e.g. DFW luxury market momentum April 2026" />
         </div>
-
-        <!-- Key Points -->
         <div class="field">
           <label class="field-label">Key Points (one per line)</label>
           <textarea id="bullets-input" placeholder="• Rate environment improving&#10;• Move-up segment heating up&#10;• Eridion angle: capacity ready"></textarea>
         </div>
-
-        <!-- Settings -->
         <div class="settings-row">
           <div class="field">
             <label class="field-label">Post Format</label>
@@ -779,8 +257,6 @@
             </select>
           </div>
         </div>
-
-        <!-- API Keys -->
         <div class="keys-toggle" onclick="toggleKeys()">
           <span id="keys-arrow">▶</span> API Keys & Configuration
         </div>
@@ -797,23 +273,20 @@
             <label class="field-label">Wix Site ID</label>
             <input type="text" id="wix-site-id" placeholder="Found in Wix Dashboard URL" />
           </div>
-          <div style="margin-top:8px; margin-bottom: 12px;">
+          <div style="margin-top:8px;margin-bottom:12px;">
             <button class="action-btn" onclick="saveKeys()" style="width:100%">Save Keys Locally</button>
           </div>
         </div>
-
-        <button class="generate-btn" id="generate-btn" onclick="generateContent()">
-          ✦ Generate Content
-        </button>
+        <button class="generate-btn" id="generate-btn" onclick="generateContent()">✦ Generate Content</button>
       </div>
     </div>
 
-    <!-- Right Panel -->
     <div>
       <div class="panel output-panel">
         <div class="tabs">
-          <div class="tab active" onclick="switchTab('linkedin')">LinkedIn Post</div>
+          <div class="tab active" onclick="switchTab('linkedin')">LinkedIn</div>
           <div class="tab" onclick="switchTab('blog')">Blog Post</div>
+          <div class="tab" onclick="switchTab('week')">📅 This Week</div>
           <div class="tab" onclick="switchTab('image')">Image</div>
           <div class="tab" onclick="switchTab('briefing')">🎙 Briefing</div>
           <div class="tab" onclick="switchTab('publish')">Publish</div>
@@ -821,8 +294,9 @@
 
         <!-- LinkedIn Tab -->
         <div class="tab-content active" id="tab-linkedin">
+          <div id="auth-badge-li"></div>
           <div class="content-display" id="linkedin-output" contenteditable="true">
-            <span class="content-placeholder">Your LinkedIn post will appear here. Configure the content settings on the left and hit Generate.</span>
+            <span class="content-placeholder">Your LinkedIn post will appear here.</span>
           </div>
           <div id="hashtags-container" class="hashtags"></div>
           <div class="action-bar">
@@ -834,8 +308,9 @@
 
         <!-- Blog Tab -->
         <div class="tab-content" id="tab-blog">
+          <div id="auth-badge-blog"></div>
           <div class="content-display" id="blog-output" contenteditable="true">
-            <span class="content-placeholder">Your full blog post will appear here. Select "Blog + LinkedIn" format to generate a complete post with sources and SEO metadata.</span>
+            <span class="content-placeholder">Your full blog post will appear here. Select "Blog + LinkedIn" format.</span>
           </div>
           <div class="action-bar">
             <button class="action-btn primary" onclick="copyBlog()">Copy Blog Content</button>
@@ -843,171 +318,167 @@
           </div>
         </div>
 
+        <!-- This Week Tab -->
+        <div class="tab-content" id="tab-week">
+          <div class="week-header">
+            <div>
+              <div class="week-title">Your Week of Content</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:4px">One blog post → five days → two accounts</div>
+            </div>
+            <button class="generate-btn" id="week-gen-btn" onclick="generateWeek()" style="width:auto;padding:12px 20px;font-size:11px">✦ Generate Full Week</button>
+          </div>
+
+          <!-- Cross-post intros -->
+          <div id="crosspost-section" style="display:none;margin-bottom:20px;">
+            <div class="panel-title">Cross-Post Intro Copy</div>
+            <div class="crosspost-section">
+              <div class="crosspost-arrow"><span style="color:var(--eridion)">Eridion Glass</span> → <span style="color:var(--erika)">Erika Personal</span> ↓</div>
+              <div class="crosspost-text" id="crosspost-e2p"></div>
+              <div class="action-bar" style="margin-top:10px">
+                <button class="action-btn" onclick="copyText('crosspost-e2p')">Copy</button>
+                <button class="action-btn" onclick="speakEl('crosspost-e2p')">🔊 Read</button>
+              </div>
+            </div>
+            <div class="crosspost-section">
+              <div class="crosspost-arrow"><span style="color:var(--erika)">Erika Personal</span> → <span style="color:var(--eridion)">Eridion Glass</span> ↓</div>
+              <div class="crosspost-text" id="crosspost-p2e"></div>
+              <div class="action-bar" style="margin-top:10px">
+                <button class="action-btn" onclick="copyText('crosspost-p2e')">Copy</button>
+                <button class="action-btn" onclick="speakEl('crosspost-p2e')">🔊 Read</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-title">Daily Post Schedule</div>
+          <div class="week-grid" id="week-grid">
+            <div class="placeholder-card">
+              <p>Generate content first, then click "Generate Full Week" to create your complete Mon–Fri posting schedule across both accounts.</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Image Tab -->
         <div class="tab-content" id="tab-image">
           <div class="panel-title">Select or Upload Image</div>
-
-          <!-- Upload own photo -->
           <div class="upload-zone" onclick="document.getElementById('file-input').click()">
             <div class="upload-icon">📷</div>
             <p>Upload your own Eridion job photo</p>
-            <p style="margin-top:4px; font-size:11px">Authentic site photos outperform stock every time</p>
+            <p style="margin-top:4px;font-size:11px">Authentic site photos outperform stock every time</p>
           </div>
           <input type="file" id="file-input" accept="image/*" onchange="handleUpload(event)">
-
-          <!-- Unsplash search -->
           <div class="panel-title" style="margin-top:8px">Or Search Free Stock (Unsplash)</div>
           <div class="image-search-row">
             <input type="text" id="image-search" placeholder="e.g. luxury home glass windows Dallas" />
             <button class="search-btn" onclick="searchImages()">Search</button>
           </div>
-
           <img class="selected-image-preview" id="selected-preview" src="" alt="Selected image">
           <div class="image-credit" id="image-credit"></div>
-
-          <div class="image-grid" id="image-grid">
-            <!-- Images appear here -->
-          </div>
+          <div class="image-grid" id="image-grid"></div>
         </div>
 
-        <!-- Briefing / Podcast Tab -->
+        <!-- Briefing Tab -->
         <div class="tab-content" id="tab-briefing">
-
-          <!-- Player -->
           <div class="briefing-player">
             <div class="briefing-title" id="briefing-topic-title">No briefing generated yet</div>
             <div class="briefing-subtitle">Eridion Intelligence Briefing · Personal Audio</div>
-
             <div class="waveform paused" id="waveform">
-              <div class="wave-bar"></div><div class="wave-bar"></div>
-              <div class="wave-bar"></div><div class="wave-bar"></div>
-              <div class="wave-bar"></div><div class="wave-bar"></div>
+              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
             </div>
-
             <div class="player-controls">
-              <button class="play-btn" id="prev-btn" onclick="replayBriefing()" title="Replay from start">↩</button>
+              <button class="play-btn" onclick="replayBriefing()" title="Replay">↩</button>
               <button class="play-btn" id="play-btn" onclick="togglePlay()" disabled>▶</button>
-              <button class="play-btn" id="stop-btn" onclick="stopBriefing()" title="Stop">■</button>
+              <button class="play-btn" onclick="stopBriefing()" title="Stop">■</button>
             </div>
-
             <div class="speed-btns" style="justify-content:center">
               <button class="speed-btn active" onclick="setSpeed(1)">1×</button>
               <button class="speed-btn" onclick="setSpeed(1.25)">1.25×</button>
               <button class="speed-btn" onclick="setSpeed(1.5)">1.5×</button>
               <button class="speed-btn" onclick="setSpeed(1.75)">1.75×</button>
             </div>
-
             <div class="now-reading" id="now-reading" style="margin-top:12px">Generate content first, then hit the button below to create your audio briefing.</div>
           </div>
-
-          <!-- Generate Briefing Button -->
-          <button class="generate-btn" id="briefing-gen-btn" onclick="generateBriefing()" style="margin-bottom:16px">
-            🎙 Generate Audio Briefing
-          </button>
-
-          <!-- Briefing Script -->
+          <button class="generate-btn" id="briefing-gen-btn" onclick="generateBriefing()" style="margin-bottom:16px">🎙 Generate Audio Briefing</button>
           <div class="panel-title">Briefing Script</div>
-          <div class="briefing-script" id="briefing-script">
-            Your full spoken briefing will appear here after generation. It will be formatted for listening — not reading — so it flows naturally when played aloud.
-          </div>
-
-          <!-- Talking Points -->
+          <div class="briefing-script" id="briefing-script">Your spoken briefing will appear here after generation.</div>
           <div class="panel-title">Your Talking Points</div>
-          <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px">These are the soundbites you can say confidently on a panel, in a meeting, or at a networking event.</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Say these confidently on a panel, at DBA, or in any conversation.</div>
           <div class="talking-points" id="talking-points">
-            <div class="talking-point">
-              <span class="tp-number">—</span>
-              <span>Talking points will appear here after you generate your briefing.</span>
-            </div>
+            <div class="talking-point"><span class="tp-number">—</span><span>Talking points will appear after briefing generation.</span></div>
           </div>
-
-          <!-- Research Q&A -->
           <div class="panel-title">Go Deeper — Ask Anything</div>
-          <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px">Ask about any data point, term, or concept in your content. Get a plain-language answer you can actually use.</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Ask about any data point or term. Get a plain-language answer you can actually use.</div>
           <div class="research-box">
             <div class="research-input-row">
-              <input type="text" id="research-question" placeholder='e.g. "Tell me more about the rate relief rally"' onkeydown="if(event.key==='Enter') askResearch()" />
+              <input type="text" id="research-question" placeholder='"Tell me more about the rate relief rally"' onkeydown="if(event.key==='Enter') askResearch()" />
               <button class="search-btn" onclick="askResearch()">Ask</button>
-              <button class="search-btn" onclick="readResearchAnswer()" title="Read answer aloud">🔊</button>
+              <button class="search-btn" onclick="readResearchAnswer()">🔊</button>
             </div>
-            <div class="research-answer" id="research-answer">
-              Your answer will appear here. You can also hit 🔊 to have it read aloud to you.
-            </div>
+            <div class="research-answer" id="research-answer">Your answer will appear here. Hit 🔊 to hear it read aloud.</div>
           </div>
-
-          <!-- Previous Questions -->
           <div id="research-history"></div>
         </div>
 
         <!-- Publish Tab -->
         <div class="tab-content" id="tab-publish">
           <div class="panel-title">Publishing</div>
-
           <div class="connect-section">
             <div class="connect-title">Wix Blog → Auto-Publish</div>
-            <p style="font-size:13px; color:var(--text-dim); line-height:1.6; margin-bottom:16px">
-              Enter your Wix API Key and Site ID in the API Keys section (left panel) to enable direct blog publishing. Your post will be pushed as a draft for your review before going live.
-            </p>
+            <p style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:16px">Enter your Wix API Key and Site ID in the Keys section to enable direct blog publishing.</p>
             <div class="connect-grid">
-              <button class="action-btn primary" onclick="publishToWix()" id="wix-publish-btn">
-                Publish to Wix Blog
-              </button>
-              <button class="action-btn" onclick="publishToWixDraft()">
-                Save as Draft
-              </button>
+              <button class="action-btn primary" onclick="publishToWix()">Publish to Wix Blog</button>
+              <button class="action-btn" onclick="publishToWix(true)">Save as Draft</button>
             </div>
-            <div id="wix-status" style="margin-top:12px; font-family:'DM Mono',monospace; font-size:10px; color:var(--text-muted);"></div>
+            <div id="wix-status" style="margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);"></div>
           </div>
-
-          <div class="connect-section" style="margin-top:12px">
+          <div class="connect-section">
             <div class="connect-title">LinkedIn → Copy & Post</div>
-            <p style="font-size:13px; color:var(--text-dim); line-height:1.6; margin-bottom:16px">
-              LinkedIn's API requires OAuth authentication. For now, use the copy button to paste your post directly into LinkedIn. Future versions will support direct scheduling.
-            </p>
+            <p style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:16px">Copy your post and open LinkedIn to paste and publish.</p>
             <div class="connect-grid">
               <button class="action-btn primary" onclick="openLinkedIn()">Open LinkedIn</button>
               <button class="action-btn" onclick="copyLinkedIn()">Copy Post Text</button>
             </div>
           </div>
-
-          <!-- Calendar Log -->
-          <div class="connect-section" style="margin-top:12px">
+          <div class="connect-section">
             <div class="connect-title">Content Log</div>
-            <div id="content-log" style="max-height:200px; overflow-y:auto;">
-              <p style="font-size:12px; color:var(--text-muted); font-style:italic">Posts you generate this session will appear here.</p>
+            <div id="content-log" style="max-height:200px;overflow-y:auto;">
+              <p style="font-size:12px;color:var(--text-muted);font-style:italic">Posts you generate this session will appear here.</p>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </div>
 
-<!-- Status Bar -->
+<!-- Real World Experience Modal -->
+<div class="modal-overlay" id="rw-modal">
+  <div class="modal">
+    <div class="modal-badge">✦ Make It Real</div>
+    <div class="modal-title">Add a real-world tie-in before you publish.</div>
+    <div class="modal-subtitle">AI can write about the DFW market. Only you can say what happened on your last job site. One real detail makes this 10× more credible than anything generic. What's a recent experience, client conversation, or field observation that connects to this topic?</div>
+    <textarea class="modal-textarea" id="rw-input" placeholder='e.g. "We just finished a frameless staircase in Prosper where the builder pushed the schedule up three weeks because their buyer moved the closing date forward..."'></textarea>
+    <div class="modal-hint">This will be woven naturally into your LinkedIn post and briefing talking points — not bolted on.</div>
+    <div class="modal-actions">
+      <button class="generate-btn" onclick="weaveExperience()" style="flex:1">✦ Weave It In</button>
+      <button class="action-btn" onclick="closeModal()" style="padding:14px 20px">Skip for now</button>
+    </div>
+  </div>
+</div>
+
 <div class="status-bar">
   <div class="status-dot" id="status-dot"></div>
   <span class="status-text" id="status-text">Ready</span>
   <div class="status-spacer"></div>
-  <div class="api-indicator">
-    <div class="status-dot" id="claude-dot"></div>
-    <span>Claude API</span>
-  </div>
-  <div class="api-indicator" style="margin-left:16px">
-    <div class="status-dot" id="wix-dot"></div>
-    <span>Wix</span>
-  </div>
-  <div class="api-indicator" style="margin-left:16px">
-    <div class="status-dot" id="unsplash-dot"></div>
-    <span>Unsplash</span>
-  </div>
+  <div class="api-indicator"><div class="status-dot" id="claude-dot"></div><span>Claude API</span></div>
+  <div class="api-indicator" style="margin-left:16px"><div class="status-dot" id="wix-dot"></div><span>Wix</span></div>
+  <div class="api-indicator" style="margin-left:16px"><div class="status-dot" id="unsplash-dot"></div><span>Unsplash</span></div>
 </div>
-
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-// ─── State ───────────────────────────────────────────────────────────────────
+const WORKER = 'https://frosty-base-f01e.erikagonzalez103.workers.dev/api/messages';
+
 let currentStream = 'eridion';
 let currentBucket = '';
 let generatedLinkedIn = '';
@@ -1016,675 +487,607 @@ let generatedHashtags = [];
 let selectedImageUrl = '';
 let selectedImageCredit = '';
 let contentLog = [];
+let weekPosts = [];
 
-// ─── Content Buckets ─────────────────────────────────────────────────────────
+// ── Buckets ──
 const buckets = {
-  eridion: [
-    { id: 'market',   icon: '📈', label: 'Market Intelligence' },
-    { id: 'didyouknow', icon: '💡', label: 'Did You Know · Code' },
-    { id: 'labor',    icon: '🏗️', label: 'Labor Market Reality' },
-    { id: 'innovation', icon: '🔲', label: 'Glass Innovation' },
-    { id: 'partnership', icon: '🤝', label: 'Builder Partnership' },
+  eridion:[
+    {id:'market',icon:'📈',label:'Market Intelligence'},
+    {id:'didyouknow',icon:'💡',label:'Did You Know · Code'},
+    {id:'labor',icon:'🏗️',label:'Labor Market Reality'},
+    {id:'innovation',icon:'🔲',label:'Glass Innovation'},
+    {id:'partnership',icon:'🤝',label:'Builder Partnership'},
   ],
-  erika: [
-    { id: 'leadership', icon: '👑', label: 'Leadership Insight' },
-    { id: 'organic',  icon: '📍', label: 'Organic / Event Recap' },
-    { id: 'spotlight', icon: '✨', label: 'Women in Business Spotlight' },
-    { id: 'industry', icon: '🏠', label: 'Industry Observation' },
-    { id: 'journey',  icon: '🌱', label: 'Business Journey' },
+  erika:[
+    {id:'leadership',icon:'👑',label:'Leadership Insight'},
+    {id:'organic',icon:'📍',label:'Organic / Event Recap'},
+    {id:'spotlight',icon:'✨',label:'Women in Business Spotlight'},
+    {id:'industry',icon:'🏠',label:'Industry Observation'},
+    {id:'journey',icon:'🌱',label:'Business Journey'},
   ]
 };
 
-// ─── Brand Voice Prompts ──────────────────────────────────────────────────────
+// ── Voice Prompts ──
 const voicePrompts = {
-  eridion: `You are writing content for Eridion Glass, LLC — a premium custom glass and glazing subcontractor in Dallas, TX specializing in luxury residential ($1M+ homes) and select commercial construction. 
+  eridion:`You are writing content for Eridion Glass, LLC — a premium custom glass and glazing subcontractor in Dallas, TX specializing in luxury residential ($1M+ homes) and select commercial construction.
 
 BRAND VOICE: Confident but approachable. Data-informed but not jargon-heavy. Focused on solving builder problems. Expert authority without arrogance. Never "we're the best" — always "here's what we're seeing and what it means for your project."
+AUDIENCE: Custom home builders, luxury home builders, general contractors, project managers in DFW and Central Arkansas.
+NEVER: Generic sales language, direct superiority claims, "backup vendor" framing.
+ALWAYS: Lead with recipient's reality, tie data to actionable insight, position Eridion as the trusted expert partner.`,
 
-AUDIENCE: Custom home builders, luxury home builders, general contractors, project managers, purchasing agents in DFW and Central Arkansas.
+  erika:`You are writing personal brand content for Erika González, co-founder of Eridion Glass, LLC — a female entrepreneur in Dallas, TX with an MBA in Marketing from LSU and 20+ years in corporate advertising before entering construction.
 
-NEVER: Use generic sales language, claim superiority directly, or use "backup vendor" framing.
-ALWAYS: Lead with the recipient's reality, tie market data to actionable insight, position Eridion as the trusted partner who understands the industry.`,
-
-  erika: `You are writing personal brand content for Erika González, co-founder and Managing Member of Eridion Glass, LLC — a female entrepreneur in Dallas, TX with an MBA in Marketing from LSU and 20+ years in corporate advertising before entering the construction industry.
-
-PERSONAL VOICE: Thoughtfully vulnerable (not oversharing), approachable but polished, motivational without preaching, honest about friction but always moving toward the insight or the win. Think: "I processed this, learned from it, and now I'm offering something useful to you."
-
-IMPORTANT: Vulnerability stays in the lane of business and industry friction — never personal health, mental health, or anything that undermines professional credibility. Frame struggles as learning moments, not ongoing problems.
-
-AUDIENCE: Female founders, women in construction and trades, business leaders, DFW entrepreneurial community.
-
-TOPICS TO DRAW FROM: Women in construction, building a service business, Let's Grow Networks (LGN), HER Dallas, leadership, pricing confidence, partnerships.`
+PERSONAL VOICE: Thoughtfully vulnerable (not oversharing), approachable but polished, motivational without preaching, honest about friction but always moving toward the insight or the win.
+IMPORTANT: Vulnerability stays in business/industry friction only — never personal health or anything undermining professional credibility. Frame struggles as learning moments.
+AUDIENCE: Female founders, women in construction, business leaders, DFW entrepreneurial community.`
 };
 
-// ─── Init ─────────────────────────────────────────────────────────────────────
-document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-loadKeys();
-renderBuckets();
-updateClockIndicators();
+// ── Init ──
+document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+loadKeys(); renderBuckets(); updateIndicators();
 
 function renderBuckets() {
   const grid = document.getElementById('bucket-grid');
   const list = buckets[currentStream];
-  grid.innerHTML = list.map(b => `
-    <button class="bucket-btn ${currentBucket === b.id ? 'active' : ''}" onclick="selectBucket('${b.id}')">
+  grid.innerHTML = list.map(b=>`
+    <button class="bucket-btn ${currentBucket===b.id?'active':''}" onclick="selectBucket('${b.id}')">
       <span class="bucket-icon">${b.icon}</span>${b.label}
-    </button>
-  `).join('');
-  if (!currentBucket && list.length) currentBucket = list[0].id;
+    </button>`).join('');
+  if(!currentBucket&&list.length) currentBucket=list[0].id;
 }
 
 function setStream(s) {
-  currentStream = s;
-  currentBucket = buckets[s][0].id;
-  document.querySelectorAll('.stream-btn').forEach(b => b.classList.remove('active'));
+  currentStream=s; currentBucket=buckets[s][0].id;
+  document.querySelectorAll('.stream-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector(`.stream-btn.${s}`).classList.add('active');
   renderBuckets();
 }
 
 function selectBucket(id) {
-  currentBucket = id;
-  renderBuckets();
-
-  // Auto-set format and tone based on bucket
-  const formatMap = { didyouknow: 'didyouknow', spotlight: 'spotlight' };
-  const toneMap = { market: 'authoritative', didyouknow: 'educational', labor: 'authoritative', innovation: 'educational', partnership: 'conversational', leadership: 'personal', organic: 'personal', spotlight: 'conversational', industry: 'authoritative', journey: 'personal' };
-  
-  if (formatMap[id]) document.getElementById('format-select').value = formatMap[id];
-  if (toneMap[id]) document.getElementById('tone-select').value = toneMap[id];
+  currentBucket=id; renderBuckets();
+  const fmtMap={didyouknow:'didyouknow',spotlight:'spotlight'};
+  const toneMap={market:'authoritative',didyouknow:'educational',labor:'authoritative',innovation:'educational',partnership:'conversational',leadership:'personal',organic:'personal',spotlight:'conversational',industry:'authoritative',journey:'personal'};
+  if(fmtMap[id]) document.getElementById('format-select').value=fmtMap[id];
+  if(toneMap[id]) document.getElementById('tone-select').value=toneMap[id];
 }
 
 function switchTab(tab) {
-  const tabNames = ['linkedin','blog','image','briefing','publish'];
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', tabNames[i] === tab);
-  });
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const names=['linkedin','blog','week','image','briefing','publish'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===tab));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');
 }
 
-// ─── Generate Content ─────────────────────────────────────────────────────────
+// ── Generate Content ──
 async function generateContent() {
-  const topic = document.getElementById('topic-input').value.trim();
-  const bullets = document.getElementById('bullets-input').value.trim();
-  const format = document.getElementById('format-select').value;
-  const tone = document.getElementById('tone-select').value;
+  const topic=document.getElementById('topic-input').value.trim();
+  const bullets=document.getElementById('bullets-input').value.trim();
+  const format=document.getElementById('format-select').value;
+  const tone=document.getElementById('tone-select').value;
+  if(!topic){showToast('Please enter a topic first.','error');return;}
 
-  if (!topic) { showToast('Please enter a topic first.', 'error'); return; }
+  const btn=document.getElementById('generate-btn');
+  btn.disabled=true; btn.classList.add('loading');
+  setStatus('Generating content...',true);
 
-  const btn = document.getElementById('generate-btn');
-  btn.disabled = true;
-  btn.classList.add('loading');
-  setStatus('Generating content...', true);
+  const bucketLabel=buckets[currentStream].find(b=>b.id===currentBucket)?.label||currentBucket;
+  const voice=voicePrompts[currentStream];
 
-  const bucketLabel = buckets[currentStream].find(b => b.id === currentBucket)?.label || currentBucket;
-  const voice = voicePrompts[currentStream];
+  let fmtInstr='';
+  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook. Subtle engagement CTA at end. Also generate 5 relevant hashtags.`;
+  else if(format==='blog+linkedin') fmtInstr=`Generate BOTH a full blog post AND a LinkedIn snippet.
 
-  let formatInstructions = '';
-  if (format === 'linkedin') {
-    formatInstructions = `Generate a LinkedIn post only (no blog post). The post should be 150-300 words, conversational, with a strong opening hook that stops the scroll. End with a subtle call to engagement (question or insight). Also generate 5 relevant hashtags.`;
-  } else if (format === 'blog+linkedin') {
-    formatInstructions = `Generate BOTH a full blog post AND a LinkedIn post snippet.
+BLOG POST (800-1200 words): SEO title, strong intro, 3-4 sections with subheadings, specific data with sources, practical takeaway, closing CTA.
+LINKEDIN SNIPPET (150-300 words): Key insight from blog. Ends with "Read the full post →"
 
-BLOG POST (800-1200 words):
-- SEO-optimized title
-- Strong introduction that hooks the reader
-- 3-4 substantive sections with subheadings
-- Include specific data points and cite sources where relevant (e.g., Dallas Builders Association, Dallas Fed, HousingWire)
-- Practical takeaway for the reader
-- Closing CTA that ties back to Eridion's expertise (or Erika's brand)
-
-LINKEDIN SNIPPET (150-300 words):
-- Pulled from the blog's key insight
-- Ends with "Read the full post →" placeholder
-
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
+FORMAT EXACTLY:
 ===BLOG===
-[full blog post here]
+[full blog post]
 ===LINKEDIN===
-[linkedin post here]
+[linkedin post]
 ===HASHTAGS===
 [5 hashtags, one per line]`;
-  } else if (format === 'didyouknow') {
-    formatInstructions = `Generate a "Did You Know?" LinkedIn post about a glass, glazing, or building code requirement. Format: Start with "Did you know?" then the surprising/educational fact, then a brief explanation of why it matters to builders, then Eridion's connection to this expertise. Keep it 100-200 words. Punchy and scroll-stopping. Also generate 5 relevant hashtags.`;
-  } else if (format === 'spotlight') {
-    formatInstructions = `Generate a Women in Business spotlight post introducing the interview subject. Format: warm, genuine, not promotional. Celebrate their story and one key insight they've shared. 150-250 words. Also generate 5 relevant hashtags.`;
-  }
+  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post about a glass, glazing, or building code requirement. Start with "Did you know?" then the surprising fact, why it matters to builders, Eridion's expertise connection. 100-200 words. Also 5 hashtags.`;
+  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post. Warm, genuine, not promotional. Celebrate the subject's story and one key insight. 150-250 words. Also 5 hashtags.`;
 
-  const prompt = `${voice}
-
-CONTENT BUCKET: ${bucketLabel}
-TOPIC: ${topic}
-KEY POINTS TO INCORPORATE:
-${bullets || '(use your best judgment based on the topic)'}
-TONE: ${tone}
-FORMAT: ${format}
-
-${formatInstructions}`;
+  const prompt=`${voice}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment)'}\nTONE: ${tone}\n\n${fmtInstr}`;
 
   try {
-    const response = await fetch('https://frosty-base-f01e.erikagonzalez103.workers.dev/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const text=data.content?.[0]?.text||'';
+    if(!text) throw new Error('Empty response');
 
-    const data = await response.json();
-    const text = data.content?.[0]?.text || '';
-
-    if (format === 'blog+linkedin') {
-      // Parse the sections
-      const blogMatch = text.match(/===BLOG===([\s\S]*?)===LINKEDIN===/);
-      const linkedinMatch = text.match(/===LINKEDIN===([\s\S]*?)===HASHTAGS===/);
-      const hashtagsMatch = text.match(/===HASHTAGS===([\s\S]*?)$/);
-
-      generatedBlog = blogMatch ? blogMatch[1].trim() : text;
-      generatedLinkedIn = linkedinMatch ? linkedinMatch[1].trim() : '';
-      const hashtagsRaw = hashtagsMatch ? hashtagsMatch[1].trim() : '';
-      generatedHashtags = hashtagsRaw.split('\n').map(h => h.trim()).filter(h => h.startsWith('#'));
+    if(format==='blog+linkedin'){
+      const bm=text.match(/===BLOG===([\s\S]*?)===LINKEDIN===/i)||text.match(/BLOG POST[:\n]([\s\S]*?)LINKEDIN/i);
+      const lm=text.match(/===LINKEDIN===([\s\S]*?)===HASHTAGS===/i)||text.match(/LINKEDIN[:\n]([\s\S]*?)(?:HASHTAGS|#)/i);
+      const hm=text.match(/===HASHTAGS===([\s\S]*?)$/i);
+      if(bm&&lm){generatedBlog=bm[1].trim();generatedLinkedIn=lm[1].trim();}
+      else{const sp=Math.floor(text.length*0.65);const lp=text.lastIndexOf('\n\n',sp);generatedBlog=text.substring(0,lp>0?lp:sp).trim();generatedLinkedIn=text.substring(lp>0?lp:sp).trim();}
+      const hr=hm?hm[1].trim():'';
+      generatedHashtags=hr?hr.split('\n').map(h=>h.trim()).filter(h=>h.startsWith('#')):[...new Set(text.match(/#[A-Za-z][A-Za-z0-9]*/g)||[])].slice(0,6);
     } else {
-      // For non-blog formats, check for hashtags at the end
-      const hashtagMatch = text.match(/(#[\w]+[\s\S]*?)$/);
-      if (hashtagMatch) {
-        generatedLinkedIn = text.replace(hashtagMatch[0], '').trim();
-        generatedHashtags = hashtagMatch[0].match(/#[\w]+/g) || [];
-      } else {
-        generatedLinkedIn = text;
-        generatedHashtags = [];
-      }
-      generatedBlog = '';
+      const lines=text.split('\n');const htLines=[];const ctLines=[];
+      let inH=false;
+      for(let i=lines.length-1;i>=0;i--){const l=lines[i].trim();if(l.match(/^#[A-Za-z]/)||(inH&&l==='')){if(l.startsWith('#')){htLines.unshift(l);inH=true;}}else{ctLines.unshift(...lines.slice(0,i+1));break;}}
+      generatedLinkedIn=(ctLines.length?ctLines:lines).join('\n').trim();
+      generatedHashtags=htLines.length?htLines:(text.match(/#[A-Za-z][A-Za-z0-9]*/g)||[]).slice(0,5);
+      if(!generatedLinkedIn) generatedLinkedIn=text;
+      generatedBlog='';
     }
 
     // Display LinkedIn
-    const liOut = document.getElementById('linkedin-output');
-    liOut.innerHTML = '';
-    liOut.textContent = generatedLinkedIn || 'No LinkedIn post generated. Try "Blog + LinkedIn" format.';
+    const liOut=document.getElementById('linkedin-output');
+    liOut.innerHTML=''; liOut.textContent=generatedLinkedIn||'No LinkedIn post generated.';
 
     // Display hashtags
-    const htContainer = document.getElementById('hashtags-container');
-    htContainer.innerHTML = generatedHashtags.map(h => `<span class="hashtag">${h}</span>`).join('');
+    document.getElementById('hashtags-container').innerHTML=generatedHashtags.map(h=>`<span class="hashtag">${h}</span>`).join('');
 
     // Display blog
-    const blogOut = document.getElementById('blog-output');
-    blogOut.innerHTML = '';
-    if (generatedBlog) {
-      blogOut.innerHTML = formatBlogHTML(generatedBlog);
-    } else {
-      blogOut.textContent = 'Select "Blog + LinkedIn" format to generate a full blog post.';
-    }
+    const blogOut=document.getElementById('blog-output');
+    blogOut.innerHTML='';
+    if(generatedBlog) blogOut.innerHTML=formatBlogHTML(generatedBlog);
+    else blogOut.textContent='Select "Blog + LinkedIn" format to generate a full blog post.';
 
-    // Update char count
     updateCharCount();
-
-    // Auto-search for image
-    if (topic) {
-      document.getElementById('image-search').value = topic;
-    }
-
-    // Log it
-    logContent(topic, bucketLabel);
-
-    showToast('Content generated successfully', 'success');
-    setStatus('Ready', false);
+    if(topic) document.getElementById('image-search').value=topic;
+    logContent(topic,bucketLabel);
     document.getElementById('claude-dot').classList.add('active');
+    setStatus('Ready',false);
+    showToast('Content generated!','success');
 
-  } catch (err) {
-    showToast('Generation failed. Check your connection.', 'error');
-    setStatus('Error', false);
-    console.error(err);
+    // Trigger real-world prompt after short delay
+    setTimeout(()=>openModal(),800);
+
+  } catch(e) {
+    showToast('Generation failed: '+e.message,'error');
+    setStatus('Error',false);
   } finally {
-    btn.disabled = false;
-    btn.classList.remove('loading');
+    btn.disabled=false; btn.classList.remove('loading');
   }
 }
 
-function formatBlogHTML(text) {
-  return text
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^/, '<p>').replace(/$/, '</p>');
-}
+// ── Real World Modal ──
+function openModal(){document.getElementById('rw-modal').classList.add('open');}
+function closeModal(){document.getElementById('rw-modal').classList.remove('open');}
 
-// ─── Image Search ─────────────────────────────────────────────────────────────
-async function searchImages() {
-  const query = document.getElementById('image-search').value.trim();
-  const key = document.getElementById('unsplash-key').value.trim() || localStorage.getItem('unsplash_key');
-  
-  if (!key) {
-    showToast('Add your free Unsplash API key in the Keys section', 'error');
-    toggleKeys();
-    return;
-  }
+async function weaveExperience() {
+  const experience=document.getElementById('rw-input').value.trim();
+  if(!experience){showToast('Please share a real experience first','error');return;}
 
-  if (!query) { showToast('Enter an image search term', 'error'); return; }
+  const btn=document.querySelector('#rw-modal .generate-btn');
+  btn.disabled=true; btn.textContent='⏳ Weaving it in...';
 
-  setStatus('Searching images...', true);
+  const prompt=`You are editing a LinkedIn post for Erika González of Eridion Glass, a luxury glass subcontractor in Dallas TX.
+
+CURRENT LINKEDIN POST:
+${generatedLinkedIn}
+
+REAL WORLD EXPERIENCE TO WEAVE IN:
+"${experience}"
+
+Rewrite the LinkedIn post to naturally integrate this real experience. It should feel like it was always part of the post — not bolted on. Keep the same length and structure. Keep the brand voice (confident, data-informed, builder-focused). The real experience should appear early or mid-post as a grounding detail that makes the data feel lived-in.
+
+Return ONLY the rewritten post. No preamble.`;
 
   try {
-    const res = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=6&orientation=landscape`, {
-      headers: { Authorization: `Client-ID ${key}` }
-    });
-    const data = await res.json();
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message);
+    const newPost=data.content?.[0]?.text||'';
+    if(newPost){
+      generatedLinkedIn=newPost;
+      const liOut=document.getElementById('linkedin-output');
+      liOut.innerHTML=''; liOut.textContent=newPost;
 
-    const grid = document.getElementById('image-grid');
-    grid.innerHTML = '';
+      // Add differentiator badge
+      const badge=`<div class="differentiator-badge">✓ Anchored to real field experience — your authentic edge</div>`;
+      document.getElementById('auth-badge-li').innerHTML=badge;
+      document.getElementById('auth-badge-blog').innerHTML=badge;
 
-    if (!data.results?.length) {
-      grid.innerHTML = '<p style="color:var(--text-muted);font-size:12px;grid-column:span 3">No images found. Try different keywords.</p>';
-      return;
+      updateCharCount();
+      showToast('Real experience woven in!','success');
     }
-
-    data.results.forEach(img => {
-      const el = document.createElement('img');
-      el.className = 'image-thumb';
-      el.src = img.urls.small;
-      el.alt = img.alt_description || query;
-      el.onclick = () => selectImage(img.urls.regular, `Photo by ${img.user.name} on Unsplash`, el);
-      grid.appendChild(el);
-    });
-
-    document.getElementById('unsplash-dot').classList.add('active');
-    setStatus('Ready', false);
+    closeModal();
   } catch(e) {
-    showToast('Image search failed. Verify your Unsplash key.', 'error');
-    setStatus('Ready', false);
+    showToast('Could not weave experience in','error');
+  } finally {
+    btn.disabled=false; btn.textContent='✦ Weave It In';
   }
 }
 
-function selectImage(url, credit, el) {
-  selectedImageUrl = url;
-  selectedImageCredit = credit;
-  document.querySelectorAll('.image-thumb').forEach(t => t.classList.remove('selected'));
-  el.classList.add('selected');
-  const preview = document.getElementById('selected-preview');
-  preview.src = url;
-  preview.classList.add('visible');
-  document.getElementById('image-credit').textContent = credit;
-  showToast('Image selected', 'success');
+// ── Generate Full Week ──
+async function generateWeek() {
+  const topic=document.getElementById('topic-input').value.trim();
+  const content=generatedBlog||generatedLinkedIn;
+  if(!content){showToast('Generate content first','error');return;}
+
+  const btn=document.getElementById('week-gen-btn');
+  btn.disabled=true; btn.textContent='⏳ Building week...';
+  setStatus('Generating weekly schedule...',true);
+
+  const prompt=`You are creating a full week of social media content for Erika González, co-founder of Eridion Glass in Dallas TX. She runs TWO LinkedIn accounts: Eridion Glass (company, B2B authority) and Erika González (personal, female founder).
+
+SOURCE CONTENT:
+${content}
+
+TOPIC: ${topic}
+
+Create exactly 5 posts for Mon-Fri. Each post must be distinct — no repetition. Use this schedule:
+
+MONDAY: Eridion Glass posts the full article intro (authoritative, data-led, 150-200 words)
+TUESDAY: Erika personal reposts/shares with a warm human intro (personal, genuine, 100-150 words — "My team published something this week...")
+WEDNESDAY: Eridion Glass posts a standalone data snippet (punchy, no link needed, 80-120 words, one key stat)
+THURSDAY: Erika personal posts her own take/reaction to the same topic (her perspective as a female founder in construction, 120-180 words)
+FRIDAY: Eridion Glass posts the Did You Know or talking point version (short, scroll-stopping, 60-100 words)
+
+Also create cross-post intro copy in BOTH directions:
+- Eridion→Erika: how Erika would introduce sharing the Eridion post on her personal account
+- Erika→Eridion: how the Eridion account would amplify Erika's personal post
+
+FORMAT EXACTLY:
+===MON===
+[monday post]
+===TUE===
+[tuesday post]
+===WED===
+[wednesday post]
+===THU===
+[thursday post]
+===FRI===
+[friday post]
+===CROSSPOST_E2P===
+[Eridion to Erika intro]
+===CROSSPOST_P2E===
+[Erika to Eridion intro]`;
+
+  try {
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message);
+    const text=data.content?.[0]?.text||'';
+
+    const extract=(tag1,tag2)=>{const m=text.match(new RegExp(`===${tag1}===([\\s\\S]*?)===${tag2}===`,'i'));return m?m[1].trim():'';};
+    const extractLast=(tag)=>{const m=text.match(new RegExp(`===${tag}===([\\s\\S]*?)$`,'i'));return m?m[1].trim():'';};
+
+    weekPosts=[
+      {day:'Monday',account:'eridion',type:'Full Article Intro',text:extract('MON','TUE')},
+      {day:'Tuesday',account:'erika',type:'Personal Repost',text:extract('TUE','WED')},
+      {day:'Wednesday',account:'eridion',type:'Data Snippet',text:extract('WED','THU')},
+      {day:'Thursday',account:'erika',type:'Personal Take',text:extract('THU','FRI')},
+      {day:'Friday',account:'eridion',type:'Did You Know',text:extract('FRI','CROSSPOST_E2P')},
+    ];
+
+    const e2p=extract('CROSSPOST_E2P','CROSSPOST_P2E');
+    const p2e=extractLast('CROSSPOST_P2E');
+
+    renderWeekGrid();
+
+    if(e2p||p2e){
+      document.getElementById('crosspost-e2p').textContent=e2p;
+      document.getElementById('crosspost-p2e').textContent=p2e;
+      document.getElementById('crosspost-section').style.display='block';
+    }
+
+    showToast('Full week generated!','success');
+    setStatus('Ready',false);
+  } catch(e) {
+    showToast('Week generation failed','error');
+    setStatus('Ready',false);
+  } finally {
+    btn.disabled=false; btn.textContent='✦ Generate Full Week';
+  }
 }
 
-function handleUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    selectedImageUrl = e.target.result;
-    selectedImageCredit = 'Your photo';
-    const preview = document.getElementById('selected-preview');
-    preview.src = selectedImageUrl;
-    preview.classList.add('visible');
-    document.getElementById('image-credit').textContent = 'Your own Eridion photo ✓';
-    showToast('Photo uploaded', 'success');
+function renderWeekGrid() {
+  const grid=document.getElementById('week-grid');
+  if(!weekPosts.length){grid.innerHTML='<div class="placeholder-card"><p>No posts yet.</p></div>';return;}
+  grid.innerHTML=weekPosts.map((p,i)=>`
+    <div class="day-card">
+      <div class="day-header">
+        <span class="day-name">${p.day}</span>
+        <span class="day-account ${p.account}">${p.account==='eridion'?'Eridion Glass':'Erika González'}</span>
+        <span class="day-type">${p.type}</span>
+      </div>
+      <div class="day-body">
+        <div class="day-post-text" id="day-text-${i}">${p.text||'<em style="color:var(--text-muted)">Could not parse post — try regenerating</em>'}</div>
+        <div class="day-actions">
+          <button class="action-btn primary" onclick="copyDayPost(${i})">Copy</button>
+          <button class="action-btn" onclick="speakText('${escapeAttr(p.text)}')">🔊</button>
+          <button class="action-btn" onclick="openLinkedIn()">Post to LinkedIn</button>
+          <span class="day-expand" onclick="toggleExpand(${i})">Show more ↓</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleExpand(i){
+  const el=document.getElementById(`day-text-${i}`);
+  const expanded=el.classList.toggle('expanded');
+  el.nextElementSibling.querySelector('.day-expand').textContent=expanded?'Show less ↑':'Show more ↓';
+}
+
+function copyDayPost(i){
+  const text=weekPosts[i]?.text||'';
+  if(text) navigator.clipboard.writeText(text).then(()=>showToast(`${weekPosts[i].day} post copied!`,'success'));
+}
+
+function escapeAttr(s){return(s||'').replace(/'/g,"&#39;").replace(/\n/g,' ');}
+
+// ── Image Search ──
+async function searchImages(){
+  const query=document.getElementById('image-search').value.trim();
+  const key=document.getElementById('unsplash-key').value||localStorage.getItem('unsplash_key');
+  if(!key){showToast('Add your Unsplash API key in the Keys section','error');toggleKeys();return;}
+  if(!query){showToast('Enter an image search term','error');return;}
+  setStatus('Searching images...',true);
+  try{
+    const res=await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=6&orientation=landscape`,{headers:{Authorization:`Client-ID ${key}`}});
+    const data=await res.json();
+    const grid=document.getElementById('image-grid');
+    grid.innerHTML='';
+    if(!data.results?.length){grid.innerHTML='<p style="color:var(--text-muted);font-size:12px;grid-column:span 3">No images found.</p>';return;}
+    data.results.forEach(img=>{
+      const el=document.createElement('img');
+      el.className='image-thumb'; el.src=img.urls.small; el.alt=img.alt_description||query;
+      el.onclick=()=>selectImage(img.urls.regular,`Photo by ${img.user.name} on Unsplash`,el);
+      grid.appendChild(el);
+    });
+    document.getElementById('unsplash-dot').classList.add('active');
+    setStatus('Ready',false);
+  }catch(e){showToast('Image search failed','error');setStatus('Ready',false);}
+}
+
+function selectImage(url,credit,el){
+  selectedImageUrl=url; selectedImageCredit=credit;
+  document.querySelectorAll('.image-thumb').forEach(t=>t.classList.remove('selected'));
+  el.classList.add('selected');
+  const prev=document.getElementById('selected-preview');
+  prev.src=url; prev.classList.add('visible');
+  document.getElementById('image-credit').textContent=credit;
+  showToast('Image selected','success');
+}
+
+function handleUpload(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=(ev)=>{
+    selectedImageUrl=ev.target.result; selectedImageCredit='Your photo';
+    const prev=document.getElementById('selected-preview');
+    prev.src=selectedImageUrl; prev.classList.add('visible');
+    document.getElementById('image-credit').textContent='Your own Eridion photo ✓';
+    showToast('Photo uploaded','success');
   };
   reader.readAsDataURL(file);
 }
 
-// ─── Publish to Wix ───────────────────────────────────────────────────────────
-async function publishToWix(draft = false) {
-  const apiKey = document.getElementById('wix-key').value || localStorage.getItem('wix_key');
-  const siteId = document.getElementById('wix-site-id').value || localStorage.getItem('wix_site_id');
-
-  if (!apiKey || !siteId) {
-    showToast('Add your Wix API Key and Site ID first', 'error');
-    toggleKeys();
-    return;
-  }
-
-  const title = document.getElementById('topic-input').value.trim();
-  const content = generatedBlog || generatedLinkedIn;
-
-  if (!content) { showToast('Generate content first', 'error'); return; }
-
-  setStatus('Publishing to Wix...', true);
-  document.getElementById('wix-status').textContent = 'Connecting to Wix...';
-
-  try {
-    const body = {
-      draftPost: {
-        title: title,
-        richContent: { nodes: [{ type: 'PARAGRAPH', nodes: [{ type: 'TEXT', textData: { text: content, decorations: [] } }], paragraphData: {} }] },
-      },
-      publish: !draft
-    };
-
-    const res = await fetch(`https://www.wixapis.com/blog/v3/draft-posts`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': apiKey,
-        'wix-site-id': siteId
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (res.ok) {
-      const result = await res.json();
+// ── Publish ──
+async function publishToWix(draft=false){
+  const apiKey=document.getElementById('wix-key').value||localStorage.getItem('wix_key');
+  const siteId=document.getElementById('wix-site-id').value||localStorage.getItem('wix_site_id');
+  if(!apiKey||!siteId){showToast('Add Wix API Key and Site ID first','error');toggleKeys();return;}
+  const title=document.getElementById('topic-input').value.trim();
+  const content=generatedBlog||generatedLinkedIn;
+  if(!content){showToast('Generate content first','error');return;}
+  setStatus('Publishing to Wix...',true);
+  document.getElementById('wix-status').textContent='Connecting to Wix...';
+  try{
+    const body={draftPost:{title,richContent:{nodes:[{type:'PARAGRAPH',nodes:[{type:'TEXT',textData:{text:content,decorations:[]}}],paragraphData:{}}]}},publish:!draft};
+    const res=await fetch('https://www.wixapis.com/blog/v3/draft-posts',{method:'POST',headers:{'Content-Type':'application/json','Authorization':apiKey,'wix-site-id':siteId},body:JSON.stringify(body)});
+    if(res.ok){
       document.getElementById('wix-dot').classList.add('active');
-      document.getElementById('wix-status').textContent = draft ? '✓ Saved as draft in Wix' : '✓ Published to Wix blog';
-      showToast(draft ? 'Draft saved to Wix' : 'Published to Wix blog!', 'success');
+      document.getElementById('wix-status').textContent=draft?'✓ Saved as draft in Wix':'✓ Published to Wix blog';
+      showToast(draft?'Draft saved!':'Published to Wix!','success');
     } else {
-      const err = await res.json();
-      document.getElementById('wix-status').textContent = `Error: ${err.message || 'Check your API key and site ID'}`;
-      showToast('Wix publish failed', 'error');
+      const err=await res.json();
+      document.getElementById('wix-status').textContent=`Error: ${err.message||'Check API key and site ID'}`;
+      showToast('Wix publish failed','error');
     }
-  } catch(e) {
-    document.getElementById('wix-status').textContent = 'Connection failed — check API key';
-    showToast('Could not connect to Wix', 'error');
-  } finally {
-    setStatus('Ready', false);
-  }
+  }catch(e){document.getElementById('wix-status').textContent='Connection failed';showToast('Could not connect to Wix','error');}
+  finally{setStatus('Ready',false);}
 }
 
-function publishToWixDraft() { publishToWix(true); }
+// ── Copy helpers ──
+function copyLinkedIn(){
+  const text=document.getElementById('linkedin-output').textContent;
+  const ht=generatedHashtags.join(' ');
+  navigator.clipboard.writeText(ht?`${text}\n\n${ht}`:text).then(()=>showToast('Copied!','success'));
+}
+function copyHashtags(){navigator.clipboard.writeText(generatedHashtags.join(' ')).then(()=>showToast('Hashtags copied!','success'));}
+function copyBlog(){navigator.clipboard.writeText(document.getElementById('blog-output').innerText).then(()=>showToast('Blog copied!','success'));}
+function copyBlogHTML(){navigator.clipboard.writeText(document.getElementById('blog-output').innerHTML).then(()=>showToast('HTML copied!','success'));}
+function copyText(id){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>showToast('Copied!','success'));}
+function openLinkedIn(){window.open('https://www.linkedin.com/post/new/','_blank');setTimeout(()=>copyLinkedIn(),300);}
 
-// ─── Copy Functions ───────────────────────────────────────────────────────────
-function copyLinkedIn() {
-  const text = document.getElementById('linkedin-output').textContent;
-  const hashtags = generatedHashtags.join(' ');
-  const full = hashtags ? `${text}\n\n${hashtags}` : text;
-  navigator.clipboard.writeText(full).then(() => showToast('Copied to clipboard!', 'success'));
+function formatBlogHTML(text){
+  return text
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/^/,'<p>').replace(/$/,'</p>');
 }
 
-function copyHashtags() {
-  navigator.clipboard.writeText(generatedHashtags.join(' ')).then(() => showToast('Hashtags copied!', 'success'));
+function updateCharCount(){
+  const n=document.getElementById('linkedin-output').textContent.length;
+  const el=document.getElementById('char-count');
+  el.textContent=`${n} / 3000`;
+  el.style.color=n>2800?'var(--error)':n>2400?'var(--gold)':'var(--text-muted)';
+}
+document.getElementById('linkedin-output').addEventListener('input',updateCharCount);
+
+function setStatus(t,a){
+  document.getElementById('status-text').textContent=t;
+  document.getElementById('status-dot').classList.toggle('active',a);
+}
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  setTimeout(()=>t.className=`toast ${type}`,2500);
+}
+function toggleKeys(){
+  const s=document.getElementById('keys-section'),a=document.getElementById('keys-arrow');
+  s.classList.toggle('open'); a.textContent=s.classList.contains('open')?'▼':'▶';
+}
+function saveKeys(){
+  const uk=document.getElementById('unsplash-key').value;
+  const wk=document.getElementById('wix-key').value;
+  const ws=document.getElementById('wix-site-id').value;
+  if(uk) localStorage.setItem('unsplash_key',uk);
+  if(wk) localStorage.setItem('wix_key',wk);
+  if(ws) localStorage.setItem('wix_site_id',ws);
+  showToast('Keys saved','success'); updateIndicators();
+}
+function loadKeys(){
+  const uk=localStorage.getItem('unsplash_key');
+  const wk=localStorage.getItem('wix_key');
+  const ws=localStorage.getItem('wix_site_id');
+  if(uk) document.getElementById('unsplash-key').value=uk;
+  if(wk) document.getElementById('wix-key').value=wk;
+  if(ws) document.getElementById('wix-site-id').value=ws;
+}
+function updateIndicators(){
+  const uk=document.getElementById('unsplash-key').value||localStorage.getItem('unsplash_key');
+  const wk=document.getElementById('wix-key').value||localStorage.getItem('wix_key');
+  if(uk) document.getElementById('unsplash-dot').style.background='var(--gold-dim)';
+  if(wk) document.getElementById('wix-dot').style.background='var(--gold-dim)';
+}
+function logContent(topic,bucket){
+  contentLog.unshift({topic,bucket,stream:currentStream,timestamp:new Date().toLocaleString()});
+  document.getElementById('content-log').innerHTML=contentLog.slice(0,20).map(e=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:11px;">
+      <div style="color:var(--text);margin-bottom:2px">${e.topic}</div>
+      <div style="color:var(--text-muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em">${e.bucket} · ${e.stream==='eridion'?'Eridion Glass':'Erika Personal'} · ${e.timestamp}</div>
+    </div>`).join('');
 }
 
-function copyBlog() {
-  const text = document.getElementById('blog-output').innerText;
-  navigator.clipboard.writeText(text).then(() => showToast('Blog content copied!', 'success'));
-}
+// ── Briefing ──
+let briefingText='',ttsPlaying=false,ttsSpeed=1,briefingSentences=[],currentSentenceIndex=0,researchHistory=[];
 
-function copyBlogHTML() {
-  const html = document.getElementById('blog-output').innerHTML;
-  navigator.clipboard.writeText(html).then(() => showToast('HTML copied!', 'success'));
-}
+async function generateBriefing(){
+  const content=generatedBlog||generatedLinkedIn;
+  const topic=document.getElementById('topic-input').value.trim();
+  if(!content){showToast('Generate content first','error');return;}
+  const btn=document.getElementById('briefing-gen-btn');
+  btn.disabled=true; btn.textContent='⏳ Generating...';
+  setStatus('Generating briefing...',true);
 
-function openLinkedIn() {
-  window.open('https://www.linkedin.com/post/new/', '_blank');
-  setTimeout(() => copyLinkedIn(), 300);
-}
-
-// ─── Utilities ────────────────────────────────────────────────────────────────
-function updateCharCount() {
-  const text = document.getElementById('linkedin-output').textContent;
-  const count = text.length;
-  const el = document.getElementById('char-count');
-  el.textContent = `${count} / 3000`;
-  el.style.color = count > 2800 ? 'var(--error)' : count > 2400 ? 'var(--gold)' : 'var(--text-muted)';
-}
-
-document.getElementById('linkedin-output').addEventListener('input', updateCharCount);
-
-function setStatus(text, active) {
-  document.getElementById('status-text').textContent = text;
-  document.getElementById('status-dot').classList.toggle('active', active);
-  document.getElementById('status-dot').classList.toggle('error', false);
-}
-
-function showToast(msg, type = '') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = `toast ${type} show`;
-  setTimeout(() => t.className = `toast ${type}`, 2500);
-}
-
-function toggleKeys() {
-  const section = document.getElementById('keys-section');
-  const arrow = document.getElementById('keys-arrow');
-  section.classList.toggle('open');
-  arrow.textContent = section.classList.contains('open') ? '▼' : '▶';
-}
-
-function saveKeys() {
-  const uk = document.getElementById('unsplash-key').value;
-  const wk = document.getElementById('wix-key').value;
-  const ws = document.getElementById('wix-site-id').value;
-  if (uk) localStorage.setItem('unsplash_key', uk);
-  if (wk) localStorage.setItem('wix_key', wk);
-  if (ws) localStorage.setItem('wix_site_id', ws);
-  showToast('Keys saved locally', 'success');
-  updateClockIndicators();
-}
-
-function loadKeys() {
-  const uk = localStorage.getItem('unsplash_key');
-  const wk = localStorage.getItem('wix_key');
-  const ws = localStorage.getItem('wix_site_id');
-  if (uk) document.getElementById('unsplash-key').value = uk;
-  if (wk) document.getElementById('wix-key').value = wk;
-  if (ws) document.getElementById('wix-site-id').value = ws;
-}
-
-function updateClockIndicators() {
-  const uk = document.getElementById('unsplash-key').value || localStorage.getItem('unsplash_key');
-  const wk = document.getElementById('wix-key').value || localStorage.getItem('wix_key');
-  if (uk) document.getElementById('unsplash-dot').style.background = 'var(--gold-dim)';
-  if (wk) document.getElementById('wix-dot').style.background = 'var(--gold-dim)';
-}
-
-function logContent(topic, bucket) {
-  const entry = { topic, bucket, stream: currentStream, timestamp: new Date().toLocaleString(), status: 'Generated' };
-  contentLog.unshift(entry);
-  const log = document.getElementById('content-log');
-  log.innerHTML = contentLog.slice(0, 20).map(e => `
-    <div style="padding:10px 0; border-bottom:1px solid var(--border); font-size:11px;">
-      <div style="color:var(--text); margin-bottom:2px">${e.topic}</div>
-      <div style="color:var(--text-muted); font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em">${e.bucket} · ${e.stream === 'eridion' ? 'Eridion Glass' : 'Erika Personal'} · ${e.timestamp}</div>
-    </div>
-  `).join('');
-}
-
-// ─── Briefing / Podcast ──────────────────────────────────────────────────────
-let briefingText = '';
-let ttsPlaying = false;
-let ttsSpeed = 1;
-let briefingSentences = [];
-let currentSentenceIndex = 0;
-let researchHistory = [];
-
-async function generateBriefing() {
-  const content = generatedBlog || generatedLinkedIn;
-  const topic = document.getElementById('topic-input').value.trim();
-  if (!content) { showToast('Generate content first before creating a briefing', 'error'); return; }
-
-  const btn = document.getElementById('briefing-gen-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Generating...';
-  setStatus('Generating briefing...', true);
-
-  const prompt = `You are creating a personal audio briefing for Erika González, co-founder of Eridion Glass LLC in Dallas, TX. She will LISTEN to this while driving or walking — not read it. It must sound natural when spoken aloud.
+  const prompt=`You are creating a personal audio briefing for Erika González, co-founder of Eridion Glass. She will LISTEN to this while driving or walking — not read it. Natural spoken language only.
 
 Based on this content:
 ---
 ${content}
 ---
 
-Create a spoken briefing in this EXACT format:
-
 ===BRIEFING===
-Write a 400-500 word spoken briefing that:
-- Opens with: "Here's your briefing on [topic]."
-- Explains key concepts in plain conversational language, like a smart friend explaining it
-- Mentions specific data points and their sources (e.g. "According to the Dallas Builders Association...")
-- Explains any industry terms simply (e.g. "what economists are calling a rate relief rally — that means...")
-- Ends with: "And that's your briefing. Your talking points are coming up next."
+400-500 word spoken briefing. Opens with "Here's your briefing on [topic]." Explains key concepts plainly. Cites data sources by name. Explains industry terms simply. Ends with "And that's your briefing. Your talking points are coming up next."
 
 ===TALKING POINTS===
-Write exactly 4 talking points Erika can say on a panel or at a networking event. Each should be one to two sentences, confident, specific, and natural-sounding. Start each with "TP:" on its own line.`;
+4 talking points for panels and networking events. One to two sentences each. Confident, specific, natural. Start each with "TP:" on its own line.`;
 
-  try {
-    const response = await fetch('https://frosty-base-f01e.erikagonzalez103.workers.dev/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
-    const text = data.content?.[0]?.text || '';
-
-    const briefingMatch = text.match(/===BRIEFING===([\s\S]*?)===TALKING POINTS===/i);
-    const tpMatch = text.match(/===TALKING POINTS===([\s\S]*?)$/i);
-
-    briefingText = briefingMatch ? briefingMatch[1].trim() : text;
-    const tpRaw = tpMatch ? tpMatch[1].trim() : '';
-
-    document.getElementById('briefing-script').textContent = briefingText;
-    document.getElementById('briefing-topic-title').textContent = topic || 'Content Briefing';
-
-    const tpLines = tpRaw.split('\n').filter(l => l.trim().startsWith('TP:'));
-    const tpContainer = document.getElementById('talking-points');
-    tpContainer.innerHTML = tpLines.length
-      ? tpLines.map((tp, i) => `<div class="talking-point"><span class="tp-number">0${i+1}</span><span>${tp.replace(/^TP:\s*/,'')}</span></div>`).join('')
-      : '<div class="talking-point"><span class="tp-number">—</span><span>No talking points generated.</span></div>';
-
-    briefingSentences = briefingText.match(/[^.!?]+[.!?]+/g) || [briefingText];
-    currentSentenceIndex = 0;
-    document.getElementById('play-btn').disabled = false;
-    document.getElementById('now-reading').textContent = 'Briefing ready — hit ▶ to listen.';
-    showToast('Briefing ready — hit play!', 'success');
-    setStatus('Ready', false);
-
-  } catch(e) {
-    showToast('Briefing generation failed', 'error');
-    setStatus('Ready', false);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🎙 Generate Audio Briefing';
-  }
+  try{
+    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const d=await r.json(); if(d.error) throw new Error(d.error.message);
+    const text=d.content?.[0]?.text||'';
+    const bm=text.match(/===BRIEFING===([\s\S]*?)===TALKING POINTS===/i);
+    const tm=text.match(/===TALKING POINTS===([\s\S]*?)$/i);
+    briefingText=bm?bm[1].trim():text;
+    document.getElementById('briefing-script').textContent=briefingText;
+    document.getElementById('briefing-topic-title').textContent=topic||'Content Briefing';
+    const tpLines=(tm?tm[1].trim():'').split('\n').filter(l=>l.trim().startsWith('TP:'));
+    document.getElementById('talking-points').innerHTML=tpLines.length
+      ?tpLines.map((t,i)=>`<div class="talking-point"><span class="tp-number">0${i+1}</span><span>${t.replace(/^TP:\s*/,'')}</span></div>`).join('')
+      :'<div class="talking-point"><span class="tp-number">—</span><span>No talking points generated.</span></div>';
+    briefingSentences=briefingText.match(/[^.!?]+[.!?]+/g)||[briefingText];
+    currentSentenceIndex=0;
+    document.getElementById('play-btn').disabled=false;
+    document.getElementById('now-reading').textContent='Briefing ready — hit ▶ to listen.';
+    showToast('Briefing ready — hit play!','success');
+    setStatus('Ready',false);
+  }catch(e){showToast('Briefing generation failed','error');setStatus('Ready',false);}
+  finally{btn.disabled=false;btn.textContent='🎙 Generate Audio Briefing';}
 }
 
-function togglePlay() {
-  if (!briefingText) return;
-  ttsPlaying ? pauseBriefing() : playBriefing();
-}
+function togglePlay(){if(!briefingText)return;ttsPlaying?pauseBriefing():playBriefing();}
 
-function playBriefing() {
-  if (!window.speechSynthesis) { showToast('Text-to-speech not supported in this browser', 'error'); return; }
+function playBriefing(){
+  if(!window.speechSynthesis){showToast('Text-to-speech not supported','error');return;}
   window.speechSynthesis.cancel();
-  ttsPlaying = true;
-  document.getElementById('play-btn').textContent = '⏸';
+  ttsPlaying=true;
+  document.getElementById('play-btn').textContent='⏸';
   document.getElementById('waveform').classList.remove('paused');
   playSentence(currentSentenceIndex);
 }
 
-function playSentence(i) {
-  if (i >= briefingSentences.length) { stopBriefing(); document.getElementById('now-reading').textContent = '✓ Briefing complete. Replay anytime.'; return; }
-  const sentence = briefingSentences[i].trim();
-  document.getElementById('now-reading').textContent = sentence;
-  const utt = new SpeechSynthesisUtterance(sentence);
-  utt.rate = ttsSpeed;
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v => v.name.includes('Samantha') || v.name.includes('Karen') || v.name.includes('Victoria') || (v.lang.startsWith('en') && v.name.toLowerCase().includes('female')));
-  if (preferred) utt.voice = preferred;
-  utt.onend = () => { if (ttsPlaying) { currentSentenceIndex = i + 1; playSentence(currentSentenceIndex); } };
+function playSentence(i){
+  if(i>=briefingSentences.length){stopBriefing();document.getElementById('now-reading').textContent='✓ Briefing complete. Replay anytime.';return;}
+  const s=briefingSentences[i].trim();
+  document.getElementById('now-reading').textContent=s;
+  const utt=new SpeechSynthesisUtterance(s);
+  utt.rate=ttsSpeed;
+  const voices=window.speechSynthesis.getVoices();
+  const pref=voices.find(v=>v.name.includes('Samantha')||v.name.includes('Karen')||v.name.includes('Victoria')||(v.lang.startsWith('en')&&v.name.toLowerCase().includes('female')));
+  if(pref) utt.voice=pref;
+  utt.onend=()=>{if(ttsPlaying){currentSentenceIndex=i+1;playSentence(currentSentenceIndex);}};
   window.speechSynthesis.speak(utt);
 }
 
-function pauseBriefing() {
-  window.speechSynthesis.cancel();
-  ttsPlaying = false;
-  document.getElementById('play-btn').textContent = '▶';
-  document.getElementById('waveform').classList.add('paused');
-  document.getElementById('now-reading').textContent = 'Paused — hit ▶ to continue.';
-}
+function pauseBriefing(){window.speechSynthesis.cancel();ttsPlaying=false;document.getElementById('play-btn').textContent='▶';document.getElementById('waveform').classList.add('paused');document.getElementById('now-reading').textContent='Paused — hit ▶ to continue.';}
+function stopBriefing(){window.speechSynthesis.cancel();ttsPlaying=false;currentSentenceIndex=0;document.getElementById('play-btn').textContent='▶';document.getElementById('waveform').classList.add('paused');}
+function replayBriefing(){stopBriefing();setTimeout(()=>playBriefing(),100);}
+function setSpeed(s){ttsSpeed=s;document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',parseFloat(b.textContent)===s));if(ttsPlaying){window.speechSynthesis.cancel();setTimeout(()=>playSentence(currentSentenceIndex),100);}}
 
-function stopBriefing() {
-  window.speechSynthesis.cancel();
-  ttsPlaying = false;
-  currentSentenceIndex = 0;
-  document.getElementById('play-btn').textContent = '▶';
-  document.getElementById('waveform').classList.add('paused');
-}
-
-function replayBriefing() { stopBriefing(); setTimeout(() => playBriefing(), 100); }
-
-function setSpeed(speed) {
-  ttsSpeed = speed;
-  document.querySelectorAll('.speed-btn').forEach(b => b.classList.toggle('active', parseFloat(b.textContent) === speed));
-  if (ttsPlaying) { window.speechSynthesis.cancel(); setTimeout(() => playSentence(currentSentenceIndex), 100); }
-}
-
-// ─── Research Q&A ─────────────────────────────────────────────────────────────
-async function askResearch() {
-  const question = document.getElementById('research-question').value.trim();
-  const content = generatedBlog || generatedLinkedIn;
-  if (!question) return;
-  if (!content) { showToast('Generate content first', 'error'); return; }
-
-  const answerEl = document.getElementById('research-answer');
-  answerEl.textContent = 'Researching...';
-  answerEl.className = 'research-answer loading';
-
-  try {
-    const response = await fetch('https://frosty-base-f01e.erikagonzalez103.workers.dev/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: `Erika González is co-founder of Eridion Glass, a luxury glass subcontractor in Dallas TX. She published this content:\n---\n${content}\n---\n\nShe asks: "${question}"\n\nAnswer in plain conversational language she can internalize and use. Include: (1) a clear 2-3 sentence explanation, (2) the source or basis for this info, (3) one sentence she could say confidently on a panel. Keep it tight and practical.` }]
-      })
-    });
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
-    const answer = data.content?.[0]?.text || '';
-    answerEl.textContent = answer;
-    answerEl.className = 'research-answer';
-    researchHistory.unshift({ question, answer });
+async function askResearch(){
+  const q=document.getElementById('research-question').value.trim();
+  const content=generatedBlog||generatedLinkedIn;
+  if(!q) return;
+  if(!content){showToast('Generate content first','error');return;}
+  const el=document.getElementById('research-answer');
+  el.textContent='Researching...'; el.className='research-answer loading';
+  try{
+    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Erika González is co-founder of Eridion Glass, luxury glass subcontractor Dallas TX. She published:\n---\n${content}\n---\nShe asks: "${q}"\n\nAnswer in plain conversational language. Include: (1) clear 2-3 sentence explanation, (2) source/basis, (3) one sentence she could say confidently on a panel. Tight and practical.`}]})});
+    const d=await r.json(); if(d.error) throw new Error(d.error.message);
+    const answer=d.content?.[0]?.text||'';
+    el.textContent=answer; el.className='research-answer';
+    researchHistory.unshift({question:q,answer});
     renderResearchHistory();
-    document.getElementById('research-question').value = '';
-  } catch(e) {
-    answerEl.textContent = 'Research failed — please try again.';
-    answerEl.className = 'research-answer';
-  }
+    document.getElementById('research-question').value='';
+  }catch(e){el.textContent='Research failed — try again.';el.className='research-answer';}
 }
 
-function readResearchAnswer() {
-  const text = document.getElementById('research-answer').textContent;
-  if (!text || text.includes('Your answer will appear')) return;
-  window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.rate = ttsSpeed;
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v => v.name.includes('Samantha') || v.name.includes('Karen') || v.name.includes('Victoria'));
-  if (preferred) utt.voice = preferred;
-  window.speechSynthesis.speak(utt);
+function readResearchAnswer(){
+  const t=document.getElementById('research-answer').textContent;
+  if(!t||t.includes('Your answer')) return;
+  speakText(t);
 }
 
-function renderResearchHistory() {
-  const container = document.getElementById('research-history');
-  if (!researchHistory.length) return;
-  container.innerHTML = `<div class="panel-title" style="margin-top:16px">Previous Questions</div>` +
-    researchHistory.slice(0, 5).map(r => `
+function renderResearchHistory(){
+  const c=document.getElementById('research-history');
+  if(!researchHistory.length) return;
+  c.innerHTML=`<div class="panel-title" style="margin-top:16px">Previous Questions</div>`+
+    researchHistory.slice(0,5).map(r=>`
       <div class="research-box" style="margin-bottom:8px">
         <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold-dim);letter-spacing:0.1em;margin-bottom:8px">Q: ${r.question}</div>
         <div style="font-size:12px;color:var(--text-dim);line-height:1.7">${r.answer}</div>
-        <button class="action-btn" onclick="speakText(this.dataset.text)" data-text="${r.answer.replace(/"/g,'&quot;')}" style="margin-top:8px;font-size:9px">🔊 Read aloud</button>
+        <button class="action-btn" style="margin-top:8px;font-size:9px" onclick="speakText(this.dataset.t)" data-t="${r.answer.replace(/"/g,'&quot;')}">🔊 Read aloud</button>
       </div>`).join('');
 }
 
-function speakText(text) {
+function speakText(t){
   window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.rate = ttsSpeed;
+  const utt=new SpeechSynthesisUtterance(t);
+  utt.rate=ttsSpeed;
   window.speechSynthesis.speak(utt);
 }
 
-if (window.speechSynthesis) {
+function speakEl(id){speakText(document.getElementById(id).textContent);}
+
+if(window.speechSynthesis){
   window.speechSynthesis.getVoices();
-  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
 }
 </script>
 </body>
