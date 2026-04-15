@@ -713,82 +713,110 @@ async function weaveExperienceFromBlog() {
 }
 
 async function doWeave(experience, nudgeId, inputId) {
-  if(!generatedLinkedIn || generatedLinkedIn.trim().length < 20) {
-    showToast('Generate a LinkedIn post first before weaving','error'); return;
+  // Get the actual displayed LinkedIn text directly from the DOM as backup
+  const domText = document.getElementById('linkedin-output').innerText || document.getElementById('linkedin-output').textContent;
+  const postToEdit = (generatedLinkedIn && generatedLinkedIn.length > 50) ? generatedLinkedIn : domText;
+
+  if(!postToEdit || postToEdit.length < 50) {
+    showToast('Generate a LinkedIn post first','error'); return;
   }
 
-  const btn=document.querySelector(`#${nudgeId} .search-btn`);
-  const origText=btn.textContent;
-  btn.disabled=true; btn.textContent='Weaving...';
+  const nudgeEl = document.getElementById(nudgeId);
+  const btn = nudgeEl ? nudgeEl.querySelector('button') : null;
+  if(btn){ btn.disabled=true; btn.textContent='Weaving...'; }
 
-  const prompt=`You are editing a LinkedIn post for Erika González of Eridion Glass, a luxury glass subcontractor in Dallas TX.
+  setStatus('Weaving in real experience...', true);
 
-CURRENT LINKEDIN POST:
-${generatedLinkedIn}
+  const prompt=`You are editing a LinkedIn post for Erika González of Eridion Glass, a luxury glass and mirror subcontractor in Dallas TX specializing in luxury residential homes.
 
-REAL WORLD EXPERIENCE TO WEAVE IN:
+CURRENT POST:
+${postToEdit}
+
+REAL EXPERIENCE TO ADD:
 "${experience}"
 
-Rewrite the LinkedIn post to naturally integrate this real experience. It should feel like it was always part of the post — not bolted on. Keep the same length and structure. Keep the brand voice (confident, data-informed, builder-focused). The real experience should appear early or mid-post as a grounding detail.
+Task: Rewrite the post to naturally include this real experience. Place it where it feels most authentic — usually early or mid-post as a concrete grounding detail. Keep the same overall length and brand voice.
 
-IMPORTANT: Wrap ONLY the newly added real-world sentence(s) in [[REAL: ]] tags like this:
-[[REAL: We just finished a frameless staircase in Prosper where the builder pushed the schedule up three weeks.]]
+Then wrap ONLY the sentence(s) you added or changed with <HIGHLIGHT> and </HIGHLIGHT> tags.
 
-Return ONLY the rewritten post with those markers. No preamble.`;
+Example format:
+The DFW luxury market is moving fast right now. <HIGHLIGHT>We saw this firsthand last month when a Prosper builder called us to move a complex frameless install up by three weeks.</HIGHLIGHT> The data confirms what builders on the ground are already feeling.
+
+Return ONLY the rewritten post with the HIGHLIGHT tags. No explanation, no preamble.`;
 
   try {
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message);
-    const newPost=data.content?.[0]?.text||'';
-    console.log('Weave response:', newPost.substring(0,300));
+    const response = await fetch(WORKER, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user', content:prompt}]
+      })
+    });
 
-    if(newPost){
-      // Store clean version (no markers) as the real generatedLinkedIn
-      generatedLinkedIn=newPost.replace(/\[\[REAL:\s*([\s\S]*?)\]\]/g,'$1').trim();
+    const data = await response.json();
+    console.log('Weave raw response:', JSON.stringify(data).substring(0,400));
 
-      // Render highlighted version in a read-only display
-      const liOut=document.getElementById('linkedin-output');
-      liOut.setAttribute('contenteditable','false');
-      liOut.style.whiteSpace='pre-wrap';
+    if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
-      // Build highlighted HTML — escape plain text, then apply highlight spans
-      const parts = newPost.split(/\[\[REAL:\s*([\s\S]*?)\]\]/g);
-      let htmlOut = '';
-      for(let i=0; i<parts.length; i++){
-        if(i % 2 === 0){
-          // plain text — escape HTML
-          htmlOut += parts[i].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        } else {
-          // highlighted real-world content
-          htmlOut += `<span class="real-highlight">${parts[i].replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
-        }
-      }
-      liOut.innerHTML = htmlOut || generatedLinkedIn;
+    const newPost = data.content?.[0]?.text || '';
+    console.log('Weave post text:', newPost.substring(0,300));
 
-      // Mark nudge banners as anchored
-      document.getElementById('rw-nudge-li').classList.add('anchored');
-      document.getElementById('rw-nudge-blog').classList.add('anchored');
-      document.querySelectorAll('.rw-nudge-label').forEach(el=>el.textContent='✓ Anchored to real field experience — your authentic edge');
+    if(!newPost || newPost.length < 20) {
+      showToast('Empty response from API — try again','error'); return;
+    }
 
-      // Add differentiator badge
-      const badge=`<div class="differentiator-badge">✓ Anchored to real field experience — your authentic edge</div>`;
-      document.getElementById('auth-badge-li').innerHTML=badge;
-      document.getElementById('auth-badge-blog').innerHTML=badge;
+    // Defer DOM updates to avoid browser extension message channel conflicts
+    setTimeout(() => {
+      // Store clean version without tags
+      generatedLinkedIn = newPost.replace(/<HIGHLIGHT>/g,'').replace(/<\/HIGHLIGHT>/g,'').trim();
 
-      document.getElementById('rw-input').value='';
-      document.getElementById('rw-input-blog').value='';
+      // Build highlighted HTML
+      const escaped = newPost
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'§LT§')
+        .replace(/>/g,'§GT§');
+
+      const htmlOut = escaped
+        .replace(/§LT§HIGHLIGHT§GT§([\s\S]*?)§LT§\/HIGHLIGHT§GT§/g,
+          '<span class="real-highlight">$1</span>')
+        .replace(/§LT§/g,'<')
+        .replace(/§GT§/g,'>')
+        .replace(/\n/g,'<br>');
+
+      const liOut = document.getElementById('linkedin-output');
+      liOut.setAttribute('contenteditable','true');
+      liOut.innerHTML = htmlOut;
+
+      // Update nudge banners
+      ['rw-nudge-li','rw-nudge-blog'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.add('anchored');
+      });
+      document.querySelectorAll('.rw-nudge-label').forEach(el =>
+        el.textContent = '✓ Anchored to real field experience — your authentic edge'
+      );
+
+      const badge = `<div class="differentiator-badge">✓ Anchored to real field experience — your authentic edge</div>`;
+      document.getElementById('auth-badge-li').innerHTML = badge;
+      document.getElementById('auth-badge-blog').innerHTML = badge;
+
+      document.getElementById('rw-input').value = '';
+      if(document.getElementById('rw-input-blog'))
+        document.getElementById('rw-input-blog').value = '';
 
       updateCharCount();
-      showToast('Real experience woven in — highlighted in green','success');
-    } else {
-      showToast('No content returned — try again','error');
-    }
+      setStatus('Ready', false);
+      showToast('Woven in — green text shows what was added','success');
+    }, 100);
+
   } catch(e) {
-    showToast('Could not weave experience: '+e.message,'error');
-    console.error(e);
+    console.error('Weave error:', e);
+    showToast('Weave failed: ' + e.message,'error');
+    setStatus('Ready', false);
   } finally {
-    btn.disabled=false; btn.textContent=origText;
+    if(btn){ btn.disabled=false; btn.textContent='Weave It In'; }
   }
 }
 
