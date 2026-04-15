@@ -608,6 +608,100 @@
     .main-grid { grid-template-columns: 1fr; }
     .stream-selector { grid-template-columns: 1fr; }
   }
+
+  /* ── Briefing / Podcast Tab ── */
+  .briefing-player {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .briefing-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px; font-weight: 400;
+    color: var(--gold-bright);
+    margin-bottom: 4px;
+  }
+  .briefing-subtitle {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 0.2em;
+    color: var(--text-muted); text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .player-controls {
+    display: flex; align-items: center;
+    justify-content: center; gap: 16px; margin-bottom: 16px;
+  }
+  .play-btn {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 1px solid var(--gold-dim); background: transparent;
+    color: var(--gold); font-size: 20px; cursor: pointer;
+    transition: all 0.2s; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .play-btn:hover { background: rgba(200,169,110,0.1); border-color: var(--gold); }
+  .play-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .speed-btns { display: flex; gap: 6px; }
+  .speed-btn {
+    padding: 5px 10px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-muted);
+    font-family: 'DM Mono', monospace; font-size: 9px;
+    letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s;
+  }
+  .speed-btn:hover { border-color: var(--border-bright); color: var(--text-dim); }
+  .speed-btn.active { border-color: var(--gold-dim); color: var(--gold); }
+  .now-reading {
+    font-size: 12px; color: var(--text-dim);
+    line-height: 1.6; font-style: italic;
+    min-height: 40px; padding: 0 8px;
+  }
+  .briefing-script {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 20px; margin-bottom: 16px;
+    font-size: 13px; line-height: 1.9; color: var(--text);
+    max-height: 220px; overflow-y: auto; white-space: pre-wrap;
+  }
+  .talking-points {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .talking-point {
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px; line-height: 1.6; color: var(--text);
+    display: flex; gap: 10px;
+  }
+  .talking-point:last-child { border-bottom: none; }
+  .tp-number {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    color: var(--gold-dim); min-width: 20px; padding-top: 2px;
+  }
+  .research-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .research-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .research-input-row input { flex: 1; }
+  .research-answer {
+    font-size: 13px; line-height: 1.8; color: var(--text);
+    min-height: 60px; white-space: pre-wrap;
+  }
+  .research-answer.loading { color: var(--text-muted); font-style: italic; }
+  .waveform {
+    display: flex; align-items: center;
+    justify-content: center; gap: 3px; height: 24px; margin: 8px 0;
+  }
+  .wave-bar {
+    width: 3px; background: var(--gold-dim);
+    border-radius: 2px; animation: wave 1.2s ease-in-out infinite;
+  }
+  .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+  .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+  .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+  .wave-bar:nth-child(5) { animation-delay: 0.2s; }
+  .wave-bar:nth-child(6) { animation-delay: 0.1s; }
+  @keyframes wave { 0%, 100% { height: 4px; } 50% { height: 20px; } }
+  .waveform.paused .wave-bar { animation-play-state: paused; height: 4px; }
 </style>
 </head>
 <body>
@@ -721,6 +815,7 @@
           <div class="tab active" onclick="switchTab('linkedin')">LinkedIn Post</div>
           <div class="tab" onclick="switchTab('blog')">Blog Post</div>
           <div class="tab" onclick="switchTab('image')">Image</div>
+          <div class="tab" onclick="switchTab('briefing')">🎙 Briefing</div>
           <div class="tab" onclick="switchTab('publish')">Publish</div>
         </div>
 
@@ -773,6 +868,75 @@
           <div class="image-grid" id="image-grid">
             <!-- Images appear here -->
           </div>
+        </div>
+
+        <!-- Briefing / Podcast Tab -->
+        <div class="tab-content" id="tab-briefing">
+
+          <!-- Player -->
+          <div class="briefing-player">
+            <div class="briefing-title" id="briefing-topic-title">No briefing generated yet</div>
+            <div class="briefing-subtitle">Eridion Intelligence Briefing · Personal Audio</div>
+
+            <div class="waveform paused" id="waveform">
+              <div class="wave-bar"></div><div class="wave-bar"></div>
+              <div class="wave-bar"></div><div class="wave-bar"></div>
+              <div class="wave-bar"></div><div class="wave-bar"></div>
+            </div>
+
+            <div class="player-controls">
+              <button class="play-btn" id="prev-btn" onclick="replayBriefing()" title="Replay from start">↩</button>
+              <button class="play-btn" id="play-btn" onclick="togglePlay()" disabled>▶</button>
+              <button class="play-btn" id="stop-btn" onclick="stopBriefing()" title="Stop">■</button>
+            </div>
+
+            <div class="speed-btns" style="justify-content:center">
+              <button class="speed-btn active" onclick="setSpeed(1)">1×</button>
+              <button class="speed-btn" onclick="setSpeed(1.25)">1.25×</button>
+              <button class="speed-btn" onclick="setSpeed(1.5)">1.5×</button>
+              <button class="speed-btn" onclick="setSpeed(1.75)">1.75×</button>
+            </div>
+
+            <div class="now-reading" id="now-reading" style="margin-top:12px">Generate content first, then hit the button below to create your audio briefing.</div>
+          </div>
+
+          <!-- Generate Briefing Button -->
+          <button class="generate-btn" id="briefing-gen-btn" onclick="generateBriefing()" style="margin-bottom:16px">
+            🎙 Generate Audio Briefing
+          </button>
+
+          <!-- Briefing Script -->
+          <div class="panel-title">Briefing Script</div>
+          <div class="briefing-script" id="briefing-script">
+            Your full spoken briefing will appear here after generation. It will be formatted for listening — not reading — so it flows naturally when played aloud.
+          </div>
+
+          <!-- Talking Points -->
+          <div class="panel-title">Your Talking Points</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px">These are the soundbites you can say confidently on a panel, in a meeting, or at a networking event.</div>
+          <div class="talking-points" id="talking-points">
+            <div class="talking-point">
+              <span class="tp-number">—</span>
+              <span>Talking points will appear here after you generate your briefing.</span>
+            </div>
+          </div>
+
+          <!-- Research Q&A -->
+          <div class="panel-title">Go Deeper — Ask Anything</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px">Ask about any data point, term, or concept in your content. Get a plain-language answer you can actually use.</div>
+          <div class="research-box">
+            <div class="research-input-row">
+              <input type="text" id="research-question" placeholder='e.g. "Tell me more about the rate relief rally"' onkeydown="if(event.key==='Enter') askResearch()" />
+              <button class="search-btn" onclick="askResearch()">Ask</button>
+              <button class="search-btn" onclick="readResearchAnswer()" title="Read answer aloud">🔊</button>
+            </div>
+            <div class="research-answer" id="research-answer">
+              Your answer will appear here. You can also hit 🔊 to have it read aloud to you.
+            </div>
+          </div>
+
+          <!-- Previous Questions -->
+          <div id="research-history"></div>
         </div>
 
         <!-- Publish Tab -->
@@ -931,9 +1095,9 @@ function selectBucket(id) {
 }
 
 function switchTab(tab) {
+  const tabNames = ['linkedin','blog','image','briefing','publish'];
   document.querySelectorAll('.tab').forEach((t,i) => {
-    const tabs = ['linkedin','blog','image','publish'];
-    t.classList.toggle('active', tabs[i] === tab);
+    t.classList.toggle('active', tabNames[i] === tab);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');
@@ -1315,6 +1479,212 @@ function logContent(topic, bucket) {
       <div style="color:var(--text-muted); font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.1em">${e.bucket} · ${e.stream === 'eridion' ? 'Eridion Glass' : 'Erika Personal'} · ${e.timestamp}</div>
     </div>
   `).join('');
+}
+
+// ─── Briefing / Podcast ──────────────────────────────────────────────────────
+let briefingText = '';
+let ttsPlaying = false;
+let ttsSpeed = 1;
+let briefingSentences = [];
+let currentSentenceIndex = 0;
+let researchHistory = [];
+
+async function generateBriefing() {
+  const content = generatedBlog || generatedLinkedIn;
+  const topic = document.getElementById('topic-input').value.trim();
+  if (!content) { showToast('Generate content first before creating a briefing', 'error'); return; }
+
+  const btn = document.getElementById('briefing-gen-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating...';
+  setStatus('Generating briefing...', true);
+
+  const prompt = `You are creating a personal audio briefing for Erika González, co-founder of Eridion Glass LLC in Dallas, TX. She will LISTEN to this while driving or walking — not read it. It must sound natural when spoken aloud.
+
+Based on this content:
+---
+${content}
+---
+
+Create a spoken briefing in this EXACT format:
+
+===BRIEFING===
+Write a 400-500 word spoken briefing that:
+- Opens with: "Here's your briefing on [topic]."
+- Explains key concepts in plain conversational language, like a smart friend explaining it
+- Mentions specific data points and their sources (e.g. "According to the Dallas Builders Association...")
+- Explains any industry terms simply (e.g. "what economists are calling a rate relief rally — that means...")
+- Ends with: "And that's your briefing. Your talking points are coming up next."
+
+===TALKING POINTS===
+Write exactly 4 talking points Erika can say on a panel or at a networking event. Each should be one to two sentences, confident, specific, and natural-sounding. Start each with "TP:" on its own line.`;
+
+  try {
+    const response = await fetch('https://frosty-base-f01e.erikagonzalez103.workers.dev/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content?.[0]?.text || '';
+
+    const briefingMatch = text.match(/===BRIEFING===([\s\S]*?)===TALKING POINTS===/i);
+    const tpMatch = text.match(/===TALKING POINTS===([\s\S]*?)$/i);
+
+    briefingText = briefingMatch ? briefingMatch[1].trim() : text;
+    const tpRaw = tpMatch ? tpMatch[1].trim() : '';
+
+    document.getElementById('briefing-script').textContent = briefingText;
+    document.getElementById('briefing-topic-title').textContent = topic || 'Content Briefing';
+
+    const tpLines = tpRaw.split('\n').filter(l => l.trim().startsWith('TP:'));
+    const tpContainer = document.getElementById('talking-points');
+    tpContainer.innerHTML = tpLines.length
+      ? tpLines.map((tp, i) => `<div class="talking-point"><span class="tp-number">0${i+1}</span><span>${tp.replace(/^TP:\s*/,'')}</span></div>`).join('')
+      : '<div class="talking-point"><span class="tp-number">—</span><span>No talking points generated.</span></div>';
+
+    briefingSentences = briefingText.match(/[^.!?]+[.!?]+/g) || [briefingText];
+    currentSentenceIndex = 0;
+    document.getElementById('play-btn').disabled = false;
+    document.getElementById('now-reading').textContent = 'Briefing ready — hit ▶ to listen.';
+    showToast('Briefing ready — hit play!', 'success');
+    setStatus('Ready', false);
+
+  } catch(e) {
+    showToast('Briefing generation failed', 'error');
+    setStatus('Ready', false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🎙 Generate Audio Briefing';
+  }
+}
+
+function togglePlay() {
+  if (!briefingText) return;
+  ttsPlaying ? pauseBriefing() : playBriefing();
+}
+
+function playBriefing() {
+  if (!window.speechSynthesis) { showToast('Text-to-speech not supported in this browser', 'error'); return; }
+  window.speechSynthesis.cancel();
+  ttsPlaying = true;
+  document.getElementById('play-btn').textContent = '⏸';
+  document.getElementById('waveform').classList.remove('paused');
+  playSentence(currentSentenceIndex);
+}
+
+function playSentence(i) {
+  if (i >= briefingSentences.length) { stopBriefing(); document.getElementById('now-reading').textContent = '✓ Briefing complete. Replay anytime.'; return; }
+  const sentence = briefingSentences[i].trim();
+  document.getElementById('now-reading').textContent = sentence;
+  const utt = new SpeechSynthesisUtterance(sentence);
+  utt.rate = ttsSpeed;
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.name.includes('Samantha') || v.name.includes('Karen') || v.name.includes('Victoria') || (v.lang.startsWith('en') && v.name.toLowerCase().includes('female')));
+  if (preferred) utt.voice = preferred;
+  utt.onend = () => { if (ttsPlaying) { currentSentenceIndex = i + 1; playSentence(currentSentenceIndex); } };
+  window.speechSynthesis.speak(utt);
+}
+
+function pauseBriefing() {
+  window.speechSynthesis.cancel();
+  ttsPlaying = false;
+  document.getElementById('play-btn').textContent = '▶';
+  document.getElementById('waveform').classList.add('paused');
+  document.getElementById('now-reading').textContent = 'Paused — hit ▶ to continue.';
+}
+
+function stopBriefing() {
+  window.speechSynthesis.cancel();
+  ttsPlaying = false;
+  currentSentenceIndex = 0;
+  document.getElementById('play-btn').textContent = '▶';
+  document.getElementById('waveform').classList.add('paused');
+}
+
+function replayBriefing() { stopBriefing(); setTimeout(() => playBriefing(), 100); }
+
+function setSpeed(speed) {
+  ttsSpeed = speed;
+  document.querySelectorAll('.speed-btn').forEach(b => b.classList.toggle('active', parseFloat(b.textContent) === speed));
+  if (ttsPlaying) { window.speechSynthesis.cancel(); setTimeout(() => playSentence(currentSentenceIndex), 100); }
+}
+
+// ─── Research Q&A ─────────────────────────────────────────────────────────────
+async function askResearch() {
+  const question = document.getElementById('research-question').value.trim();
+  const content = generatedBlog || generatedLinkedIn;
+  if (!question) return;
+  if (!content) { showToast('Generate content first', 'error'); return; }
+
+  const answerEl = document.getElementById('research-answer');
+  answerEl.textContent = 'Researching...';
+  answerEl.className = 'research-answer loading';
+
+  try {
+    const response = await fetch('https://frosty-base-f01e.erikagonzalez103.workers.dev/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: `Erika González is co-founder of Eridion Glass, a luxury glass subcontractor in Dallas TX. She published this content:\n---\n${content}\n---\n\nShe asks: "${question}"\n\nAnswer in plain conversational language she can internalize and use. Include: (1) a clear 2-3 sentence explanation, (2) the source or basis for this info, (3) one sentence she could say confidently on a panel. Keep it tight and practical.` }]
+      })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    const answer = data.content?.[0]?.text || '';
+    answerEl.textContent = answer;
+    answerEl.className = 'research-answer';
+    researchHistory.unshift({ question, answer });
+    renderResearchHistory();
+    document.getElementById('research-question').value = '';
+  } catch(e) {
+    answerEl.textContent = 'Research failed — please try again.';
+    answerEl.className = 'research-answer';
+  }
+}
+
+function readResearchAnswer() {
+  const text = document.getElementById('research-answer').textContent;
+  if (!text || text.includes('Your answer will appear')) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = ttsSpeed;
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.name.includes('Samantha') || v.name.includes('Karen') || v.name.includes('Victoria'));
+  if (preferred) utt.voice = preferred;
+  window.speechSynthesis.speak(utt);
+}
+
+function renderResearchHistory() {
+  const container = document.getElementById('research-history');
+  if (!researchHistory.length) return;
+  container.innerHTML = `<div class="panel-title" style="margin-top:16px">Previous Questions</div>` +
+    researchHistory.slice(0, 5).map(r => `
+      <div class="research-box" style="margin-bottom:8px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold-dim);letter-spacing:0.1em;margin-bottom:8px">Q: ${r.question}</div>
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.7">${r.answer}</div>
+        <button class="action-btn" onclick="speakText(this.dataset.text)" data-text="${r.answer.replace(/"/g,'&quot;')}" style="margin-top:8px;font-size:9px">🔊 Read aloud</button>
+      </div>`).join('');
+}
+
+function speakText(text) {
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = ttsSpeed;
+  window.speechSynthesis.speak(utt);
+}
+
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
 }
 </script>
 </body>
