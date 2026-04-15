@@ -155,6 +155,7 @@ textarea{min-height:80px;line-height:1.6;}
 .rw-nudge-row input{flex:1;font-size:12px;}
 .rw-nudge.anchored{border-color:rgba(95,173,138,0.3);background:rgba(95,173,138,0.04);}
 .rw-nudge.anchored .rw-nudge-label{color:var(--success);}
+.real-highlight{background:rgba(95,173,138,0.15);color:#8FDBB8;border-bottom:1px solid rgba(95,173,138,0.4);padding:0 2px;border-radius:2px;}
 
 /* ── Weekly Schedule Tab ── */
 .week-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
@@ -549,8 +550,10 @@ AUDIENCE: Female founders, women in construction, business leaders, DFW entrepre
 };
 
 // ── Init ──
-document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-loadKeys(); renderBuckets(); updateIndicators();
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  loadKeys(); loadKB(); renderBuckets(); updateIndicators();
+});
 
 function renderBuckets() {
   const grid = document.getElementById('bucket-grid');
@@ -637,7 +640,7 @@ ${ctaFinal}`;
   else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post about a glass, glazing, or building code requirement. Start with "Did you know?" then the surprising fact, why it matters to builders, Eridion's expertise connection. End with a CTA to reach out or learn more. 100-200 words. Also 5 hashtags.${ctaFinal}`;
   else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post. Warm, genuine, not promotional. Celebrate the subject's story and one key insight. End with a soft CTA to connect or follow. 150-250 words. Also 5 hashtags.${ctaErika}`;
 
-  const prompt=`${voice}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment)'}\nTONE: ${tone}\n\n${fmtInstr}`;
+  const prompt=`${voice}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment)'}\nTONE: ${tone}\n\n${fmtInstr}`;
 
   // Use higher token limit for blog format
   const maxTokens = format==='blog+linkedin' ? 2000 : 1000;
@@ -710,6 +713,10 @@ async function weaveExperienceFromBlog() {
 }
 
 async function doWeave(experience, nudgeId, inputId) {
+  if(!generatedLinkedIn || generatedLinkedIn.trim().length < 20) {
+    showToast('Generate a LinkedIn post first before weaving','error'); return;
+  }
+
   const btn=document.querySelector(`#${nudgeId} .search-btn`);
   const origText=btn.textContent;
   btn.disabled=true; btn.textContent='Weaving...';
@@ -722,21 +729,32 @@ ${generatedLinkedIn}
 REAL WORLD EXPERIENCE TO WEAVE IN:
 "${experience}"
 
-Rewrite the LinkedIn post to naturally integrate this real experience. It should feel like it was always part of the post — not bolted on. Keep the same length and structure. Keep the brand voice (confident, data-informed, builder-focused). The real experience should appear early or mid-post as a grounding detail that makes the data feel lived-in and authentic.
+Rewrite the LinkedIn post to naturally integrate this real experience. It should feel like it was always part of the post — not bolted on. Keep the same length and structure. Keep the brand voice (confident, data-informed, builder-focused). The real experience should appear early or mid-post as a grounding detail.
 
-Return ONLY the rewritten post. No preamble.`;
+IMPORTANT: Wrap ONLY the newly added real-world sentence(s) in [[REAL: ]] tags like this:
+[[REAL: We just finished a frameless staircase in Prosper where the builder pushed the schedule up three weeks.]]
+
+Return ONLY the rewritten post with those markers. No preamble.`;
 
   try {
     const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message);
     const newPost=data.content?.[0]?.text||'';
-    if(newPost){
-      generatedLinkedIn=newPost;
-      const liOut=document.getElementById('linkedin-output');
-      liOut.innerHTML=''; liOut.textContent=newPost;
 
-      // Mark both nudge banners as anchored
+    if(newPost){
+      // Store clean version (no markers) as the real generatedLinkedIn
+      generatedLinkedIn=newPost.replace(/\[\[REAL:\s*([\s\S]*?)\]\]/g,'$1').trim();
+
+      // Render highlighted version
+      const highlighted=newPost.replace(/\[\[REAL:\s*([\s\S]*?)\]\]/g,
+        '<span class="real-highlight">$1</span>');
+
+      const liOut=document.getElementById('linkedin-output');
+      liOut.style.whiteSpace='pre-wrap';
+      liOut.innerHTML=highlighted;
+
+      // Mark nudge banners as anchored
       document.getElementById('rw-nudge-li').classList.add('anchored');
       document.getElementById('rw-nudge-blog').classList.add('anchored');
       document.querySelectorAll('.rw-nudge-label').forEach(el=>el.textContent='✓ Anchored to real field experience — your authentic edge');
@@ -746,15 +764,17 @@ Return ONLY the rewritten post. No preamble.`;
       document.getElementById('auth-badge-li').innerHTML=badge;
       document.getElementById('auth-badge-blog').innerHTML=badge;
 
-      // Clear both inputs
       document.getElementById('rw-input').value='';
       document.getElementById('rw-input-blog').value='';
 
       updateCharCount();
-      showToast('Real experience woven in!','success');
+      showToast('Real experience woven in — highlighted in green','success');
+    } else {
+      showToast('No content returned — try again','error');
     }
   } catch(e) {
-    showToast('Could not weave experience — try again','error');
+    showToast('Could not weave experience: '+e.message,'error');
+    console.error(e);
   } finally {
     btn.disabled=false; btn.textContent=origText;
   }
