@@ -727,22 +727,25 @@ async function doWeave(experience, nudgeId, inputId) {
 
   setStatus('Weaving in real experience...', true);
 
-  const prompt=`You are editing a LinkedIn post for Erika González of Eridion Glass, a luxury glass and mirror subcontractor in Dallas TX specializing in luxury residential homes.
+  const prompt=`You are editing a LinkedIn post for Erika González, co-founder of Eridion Glass — a luxury glass and mirror subcontractor in Dallas TX. She has 20+ years in advertising and deeply understands brand voice.
 
 CURRENT POST:
 ${postToEdit}
 
-REAL EXPERIENCE TO ADD:
+REAL EXPERIENCE TO WEAVE IN:
 "${experience}"
 
-Task: Rewrite the post to naturally include this real experience. Place it where it feels most authentic — usually early or mid-post as a concrete grounding detail. Keep the same overall length and brand voice.
+YOUR TASK:
+1. Read the experience carefully — understand what it actually says, its tone, and what it reveals about the business
+2. Find the most natural place in the post where this experience adds credibility — usually after a data point it confirms, not at the top
+3. Write a transition that flows from the surrounding text into the experience organically — no template phrases like "Just last week" or "We saw this firsthand" unless they genuinely fit
+4. The injected content should feel like it was always part of the post — a colleague reading it should not be able to spot the seam
+5. Keep the same overall post length and structure
+6. Keep Erika's brand voice: confident, data-informed, builder-focused, never salesy
 
-Then wrap ONLY the sentence(s) you added or changed with <HIGHLIGHT> and </HIGHLIGHT> tags.
+Wrap ONLY the sentence(s) you added or significantly rewrote with <HIGHLIGHT> and </HIGHLIGHT> tags.
 
-Example format:
-The DFW luxury market is moving fast right now. <HIGHLIGHT>We saw this firsthand last month when a Prosper builder called us to move a complex frameless install up by three weeks.</HIGHLIGHT> The data confirms what builders on the ground are already feeling.
-
-Return ONLY the rewritten post with the HIGHLIGHT tags. No explanation, no preamble.`;
+Return ONLY the rewritten post. No explanation, no preamble.`;
 
   try {
     const response = await fetch(WORKER, {
