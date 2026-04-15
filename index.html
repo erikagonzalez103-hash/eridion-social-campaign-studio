@@ -264,7 +264,22 @@ textarea{min-height:80px;line-height:1.6;}
             </select>
           </div>
         </div>
-        <div class="keys-toggle" onclick="toggleKeys()">
+        <!-- Knowledge Base -->
+        <div class="keys-toggle" onclick="toggleKB()" style="margin-top:4px;color:var(--gold-dim)">
+          <span id="kb-arrow">▶</span> <span style="color:var(--gold-dim)">Knowledge Base</span>
+        </div>
+        <div class="keys-section" id="kb-section">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.6">These facts are injected into every generation. Edit anytime — changes take effect on next Generate.</div>
+          <textarea id="kb-input" style="min-height:180px;font-size:11px;line-height:1.7" placeholder="Loading..."></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;margin-bottom:4px">
+            <button class="action-btn" onclick="saveKB()" style="flex:1">Save Knowledge Base</button>
+            <button class="action-btn" onclick="resetKB()">Reset</button>
+          </div>
+        </div>
+
+        <button class="generate-btn" id="generate-btn" onclick="generateContent()">✦ Generate Content</button>
+
+        <div class="keys-toggle" onclick="toggleKeys()" style="margin-top:16px">
           <span id="keys-arrow">▶</span> API Keys & Configuration
         </div>
         <div class="keys-section" id="keys-section">
@@ -284,7 +299,6 @@ textarea{min-height:80px;line-height:1.6;}
             <button class="action-btn" onclick="saveKeys()" style="width:100%">Save Keys Locally</button>
           </div>
         </div>
-        <button class="generate-btn" id="generate-btn" onclick="generateContent()">✦ Generate Content</button>
       </div>
     </div>
 
@@ -978,6 +992,75 @@ function showToast(msg,type=''){
 function toggleKeys(){
   const s=document.getElementById('keys-section'),a=document.getElementById('keys-arrow');
   s.classList.toggle('open'); a.textContent=s.classList.contains('open')?'▼':'▶';
+}
+
+// ── Knowledge Base ──
+const KB_DEFAULT=`✓ SERVICES WE PROVIDE:
+Custom glass and mirror fabrication
+Frameless shower enclosures and doors
+Glass railings and balustrades
+Architectural glass installations
+Custom mirrors (decorative, closet, gym, bathroom)
+Glass stair systems
+Interior glass walls and partitions
+Wine cellars and display glass
+Specialty glass (low-iron, frosted, textured, tinted)
+
+✗ SERVICES WE DO NOT PROVIDE:
+Curtain wall systems
+Windows (residential or commercial window units)
+Storefront window systems
+Window replacement or repair
+Window glazing or reglazing
+Exterior window frames
+
+📍 MARKETS SERVED:
+DFW (Dallas-Fort Worth) metroplex — primary market
+Central Arkansas — active secondary market
+We do NOT serve markets outside these areas
+
+💰 PROJECT PARAMETERS:
+Preferred client: luxury residential builders ($1M+ homes)
+Preferred project minimum: approximately $4,000
+We work with: custom home builders, luxury home builders, select commercial
+We do NOT pursue: small residential, big box retail, low-margin commodity work
+
+👥 KEY PEOPLE:
+Erika González — Co-founder, Managing Member, all business operations and client relationships
+Dion Harrison — Co-founder, Master Glazier, 25+ years field experience, leads all installations
+
+🎯 BRAND DIFFERENTIATORS:
+Complex multi-phase luxury installs are our specialty
+Relationship-first approach — we are a trusted partner, not just a vendor
+Dion's 25+ years of master glazier expertise
+Capacity to handle complex architectural glass that other subs turn down
+Based in Dallas TX, serving builders who demand precision and reliability`;
+
+function toggleKB(){
+  const s=document.getElementById('kb-section'),a=document.getElementById('kb-arrow');
+  s.classList.toggle('open'); a.textContent=s.classList.contains('open')?'▼':'▶';
+}
+
+function saveKB(){
+  const val=document.getElementById('kb-input').value.trim();
+  localStorage.setItem('eridion_kb',val);
+  showToast('Knowledge Base saved','success');
+}
+
+function resetKB(){
+  document.getElementById('kb-input').value=KB_DEFAULT;
+  localStorage.setItem('eridion_kb',KB_DEFAULT);
+  showToast('Knowledge Base reset to defaults','success');
+}
+
+function loadKB(){
+  const saved=localStorage.getItem('eridion_kb')||KB_DEFAULT;
+  document.getElementById('kb-input').value=saved;
+  if(!localStorage.getItem('eridion_kb')) localStorage.setItem('eridion_kb',KB_DEFAULT);
+}
+
+function getKB(){
+  return document.getElementById('kb-input').value.trim()||KB_DEFAULT;
 }
 function saveKeys(){
   const uk=document.getElementById('unsplash-key').value;
