@@ -67,7 +67,7 @@ textarea{min-height:80px;line-height:1.6;}
 .tab.active{color:var(--gold);border-bottom-color:var(--gold);}
 .tab-content{display:none;padding:24px 0 0;}
 .tab-content.active{display:block;}
-.content-display{background:var(--surface2);border:1px solid var(--border);padding:24px;min-height:300px;max-height:600px;overflow-y:auto;font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;font-family:'Outfit',sans-serif;font-weight:300;outline:none;}
+.content-display{background:var(--surface2);border:1px solid var(--border);padding:24px;min-height:300px;max-height:900px;overflow-y:auto;font-size:14px;line-height:1.8;color:var(--text);white-space:pre-wrap;font-family:'Outfit',sans-serif;font-weight:300;outline:none;}
 .content-display[contenteditable="true"]:focus{border-color:var(--gold-dim);}
 .content-display h1,.content-display h2,.content-display h3{font-family:'Cormorant Garamond',serif;font-weight:400;color:var(--gold-bright);margin:16px 0 8px;}
 .content-display h1{font-size:26px;}
@@ -586,11 +586,31 @@ async function generateContent() {
   const voice=voicePrompts[currentStream];
 
   let fmtInstr='';
-  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook. Subtle engagement CTA at end. Also generate 5 relevant hashtags.`;
+  const ctaEridion=`\n\nCTA RULES — APPLY TO ALL FORMATS:
+- Every post must include at least one subtle CTA mid-content (e.g. "If you're planning a project in the next 90 days, now is the time to get on our schedule." or "We'd love to walk through your specs.")
+- Every post must end with a clear strong CTA (e.g. "Ready to talk through your next luxury install? Reach us at erika@eridionglass.com or visit eridionglass.com." or "Let's get your project on our calendar before Q3 fills up.")
+- CTAs should feel like a natural next step, never salesy or pushy — always builder-focused`;
+  const ctaErika=`\n\nCTA RULES:
+- Include one soft mid-content CTA (e.g. invite to connect, comment, or DM)
+- End with a clear strong CTA (e.g. "I'd love to hear how you're navigating this — drop a comment or connect with me." or "If you're building something in Dallas, let's talk.")`;
+  const ctaFinal = currentStream==='eridion' ? ctaEridion : ctaErika;
+
+  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook that stops the scroll. One subtle mid-post CTA. Strong closing CTA. Also generate 5 relevant hashtags.${ctaFinal}`;
   else if(format==='blog+linkedin') fmtInstr=`Generate BOTH a full blog post AND a LinkedIn snippet.
 
-BLOG POST (800-1200 words): SEO title, strong intro, 3-4 sections with subheadings, specific data with sources, practical takeaway, closing CTA.
-LINKEDIN SNIPPET (150-300 words): Key insight from blog. Ends with "Read the full post →"
+BLOG POST (1000-1400 words):
+- SEO-optimized title
+- Strong opening that speaks directly to the builder's reality
+- 3-4 sections with subheadings
+- Specific data points with sources cited by name
+- 2 subtle inline CTAs woven naturally into the body (not forced — tied to the point being made)
+- Strong closing CTA paragraph that feels urgent but not pushy
+- Final line: a direct action statement (email, website, or "let's talk")
+
+LINKEDIN SNIPPET (150-300 words):
+- Key insight from blog
+- One mid-post soft CTA
+- Ends with "Read the full post → [link]" as placeholder
 
 FORMAT EXACTLY:
 ===BLOG===
@@ -598,14 +618,18 @@ FORMAT EXACTLY:
 ===LINKEDIN===
 [linkedin post]
 ===HASHTAGS===
-[5 hashtags, one per line]`;
-  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post about a glass, glazing, or building code requirement. Start with "Did you know?" then the surprising fact, why it matters to builders, Eridion's expertise connection. 100-200 words. Also 5 hashtags.`;
-  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post. Warm, genuine, not promotional. Celebrate the subject's story and one key insight. 150-250 words. Also 5 hashtags.`;
+[5 hashtags, one per line]
+${ctaFinal}`;
+  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post about a glass, glazing, or building code requirement. Start with "Did you know?" then the surprising fact, why it matters to builders, Eridion's expertise connection. End with a CTA to reach out or learn more. 100-200 words. Also 5 hashtags.${ctaFinal}`;
+  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post. Warm, genuine, not promotional. Celebrate the subject's story and one key insight. End with a soft CTA to connect or follow. 150-250 words. Also 5 hashtags.${ctaErika}`;
 
   const prompt=`${voice}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment)'}\nTONE: ${tone}\n\n${fmtInstr}`;
 
+  // Use higher token limit for blog format
+  const maxTokens = format==='blog+linkedin' ? 2000 : 1000;
+
   try {
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.[0]?.text||'';
@@ -747,6 +771,11 @@ WEDNESDAY: Eridion Glass posts a standalone data snippet (punchy, no link needed
 THURSDAY: Erika personal posts her own take/reaction to the same topic (her perspective as a female founder in construction, 120-180 words)
 FRIDAY: Eridion Glass posts the Did You Know or talking point version (short, scroll-stopping, 60-100 words)
 
+IMPORTANT CTA RULES — every single post must include a CTA:
+- Eridion posts: end with a direct, natural CTA to reach out, get on the schedule, or visit eridionglass.com
+- Erika posts: end with a soft CTA to connect, comment, or DM
+- CTAs should feel like a natural next step — never salesy, always builder or founder focused
+
 Also create cross-post intro copy in BOTH directions:
 - Eridion→Erika: how Erika would introduce sharing the Eridion post on her personal account
 - Erika→Eridion: how the Eridion account would amplify Erika's personal post
@@ -768,13 +797,7 @@ FORMAT EXACTLY:
 [Erika to Eridion intro]`;
 
   try {
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message);
-    const text=data.content?.[0]?.text||'';
-
-    const extract=(tag1,tag2)=>{const m=text.match(new RegExp(`===${tag1}===([\\s\\S]*?)===${tag2}===`,'i'));return m?m[1].trim():'';};
-    const extractLast=(tag)=>{const m=text.match(new RegExp(`===${tag}===([\\s\\S]*?)$`,'i'));return m?m[1].trim():'';};
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
 
     weekPosts=[
       {day:'Monday',account:'eridion',type:'Full Article Intro',text:extract('MON','TUE')},
