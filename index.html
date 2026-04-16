@@ -894,6 +894,13 @@ FORMAT EXACTLY:
 
   try {
     const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const text=data.content?.[0]?.text||'';
+    if(!text) throw new Error('Empty response');
+
+    const extract=(tag1,tag2)=>{const m=text.match(new RegExp(`===${tag1}===([\\s\\S]*?)===${tag2}===`,'i'));return m?m[1].trim():'';};
+    const extractLast=(tag)=>{const m=text.match(new RegExp(`===${tag}===([\\s\\S]*?)$`,'i'));return m?m[1].trim():'';};
 
     weekPosts=[
       {day:'Monday',account:'eridion',type:'Full Article Intro',text:extract('MON','TUE')},
