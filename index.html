@@ -11,7 +11,7 @@
   --gold:#C8A96E; --gold-dim:#8A6F3E; --gold-bright:#E8C98E;
   --text:#E8E4DC; --text-dim:#8A8680; --text-muted:#4A4845;
   --border:rgba(200,169,110,0.15); --border-bright:rgba(200,169,110,0.4);
-  --eridion:#4A9EBF; --erika:#BF7E9E; --success:#5FAD8A; --error:#BF5F5F;
+  --eridion:#4A9EBF; --erika:#BF7E9E; --dion:#7EBF8A; --success:#5FAD8A; --error:#BF5F5F;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden;}
@@ -22,18 +22,20 @@ header{padding:32px 0 28px;border-bottom:1px solid var(--border);display:flex;al
 .logo-name{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;letter-spacing:0.12em;color:var(--gold);text-transform:uppercase;}
 .logo-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--text-dim);text-transform:uppercase;}
 .header-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:0.15em;text-align:right;}
-.stream-selector{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:32px;}
-.stream-btn{padding:20px 24px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.2s;text-align:left;position:relative;overflow:hidden;}
+.stream-selector{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:32px;}
+.stream-btn{padding:14px 16px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all 0.2s;text-align:left;position:relative;overflow:hidden;}
 .stream-btn::before{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;transform:scaleX(0);transition:transform 0.3s;}
 .stream-btn.eridion::before{background:var(--eridion);}
 .stream-btn.erika::before{background:var(--erika);}
+.stream-btn.dion::before{background:var(--dion);}
 .stream-btn.active::before{transform:scaleX(1);}
 .stream-btn.active{background:var(--surface2);border-color:var(--border-bright);}
 .stream-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;}
 .stream-btn.eridion .stream-label{color:var(--eridion);}
 .stream-btn.erika .stream-label{color:var(--erika);}
-.stream-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text);}
-.stream-desc{font-size:12px;color:var(--text-dim);margin-top:4px;line-height:1.5;}
+.stream-btn.dion .stream-label{color:var(--dion);}
+.stream-title{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:400;color:var(--text);}
+.stream-desc{font-size:11px;color:var(--text-dim);margin-top:3px;line-height:1.4;}
 .main-grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start;}
 .panel{background:var(--surface);border:1px solid var(--border);padding:24px;}
 .panel-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);}
@@ -44,6 +46,7 @@ header{padding:32px 0 28px;border-bottom:1px solid var(--border);display:flex;al
 .bucket-icon{font-size:14px;}
 .field{margin-bottom:16px;}
 .field-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;display:block;}
+input[type="checkbox"]{width:auto;padding:0;margin:0;}
 input,textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;font-weight:300;padding:10px 12px;outline:none;transition:border-color 0.2s;resize:none;}
 input:focus,textarea:focus,select:focus{border-color:var(--gold-dim);}
 input::placeholder,textarea::placeholder{color:var(--text-muted);}
@@ -185,6 +188,159 @@ textarea{min-height:80px;line-height:1.6;}
 .crosspost-arrow{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 .crosspost-text{font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;}
 
+/* ── Research Brief / POV ── */
+.brief-intro{margin-bottom:18px;padding:14px 16px;background:rgba(200,169,110,0.05);border-left:2px solid var(--gold-dim);}
+.brief-intro-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--gold-bright);margin-bottom:4px;}
+.brief-intro-sub{font-size:12px;color:var(--text-dim);line-height:1.6;}
+.brief-section-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);margin:20px 0 10px;display:flex;align-items:center;gap:10px;}
+.brief-section-label .count{color:var(--text-muted);letter-spacing:0.1em;}
+.source-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+.source-card{background:var(--surface2);border:1px solid var(--border);padding:14px;transition:all 0.2s;opacity:0.55;}
+.source-card.selected{opacity:1;border-color:var(--gold-dim);}
+.source-check{display:flex;gap:12px;cursor:pointer;align-items:flex-start;}
+.source-check input[type="checkbox"]{margin-top:3px;flex-shrink:0;accent-color:var(--gold);cursor:pointer;}
+.source-body{flex:1;min-width:0;}
+.source-meta{display:flex;gap:10px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+.source-cat{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;padding:2px 8px;border:1px solid var(--border);color:var(--text-muted);}
+.source-cat.cat-study{color:var(--eridion);border-color:rgba(74,158,191,0.3);}
+.source-cat.cat-code{color:var(--gold);border-color:rgba(200,169,110,0.3);}
+.source-cat.cat-industry_data{color:var(--success);border-color:rgba(95,173,138,0.3);}
+.source-cat.cat-trend{color:var(--erika);border-color:rgba(191,126,158,0.3);}
+.source-cat.cat-framework,.source-cat.cat-case{color:var(--text-dim);}
+.source-name{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:0.06em;}
+.source-title{font-size:14px;color:var(--text);margin-bottom:4px;font-weight:400;line-height:1.4;}
+.source-snippet{font-size:12px;color:var(--text-dim);line-height:1.6;}
+.pov-section{background:var(--surface2);border:1px solid var(--border);padding:20px;margin-top:8px;margin-bottom:16px;}
+.pov-set-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.pov-set-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-right:4px;}
+.pov-set-btn{padding:5px 11px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;transition:all 0.2s;}
+.pov-set-btn:hover{color:var(--text-dim);border-color:var(--border-bright);}
+.pov-set-btn.active{color:var(--gold);border-color:var(--gold-dim);background:rgba(200,169,110,0.04);}
+.pov-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.pov-btn{padding:14px 16px;background:var(--surface);border:1px solid var(--border);cursor:pointer;text-align:left;transition:all 0.2s;}
+.pov-btn:hover{border-color:var(--border-bright);}
+.pov-btn.active{border-color:var(--gold);background:rgba(200,169,110,0.06);}
+.pov-label{font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--gold-bright);margin-bottom:4px;}
+.pov-btn.active .pov-label{color:var(--gold);}
+.pov-desc{font-size:11px;color:var(--text-dim);line-height:1.5;}
+.draft-footnote{text-align:center;font-size:10px;color:var(--text-muted);margin-top:12px;font-family:'DM Mono',monospace;letter-spacing:0.1em;}
+.skip-link{display:block;text-align:center;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-top:10px;cursor:pointer;text-decoration:none;transition:color 0.2s;}
+.skip-link:hover{color:var(--text-dim);}
+
+/* ── Library ── */
+.lib-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.lib-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;color:var(--gold-bright);}
+.lib-filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.lib-filter-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-right:2px;}
+.lib-chip{padding:5px 11px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;background:transparent;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;transition:all 0.2s;}
+.lib-chip:hover{color:var(--text-dim);border-color:var(--border-bright);}
+.lib-chip.active{color:var(--gold);border-color:var(--gold-dim);background:rgba(200,169,110,0.04);}
+.lib-grid{display:flex;flex-direction:column;gap:10px;}
+.lib-card{background:var(--surface2);border:1px solid var(--border);padding:14px 16px;transition:border-color 0.2s;}
+.lib-card:hover{border-color:var(--border-bright);}
+.lib-card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.voice-badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;padding:3px 8px;border-radius:2px;text-transform:uppercase;}
+.voice-badge.eridion{background:rgba(74,158,191,0.1);color:var(--eridion);border:1px solid rgba(74,158,191,0.3);}
+.voice-badge.erika{background:rgba(191,126,158,0.1);color:var(--erika);border:1px solid rgba(191,126,158,0.3);}
+.voice-badge.dion{background:rgba(126,191,138,0.1);color:var(--dion);border:1px solid rgba(126,191,138,0.3);}
+.status-badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;padding:3px 8px;text-transform:uppercase;}
+.status-badge.draft{color:var(--text-muted);border:1px solid var(--border);}
+.status-badge.scheduled{color:var(--gold);border:1px solid var(--gold-dim);background:rgba(200,169,110,0.05);}
+.status-badge.posted{color:var(--success);border:1px solid rgba(95,173,138,0.3);background:rgba(95,173,138,0.05);}
+.lib-card-bucket{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--text-dim);}
+.lib-card-date{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;color:var(--text-muted);margin-left:auto;}
+.lib-card-title{font-size:14px;color:var(--text);line-height:1.4;margin-bottom:6px;font-weight:400;}
+.lib-card-snippet{font-size:12px;color:var(--text-dim);line-height:1.6;max-height:60px;overflow:hidden;position:relative;margin-bottom:10px;}
+.lib-card-snippet.expanded{max-height:none;}
+.lib-card-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.lib-empty{padding:40px 20px;text-align:center;border:1px dashed var(--border);background:var(--surface2);}
+.lib-empty p{font-size:13px;color:var(--text-muted);line-height:1.7;}
+
+/* ── Calendar ── */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap;}
+.cal-nav{display:flex;align-items:center;gap:8px;}
+.cal-week-label{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:var(--gold-bright);min-width:160px;text-align:center;}
+.cal-nav-btn{padding:6px 10px;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;}
+.cal-nav-btn:hover{border-color:var(--border-bright);color:var(--text);}
+.cal-grid{display:flex;flex-direction:column;gap:8px;}
+.cal-day{background:var(--surface2);border:1px solid var(--border);overflow:hidden;}
+.cal-day-head{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.cal-day-name{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-dim);min-width:90px;}
+.cal-day-date{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;}
+.cal-day-count{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;}
+.cal-day-body{padding:10px 14px;display:flex;flex-direction:column;gap:6px;}
+.cal-slot{padding:8px 10px;background:var(--surface);border:1px solid var(--border);font-size:12px;color:var(--text);line-height:1.5;display:flex;align-items:flex-start;gap:10px;}
+.cal-slot-voice{width:4px;align-self:stretch;flex-shrink:0;}
+.cal-slot-voice.eridion{background:var(--eridion);}
+.cal-slot-voice.erika{background:var(--erika);}
+.cal-slot-voice.dion{background:var(--dion);}
+.cal-slot-body{flex:1;min-width:0;cursor:pointer;}
+.cal-slot-body:hover .cal-slot-text{color:var(--gold-bright);}
+.cal-slot-meta{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;margin-bottom:3px;}
+.cal-slot-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-slot-x{color:var(--text-muted);cursor:pointer;padding:0 4px;font-size:14px;align-self:center;}
+.cal-slot-x:hover{color:var(--error);}
+.cal-day-empty{font-size:11px;color:var(--text-muted);font-style:italic;}
+.cal-summary{background:var(--surface2);border:1px solid var(--border);padding:14px 16px;margin-bottom:16px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;}
+.cal-summary-item{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--text-dim);}
+.cal-summary-item strong{color:var(--gold);font-size:14px;font-family:'Outfit',sans-serif;font-weight:500;margin-right:4px;letter-spacing:normal;}
+.cal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+
+/* ── Schedule modal ── */
+.sched-modal{display:none;position:fixed;inset:0;background:rgba(8,10,14,0.92);z-index:500;align-items:center;justify-content:center;padding:24px;}
+.sched-modal.open{display:flex;}
+.sched-modal-inner{background:var(--surface);border:1px solid var(--border-bright);padding:28px;max-width:500px;width:100%;}
+.sched-modal-title{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--text);margin-bottom:16px;}
+.sched-field{margin-bottom:14px;}
+.sched-preview{background:var(--surface2);border:1px solid var(--border);padding:12px;font-size:12px;color:var(--text-dim);line-height:1.6;max-height:120px;overflow-y:auto;margin-bottom:16px;}
+
+/* ── Spin Snippet / Spin Week ── */
+.spin-modal{display:none;position:fixed;inset:0;background:rgba(8,10,14,0.92);z-index:500;align-items:center;justify-content:center;padding:24px;overflow-y:auto;}
+.spin-modal.open{display:flex;}
+.spin-modal-inner{background:var(--surface);border:1px solid var(--border-bright);padding:28px;max-width:720px;width:100%;max-height:92vh;overflow-y:auto;}
+.spin-modal-title{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--text);margin-bottom:4px;}
+.spin-modal-sub{font-size:12px;color:var(--text-dim);margin-bottom:20px;line-height:1.6;}
+.spin-source-preview{background:var(--surface2);border:1px solid var(--border);padding:12px 14px;font-size:12px;color:var(--text-dim);line-height:1.6;max-height:120px;overflow-y:auto;margin-bottom:18px;}
+.spin-source-preview strong{color:var(--text);font-weight:500;}
+.spin-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.spin-form-full{margin-bottom:16px;}
+.spin-results{margin-top:18px;padding-top:18px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:12px;}
+.spin-result-card{background:var(--surface2);border:1px solid var(--border);padding:14px 16px;}
+.spin-result-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.spin-result-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold-dim);}
+.spin-result-text{font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;margin-bottom:10px;}
+.spin-result-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.spin-modal-actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;align-items:center;}
+.spin-loading{text-align:center;padding:30px 20px;color:var(--text-dim);font-style:italic;font-size:13px;}
+.spin-loading::before{content:'';display:inline-block;width:12px;height:12px;border:1.5px solid var(--gold-dim);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin-right:10px;vertical-align:middle;}
+
+/* ── SEO Package ── */
+.seo-package{margin-top:20px;border:1px solid var(--border);background:var(--surface2);}
+.seo-package-header{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid transparent;}
+.seo-package.open .seo-package-header{border-bottom-color:var(--border);}
+.seo-package-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);}
+.seo-package-status{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;}
+.seo-package-status.ready{color:var(--success);}
+.seo-package-body{display:none;padding:16px;flex-direction:column;gap:14px;}
+.seo-package.open .seo-package-body{display:flex;}
+.seo-field-wrap{display:flex;flex-direction:column;gap:6px;}
+.seo-field-head{display:flex;align-items:center;gap:8px;}
+.seo-field-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);}
+.seo-field-count{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);}
+.seo-field-count.warn{color:var(--gold);}
+.seo-field-count.over{color:var(--error);}
+.seo-field-copy{padding:3px 8px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;transition:all 0.15s;text-transform:uppercase;}
+.seo-field-copy:hover{color:var(--gold);border-color:var(--gold-dim);}
+.seo-field-copy.copied{color:var(--success);border-color:rgba(95,173,138,0.4);}
+.seo-field-val{background:var(--surface);border:1px solid var(--border);padding:9px 11px;font-size:12px;color:var(--text);line-height:1.6;font-family:'Outfit',sans-serif;font-weight:300;min-height:32px;word-break:break-word;}
+.seo-field-val.empty{color:var(--text-muted);font-style:italic;}
+.seo-package-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.seo-gen-btn{padding:7px 14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);cursor:pointer;transition:all 0.2s;}
+.seo-gen-btn:hover:not(:disabled){background:rgba(200,169,110,0.08);border-color:var(--gold);}
+.seo-gen-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.seo-gen-btn.loading{position:relative;color:transparent;}
+.seo-gen-btn.loading::after{content:'';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;content:'GENERATING...';}
+
 /* ── Status bar ── */
 .status-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;font-family:'DM Mono',monospace;font-size:10px;z-index:100;}
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);}
@@ -212,7 +368,7 @@ textarea{min-height:80px;line-height:1.6;}
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v2.0 · Content Automation</div>
+      <div style="margin-top:2px">v3.4 · Click-to-View + Import</div>
     </div>
   </header>
 
@@ -224,8 +380,13 @@ textarea{min-height:80px;line-height:1.6;}
     </button>
     <button class="stream-btn erika" onclick="setStream('erika')">
       <div class="stream-label">Stream 02</div>
-      <div class="stream-title">Erika González</div>
-      <div class="stream-desc">Female founder · Leadership · Women in construction · Thoughtful vulnerability</div>
+      <div class="stream-title">Erika Harrison</div>
+      <div class="stream-desc">Female founder · Leadership · Women in construction</div>
+    </button>
+    <button class="stream-btn dion" onclick="setStream('dion')">
+      <div class="stream-label">Stream 03</div>
+      <div class="stream-title">Dion Harrison</div>
+      <div class="stream-desc">Master glazier · Field notes · Dry Aussie humor</div>
     </button>
   </div>
 
@@ -278,7 +439,9 @@ textarea{min-height:80px;line-height:1.6;}
           </div>
         </div>
 
-        <button class="generate-btn" id="generate-btn" onclick="generateContent()">✦ Generate Content</button>
+        <button class="generate-btn" id="research-btn" onclick="researchTopic()">✦ Research First</button>
+        <a class="skip-link" onclick="generateContent()">or skip → quick draft without research</a>
+        <button class="generate-btn" id="generate-btn" onclick="generateContent()" style="display:none"></button>
 
         <div class="keys-toggle" onclick="toggleKeys()" style="margin-top:16px">
           <span id="keys-arrow">▶</span> API Keys & Configuration
@@ -306,12 +469,22 @@ textarea{min-height:80px;line-height:1.6;}
     <div>
       <div class="panel output-panel">
         <div class="tabs">
+          <div class="tab" onclick="switchTab('research')">🔬 Research</div>
           <div class="tab active" onclick="switchTab('linkedin')">LinkedIn</div>
           <div class="tab" onclick="switchTab('blog')">Blog Post</div>
-          <div class="tab" onclick="switchTab('week')">📅 This Week</div>
+          <div class="tab" onclick="switchTab('library')">📚 Library</div>
+          <div class="tab" onclick="switchTab('calendar')">📆 Calendar</div>
           <div class="tab" onclick="switchTab('image')">Image</div>
           <div class="tab" onclick="switchTab('briefing')">🎙 Briefing</div>
-          <div class="tab" onclick="switchTab('publish')">Publish</div>
+        </div>
+
+        <!-- Research Brief Tab -->
+        <div class="tab-content" id="tab-research">
+          <div id="research-brief-container">
+            <div class="placeholder-card">
+              <p>Enter your topic and key points on the left, then hit <strong style="color:var(--gold)">Research First</strong> to curate source material. You'll pick which sources to include and which angle to write from — <em>after</em> you see what's out there.</p>
+            </div>
+          </div>
         </div>
 
         <!-- LinkedIn Tab -->
@@ -347,6 +520,215 @@ textarea{min-height:80px;line-height:1.6;}
             <button class="action-btn primary" onclick="copyBlog()">Copy Blog Content</button>
             <button class="action-btn" onclick="copyBlogHTML()">Copy as HTML</button>
           </div>
+
+          <!-- SEO Package -->
+          <div class="seo-package" id="seo-package">
+            <div class="seo-package-header" onclick="toggleSEOPackage()">
+              <span id="seo-arrow">▶</span>
+              <span class="seo-package-title">✦ SEO Package for Wix</span>
+              <span class="seo-package-status" id="seo-status">Not generated yet</span>
+            </div>
+            <div class="seo-package-body" id="seo-body">
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Focus Keyword</span>
+                  <span class="seo-field-count" id="seo-count-focus_keyword"></span>
+                  <button class="seo-field-copy" onclick="copySEOField('focus_keyword')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="seo-val-focus_keyword">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">SEO Title Tag (target: 60 chars)</span>
+                  <span class="seo-field-count" id="seo-count-title_tag"></span>
+                  <button class="seo-field-copy" onclick="copySEOField('title_tag')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="seo-val-title_tag">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Meta Description (target: 160 chars)</span>
+                  <span class="seo-field-count" id="seo-count-meta_description"></span>
+                  <button class="seo-field-copy" onclick="copySEOField('meta_description')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="seo-val-meta_description">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">URL Slug</span>
+                  <span class="seo-field-count" id="seo-count-url_slug"></span>
+                  <button class="seo-field-copy" onclick="copySEOField('url_slug')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="seo-val-url_slug">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Excerpt (max 500 chars)</span>
+                  <span class="seo-field-count" id="seo-count-excerpt"></span>
+                  <button class="seo-field-copy" onclick="copySEOField('excerpt')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="seo-val-excerpt">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Featured Image Alt Text</span>
+                  <span class="seo-field-count" id="seo-count-alt_text"></span>
+                  <button class="seo-field-copy" onclick="copySEOField('alt_text')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="seo-val-alt_text">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">og:title — Social share title</span>
+                  <span class="seo-field-count" id="seo-count-og_title"></span>
+                  <button class="seo-field-copy" onclick="copySEOField('og_title')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="seo-val-og_title">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">og:description — Social share description</span>
+                  <span class="seo-field-count" id="seo-count-og_description"></span>
+                  <button class="seo-field-copy" onclick="copySEOField('og_description')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="seo-val-og_description">—</div>
+              </div>
+            </div>
+            <div class="seo-package-footer">
+              <button class="seo-gen-btn" id="seo-gen-btn" onclick="generateSEOPackage()">✦ Generate SEO Package</button>
+              <button class="action-btn" onclick="copyAllSEO()">Copy All as Block</button>
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;margin-left:auto">Auto-generates with every blog</span>
+            </div>
+          </div>
+
+          <!-- Substack Package -->
+          <div class="seo-package" id="sub-package">
+            <div class="seo-package-header" onclick="toggleSubstackPackage()">
+              <span id="sub-arrow">▶</span>
+              <span class="seo-package-title" style="color:var(--erika)">✦ Substack Package</span>
+              <span class="seo-package-status" id="sub-status">Not generated yet</span>
+            </div>
+            <div class="seo-package-body" id="sub-body">
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Headline (target: 60–80 chars)</span>
+                  <span class="seo-field-count" id="sub-count-headline"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('headline')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-headline">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Subtitle — the line under the headline (max 300 chars)</span>
+                  <span class="seo-field-count" id="sub-count-subtitle"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('subtitle')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-subtitle">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Email Preview Text (target: 90 chars — pre-open hook)</span>
+                  <span class="seo-field-count" id="sub-count-email_preview"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('email_preview')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-email_preview">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Header Image Alt Text</span>
+                  <span class="seo-field-count" id="sub-count-alt_text"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('alt_text')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-alt_text">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Tags (2–3, comma separated)</span>
+                  <span class="seo-field-count" id="sub-count-tags"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('tags')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-tags">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Custom Subscribe CTA (end-of-post line)</span>
+                  <span class="seo-field-count" id="sub-count-subscribe_cta"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('subscribe_cta')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-subscribe_cta">—</div>
+              </div>
+            </div>
+            <div class="seo-package-footer">
+              <button class="seo-gen-btn" id="sub-gen-btn" onclick="generateSubstackPackage()" style="border-color:var(--erika);color:var(--erika)">✦ Generate Substack Package</button>
+              <button class="action-btn" onclick="copyAllSubstack()">Copy All as Block</button>
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;margin-left:auto">Auto-generates with every blog</span>
+            </div>
+          </div>
+
+          <!-- Substack Package -->
+          <div class="seo-package" id="substack-package">
+            <div class="seo-package-header" onclick="toggleSubstackPackage()">
+              <span id="substack-arrow">▶</span>
+              <span class="seo-package-title" style="color:#FF6719">✦ Substack Package</span>
+              <span class="seo-package-status" id="substack-status">Not generated yet</span>
+            </div>
+            <div class="seo-package-body" id="substack-body">
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Headline (≤ 100 chars — editorial, tighter than blog H1)</span>
+                  <span class="seo-field-count" id="sub-count-headline"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('headline')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-headline">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Subtitle (150-200 chars — the hook; shown under title + in email)</span>
+                  <span class="seo-field-count" id="sub-count-subtitle"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('subtitle')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-subtitle">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Email Preview (80-120 chars — inbox snippet before open)</span>
+                  <span class="seo-field-count" id="sub-count-email_preview"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('email_preview')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-email_preview">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Featured Image Alt Text</span>
+                  <span class="seo-field-count" id="sub-count-featured_image_alt"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('featured_image_alt')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-featured_image_alt">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Suggested Tags (2-3 topic tags)</span>
+                  <span class="seo-field-count" id="sub-count-tags"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('tags')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-tags">—</div>
+              </div>
+              <div class="seo-field-wrap">
+                <div class="seo-field-head">
+                  <span class="seo-field-lbl">Closing CTA (append above subscribe box — 2-3 sentences)</span>
+                  <span class="seo-field-count" id="sub-count-closing_cta"></span>
+                  <button class="seo-field-copy" onclick="copySubstackField('closing_cta')">Copy</button>
+                </div>
+                <div class="seo-field-val empty" id="sub-val-closing_cta">—</div>
+              </div>
+            </div>
+            <div class="seo-package-footer">
+              <button class="seo-gen-btn" id="substack-gen-btn" onclick="generateSubstackPackage()" style="border-color:#FF6719;color:#FF6719">✦ Generate Substack Package</button>
+              <button class="action-btn" onclick="copyAllSubstack()">Copy All as Block</button>
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:0.1em;margin-left:auto">Manual — click when ready to publish on Substack</span>
+            </div>
+          </div>
+
           <!-- Real World Nudge (mirrors LinkedIn tab) -->
           <div class="rw-nudge" id="rw-nudge-blog">
             <div class="rw-nudge-label">✦ Make It Real — Your Authentic Edge</div>
@@ -358,43 +740,32 @@ textarea{min-height:80px;line-height:1.6;}
           </div>
         </div>
 
-        <!-- This Week Tab -->
-        <div class="tab-content" id="tab-week">
-          <div class="week-header">
+        <!-- Library Tab -->
+        <div class="tab-content" id="tab-library">
+          <div class="lib-header">
             <div>
-              <div class="week-title">Your Week of Content</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:4px">One blog post → five days → two accounts</div>
+              <div class="lib-title">Content Library</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Everything you've generated — persisted across sessions</div>
             </div>
-            <button class="generate-btn" id="week-gen-btn" onclick="generateWeek()" style="width:auto;padding:12px 20px;font-size:11px">✦ Generate Full Week</button>
-          </div>
-
-          <!-- Cross-post intros -->
-          <div id="crosspost-section" style="display:none;margin-bottom:20px;">
-            <div class="panel-title">Cross-Post Intro Copy</div>
-            <div class="crosspost-section">
-              <div class="crosspost-arrow"><span style="color:var(--eridion)">Eridion Glass</span> → <span style="color:var(--erika)">Erika Personal</span> ↓</div>
-              <div class="crosspost-text" id="crosspost-e2p"></div>
-              <div class="action-bar" style="margin-top:10px">
-                <button class="action-btn" onclick="copyText('crosspost-e2p')">Copy</button>
-                <button class="action-btn" onclick="speakEl('crosspost-e2p')">🔊 Read</button>
-              </div>
-            </div>
-            <div class="crosspost-section">
-              <div class="crosspost-arrow"><span style="color:var(--erika)">Erika Personal</span> → <span style="color:var(--eridion)">Eridion Glass</span> ↓</div>
-              <div class="crosspost-text" id="crosspost-p2e"></div>
-              <div class="action-bar" style="margin-top:10px">
-                <button class="action-btn" onclick="copyText('crosspost-p2e')">Copy</button>
-                <button class="action-btn" onclick="speakEl('crosspost-p2e')">🔊 Read</button>
-              </div>
+            <div>
+              <button class="action-btn" onclick="saveCurrentToLibrary()">+ Save Current Draft</button>
+              <button class="action-btn" onclick="triggerImportLibrary()">Import JSON</button>
+              <button class="action-btn" onclick="exportLibrary()">Export JSON</button>
             </div>
           </div>
-
-          <div class="panel-title">Daily Post Schedule</div>
-          <div class="week-grid" id="week-grid">
-            <div class="placeholder-card">
-              <p>Generate content first, then click "Generate Full Week" to create your complete Mon–Fri posting schedule across both accounts.</p>
-            </div>
+          <div class="lib-filters">
+            <span class="lib-filter-lbl">Voice:</span>
+            <button class="lib-chip active" data-filter="voice" data-val="all" onclick="setLibFilter('voice','all')">All</button>
+            <button class="lib-chip" data-filter="voice" data-val="eridion" onclick="setLibFilter('voice','eridion')">Eridion</button>
+            <button class="lib-chip" data-filter="voice" data-val="erika" onclick="setLibFilter('voice','erika')">Erika</button>
+            <button class="lib-chip" data-filter="voice" data-val="dion" onclick="setLibFilter('voice','dion')">Dion</button>
+            <span class="lib-filter-lbl" style="margin-left:14px">Status:</span>
+            <button class="lib-chip active" data-filter="status" data-val="all" onclick="setLibFilter('status','all')">All</button>
+            <button class="lib-chip" data-filter="status" data-val="draft" onclick="setLibFilter('status','draft')">Draft</button>
+            <button class="lib-chip" data-filter="status" data-val="scheduled" onclick="setLibFilter('status','scheduled')">Scheduled</button>
+            <button class="lib-chip" data-filter="status" data-val="posted" onclick="setLibFilter('status','posted')">Posted</button>
           </div>
+          <div class="lib-grid" id="lib-grid"></div>
         </div>
 
         <!-- Image Tab -->
@@ -459,31 +830,138 @@ textarea{min-height:80px;line-height:1.6;}
           <div id="research-history"></div>
         </div>
 
-        <!-- Publish Tab -->
-        <div class="tab-content" id="tab-publish">
-          <div class="panel-title">Publishing</div>
-          <div class="connect-section">
-            <div class="connect-title">Wix Blog → Auto-Publish</div>
-            <p style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:16px">Enter your Wix API Key and Site ID in the Keys section to enable direct blog publishing.</p>
-            <div class="connect-grid">
-              <button class="action-btn primary" onclick="publishToWix()">Publish to Wix Blog</button>
-              <button class="action-btn" onclick="publishToWix(true)">Save as Draft</button>
+        <!-- Calendar Tab -->
+        <div class="tab-content" id="tab-calendar">
+          <div class="cal-header">
+            <div>
+              <div class="cal-week-label" id="cal-week-label">This Week</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Schedule items from your Library across Eridion · Erika · Dion</div>
             </div>
-            <div id="wix-status" style="margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);"></div>
-          </div>
-          <div class="connect-section">
-            <div class="connect-title">LinkedIn → Copy & Post</div>
-            <p style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:16px">Copy your post and open LinkedIn to paste and publish.</p>
-            <div class="connect-grid">
-              <button class="action-btn primary" onclick="openLinkedIn()">Open LinkedIn</button>
-              <button class="action-btn" onclick="copyLinkedIn()">Copy Post Text</button>
+            <div class="cal-nav">
+              <button class="cal-nav-btn" onclick="calPrev()">← Prev</button>
+              <button class="cal-nav-btn" onclick="calThis()">This Week</button>
+              <button class="cal-nav-btn" onclick="calNext()">Next →</button>
             </div>
           </div>
-          <div class="connect-section">
-            <div class="connect-title">Content Log</div>
-            <div id="content-log" style="max-height:200px;overflow-y:auto;">
-              <p style="font-size:12px;color:var(--text-muted);font-style:italic">Posts you generate this session will appear here.</p>
+          <div class="cal-summary" id="cal-summary"></div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <div class="cal-actions">
+            <button class="action-btn primary" onclick="copyWeekForBuffer()">📋 Copy Week for Buffer</button>
+            <button class="action-btn" onclick="publishToWix()">Publish Latest to Wix Blog</button>
+            <button class="action-btn" onclick="publishToWix(true)">Save to Wix as Draft</button>
+            <button class="action-btn" onclick="openLinkedIn()">Open LinkedIn</button>
+          </div>
+          <div id="wix-status" style="margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);"></div>
+        </div>
+
+        <!-- View Post Modal (calendar slot click) -->
+        <div class="sched-modal" id="view-post-modal">
+          <div class="sched-modal-inner" style="max-width:640px">
+            <div class="sched-modal-title" id="view-post-title">Scheduled Post</div>
+            <div id="view-post-meta" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--text-muted);margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"></div>
+            <div id="view-post-body" style="background:var(--surface2);border:1px solid var(--border);padding:16px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:400px;overflow-y:auto;margin-bottom:12px;"></div>
+            <div id="view-post-hashtags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="action-btn primary" onclick="copyViewPost()">📋 Copy Text + Hashtags</button>
+              <button class="action-btn" onclick="copyViewPostTextOnly()">Copy Text Only</button>
+              <button class="action-btn" onclick="viewPostGoToLibrary()">Open in Editor</button>
+              <button class="action-btn" onclick="closeViewPostModal()" style="margin-left:auto">Close</button>
             </div>
+          </div>
+        </div>
+
+        <!-- Schedule Modal -->
+        <div class="sched-modal" id="sched-modal">
+          <div class="sched-modal-inner">
+            <div class="sched-modal-title">Schedule Post</div>
+            <div class="sched-preview" id="sched-preview"></div>
+            <div class="sched-field">
+              <label class="field-label">Day</label>
+              <select id="sched-day"></select>
+            </div>
+            <div class="sched-field">
+              <label class="field-label">Account</label>
+              <select id="sched-account">
+                <option value="eridion">Eridion Glass</option>
+                <option value="erika">Erika Harrison</option>
+                <option value="dion">Dion Harrison</option>
+              </select>
+            </div>
+            <div class="sched-field">
+              <label class="field-label">Time (HH:MM — optional)</label>
+              <input type="text" id="sched-time" placeholder="09:00" />
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px">
+              <button class="action-btn primary" style="flex:1" onclick="confirmSchedule()">Schedule</button>
+              <button class="action-btn" onclick="closeSchedModal()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spin Snippet Modal -->
+        <div class="spin-modal" id="spin-snippet-modal">
+          <div class="spin-modal-inner">
+            <div class="spin-modal-title">✦ Spin a Snippet</div>
+            <div class="spin-modal-sub">Generate a short LinkedIn snippet from this blog post — optionally in a different voice, with a specific angle.</div>
+            <div class="spin-source-preview" id="spin-source-preview"></div>
+            <div class="spin-form-row">
+              <div class="field" style="margin-bottom:0">
+                <label class="field-label">Voice</label>
+                <select id="spin-voice">
+                  <option value="eridion">Eridion Glass</option>
+                  <option value="erika">Erika Harrison</option>
+                  <option value="dion">Dion Harrison</option>
+                </select>
+              </div>
+              <div class="field" style="margin-bottom:0">
+                <label class="field-label">Angle</label>
+                <select id="spin-angle">
+                  <option value="hook">Hook + tease ("more in the full post")</option>
+                  <option value="data">Data pull (one key stat or fact)</option>
+                  <option value="personal">Personal take / reaction</option>
+                  <option value="question">Question to audience</option>
+                  <option value="bold">Bold claim (pull a strong statement)</option>
+                  <option value="didyouknow">Did You Know (quick fact)</option>
+                </select>
+              </div>
+            </div>
+            <div class="spin-form-full">
+              <label class="field-label">Additional Direction (optional)</label>
+              <textarea id="spin-direction" placeholder='e.g. "Keep it under 100 words" or "Lead with the warranty-callback stat" or "Make sure it lands without assuming they read the blog"' style="min-height:60px"></textarea>
+            </div>
+            <div class="spin-modal-actions">
+              <button class="action-btn primary" onclick="runSpinSnippet()" id="spin-snippet-btn">✦ Generate Snippet</button>
+              <button class="action-btn" onclick="closeSpinModal('spin-snippet-modal')">Cancel</button>
+            </div>
+            <div class="spin-results" id="spin-snippet-results" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- Spin Week Modal -->
+        <div class="spin-modal" id="spin-week-modal">
+          <div class="spin-modal-inner">
+            <div class="spin-modal-title">✦ Spin Week from This Blog</div>
+            <div class="spin-modal-sub">Generate 5 snippets (Mon–Fri) from this blog post — each with a different angle, optionally mixing voices across the week.</div>
+            <div class="spin-source-preview" id="spin-week-source-preview"></div>
+            <div class="spin-form-full">
+              <label class="field-label">Voice Strategy</label>
+              <select id="spin-week-voice-strategy">
+                <option value="parent">All 5 snippets in the parent's voice</option>
+                <option value="mix" selected>Mix all three voices across the week (auto-distribute)</option>
+                <option value="eridion">All Eridion Glass</option>
+                <option value="erika">All Erika Harrison</option>
+                <option value="dion">All Dion Harrison</option>
+              </select>
+            </div>
+            <div class="spin-form-full">
+              <label class="field-label">Additional Direction (optional)</label>
+              <textarea id="spin-week-direction" placeholder='e.g. "Save the strongest data pull for Wednesday" or "Tuesday should feel like Erika catching up after a site visit"' style="min-height:60px"></textarea>
+            </div>
+            <div class="spin-modal-actions">
+              <button class="action-btn primary" onclick="runSpinWeek()" id="spin-week-btn">✦ Generate Week of Snippets</button>
+              <button class="action-btn" onclick="closeSpinModal('spin-week-modal')">Cancel</button>
+            </div>
+            <div class="spin-results" id="spin-week-results" style="display:none"></div>
           </div>
         </div>
       </div>
@@ -514,6 +992,15 @@ let selectedImageUrl = '';
 let selectedImageCredit = '';
 let contentLog = [];
 let weekPosts = [];
+let researchSources = [];
+let currentPOVSet = 'industry';
+let selectedPOV = 'balanced';
+let library = [];
+let libFilters = {voice:'all',status:'all'};
+let calWeekStart = null; // Date object, Monday of current week
+let pendingSchedItem = null; // library item being scheduled
+let currentSEO = null; // SEO package for the current blog in editor
+let currentSubstack = null; // Substack package for the current blog in editor
 
 // ── Buckets ──
 const buckets = {
@@ -530,6 +1017,13 @@ const buckets = {
     {id:'spotlight',icon:'✨',label:'Women in Business Spotlight'},
     {id:'industry',icon:'🏠',label:'Industry Observation'},
     {id:'journey',icon:'🌱',label:'Business Journey'},
+  ],
+  dion:[
+    {id:'field',icon:'🔧',label:'Field Notes'},
+    {id:'rules',icon:'📜',label:"Dion's Rules"},
+    {id:'shop',icon:'🛠️',label:'From the Shop'},
+    {id:'sideways',icon:'🎯',label:'This Week in Glass'},
+    {id:'apprentice',icon:'👷',label:'Apprentice Hour'},
   ]
 };
 
@@ -542,17 +1036,88 @@ AUDIENCE: Custom home builders, luxury home builders, general contractors, proje
 NEVER: Generic sales language, direct superiority claims, "backup vendor" framing.
 ALWAYS: Lead with recipient's reality, tie data to actionable insight, position Eridion as the trusted expert partner.`,
 
-  erika:`You are writing personal brand content for Erika González, co-founder of Eridion Glass, LLC — a female entrepreneur in Dallas, TX with an MBA in Marketing from LSU and 20+ years in corporate advertising before entering construction.
+  erika:`You are writing personal brand content for Erika Harrison, co-founder of Eridion Glass, LLC — a female entrepreneur in Dallas, TX with an MBA in Marketing from LSU and 20+ years in corporate advertising before entering construction.
 
 PERSONAL VOICE: Thoughtfully vulnerable (not oversharing), approachable but polished, motivational without preaching, honest about friction but always moving toward the insight or the win.
 IMPORTANT: Vulnerability stays in business/industry friction only — never personal health or anything undermining professional credibility. Frame struggles as learning moments.
-AUDIENCE: Female founders, women in construction, business leaders, DFW entrepreneurial community.`
+AUDIENCE: Female founders, women in construction, business leaders, DFW entrepreneurial community.`,
+
+  dion:`You are writing personal brand content for Dion Harrison, co-founder and master glazier at Eridion Glass LLC — a luxury custom glass and mirror subcontractor in Dallas TX. Dion has 25+ years in the field, originally Australian, and personally leads every installation. He is the technical authority behind the business.
+
+PERSONAL VOICE: Dry, plainspoken, and funny. Dion is shy in person but humor is how he connects — he'd rather make a builder laugh than sell them anything. His sense of humor is Australian: understated, self-deprecating, observational, occasionally absurdist. He notices things other people miss and has strong opinions about workmanship, but he'd never phrase them that way.
+
+WRITING RULES — FOLLOW THESE STRICTLY:
+- Never pitch. Never sell. Never mention Eridion's services or capabilities directly. The business benefits when Dion is likeable and trusted, not when he pushes product.
+- Lead with observation, not claim. "Saw a shower door yesterday that..." not "At Eridion we believe..."
+- Humor is the hook, craft is the payoff. A funny line gets them reading, then he drops actual technical knowledge that only 25 years in the trade would teach you.
+- Never try too hard. If a post feels like it's trying to be funny, rewrite it flatter. The humor should feel incidental — like he's talking to another tradesman who happens to be listening.
+- Australian touches are welcome but sparing — one "mate," understatement, or bit of dry phrasing per post. Don't overdo it or it reads as costume.
+- Short paragraphs. Line breaks where he'd pause. He'd say it like he says it to himself in the truck.
+- Zero corporate language. No "thought leadership," no "stakeholders," no "value-add," no "passionate about."
+- CTAs, if any at all, are understated — "if you've got a project with something weird going on, I'll have a look" not "contact us today!" Most posts should have NO CTA. Dion builds trust through craft and personality, not lead-gen.
+- He's technical when it matters. He knows ASTM C1048, IRC R308, CPSC 16 CFR 1201, how silicone behaves on different substrates, why tempered glass spontaneously breaks, edge work, hardware load calcs. But he only gets technical when there's a reason — and always in plain language.
+- He respects other tradesmen. Framers, tile setters, plumbers, electricians — never punches down. Punches sideways at his own work when it goes wrong.
+
+AUDIENCE: Builders, project managers, other tradespeople, architects, site supers. People who can tell when someone actually knows what they're doing versus someone reading a brochure.`
+};
+
+// ── POV Sets: four angles per topic category ──
+const POV_SETS = {
+  industry: {
+    label: 'Industry / Business',
+    povs: [
+      {id:'challenger', label:'Challenger', desc:'Contrarian — call out what the industry gets wrong',
+       modifier:'Write from a CONTRARIAN perspective. Directly challenge conventional wisdom in the glass and building trades. Be evidence-based but take a strong stance: here is what most builders and subs get wrong about this topic, and here is what it costs them. Willing to call out the gap between how things are usually done and how they should be done. Use the curated sources to back up the challenge.'},
+      {id:'defender', label:'Defender', desc:'Pro-status-quo — respect why proven methods work',
+       modifier:'Write from a STATUS-QUO perspective. Respect why proven methods and trusted relationships exist. Show how the established approach protects builders from risk. Honor the craftspeople and systems that earned their reputation over decades. Use the curated sources to defend what works.'},
+      {id:'balanced', label:'Balanced', desc:'Right-fit — different projects, different answers',
+       modifier:'Write from a NUANCED, right-fit perspective. Different project tiers and contexts need different approaches. Help builders match method to context. A luxury custom home and a production build face different constraints — both are valid. Use the curated sources to show the full picture, not pick a winner.'},
+      {id:'facts', label:'Facts Only', desc:'Pure data, no opinion',
+       modifier:'Write as PURE INDUSTRY INTELLIGENCE. No opinion, no lean. Just data, codes, standards, and their implications for builders. Cite sources directly. Let the reader draw their own conclusions from the material. Restrained, analytical voice.'},
+    ]
+  },
+  market: {
+    label: 'Market / Financial',
+    povs: [
+      {id:'bull', label:'Bull', desc:'Optimistic — conditions favor acting now',
+       modifier:'Write from an OPTIMISTIC market perspective. Emphasize opportunities, momentum, and why builders should move now. Use the curated market data to support the case for action.'},
+      {id:'bear', label:'Bear', desc:'Cautious — highlight risks and headwinds',
+       modifier:'Write from a CAUTIOUS market perspective. Highlight risks, headwinds, and what could go wrong. Use the curated data to support a measured, risk-aware stance.'},
+      {id:'neutral', label:'Neutral', desc:'Balanced outlook, both sides',
+       modifier:'Write a BALANCED market outlook. Acknowledge both tailwinds and headwinds. Help builders understand the full picture before deciding. Use all curated sources fairly.'},
+      {id:'facts', label:'Facts Only', desc:'Pure data, no lean',
+       modifier:'Write as PURE MARKET INTELLIGENCE. No opinion, no lean. Just data and implications. Let builders draw their own conclusions from the sources.'},
+    ]
+  },
+  social: {
+    label: 'Social / Political',
+    povs: [
+      {id:'left', label:'Progressive', desc:'Progressive framing',
+       modifier:'Write from a progressive/left-leaning perspective on this topic, grounded in the curated sources.'},
+      {id:'right', label:'Conservative', desc:'Conservative framing',
+       modifier:'Write from a conservative/right-leaning perspective on this topic, grounded in the curated sources.'},
+      {id:'moderate', label:'Moderate', desc:'Middle-ground framing',
+       modifier:'Write from a moderate middle-ground perspective, acknowledging valid points on multiple sides. Grounded in the curated sources.'},
+      {id:'facts', label:'Facts Only', desc:'Pure data, no lean',
+       modifier:'Write as PURE REPORTING. No opinion, no political framing. Just data and implications from the curated sources.'},
+    ]
+  }
+};
+
+// Default POV set per bucket — market bucket defaults to market set, everything else to industry
+const BUCKET_TO_POV_SET = {
+  market:'market', didyouknow:'industry', labor:'industry', innovation:'industry',
+  partnership:'industry', leadership:'industry', organic:'industry',
+  spotlight:'industry', industry:'industry', journey:'industry',
+  field:'industry', rules:'industry', shop:'industry', sideways:'industry', apprentice:'industry'
 };
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   loadKeys(); loadKB(); renderBuckets(); updateIndicators();
+  loadLibrary(); renderLibrary();
+  calWeekStart = getWeekStart(new Date()); renderCalendar();
 });
 
 function renderBuckets() {
@@ -575,13 +1140,13 @@ function setStream(s) {
 function selectBucket(id) {
   currentBucket=id; renderBuckets();
   const fmtMap={didyouknow:'didyouknow',spotlight:'spotlight'};
-  const toneMap={market:'authoritative',didyouknow:'educational',labor:'authoritative',innovation:'educational',partnership:'conversational',leadership:'personal',organic:'personal',spotlight:'conversational',industry:'authoritative',journey:'personal'};
+  const toneMap={market:'authoritative',didyouknow:'educational',labor:'authoritative',innovation:'educational',partnership:'conversational',leadership:'personal',organic:'personal',spotlight:'conversational',industry:'authoritative',journey:'personal',field:'conversational',rules:'conversational',shop:'educational',sideways:'personal',apprentice:'conversational'};
   if(fmtMap[id]) document.getElementById('format-select').value=fmtMap[id];
   if(toneMap[id]) document.getElementById('tone-select').value=toneMap[id];
 }
 
 function switchTab(tab) {
-  const names=['linkedin','blog','week','image','briefing','publish'];
+  const names=['research','linkedin','blog','library','calendar','image','briefing'];
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===tab));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');
@@ -610,7 +1175,11 @@ async function generateContent() {
   const ctaErika=`\n\nCTA RULES:
 - Include one soft mid-content CTA (e.g. invite to connect, comment, or DM)
 - End with a clear strong CTA (e.g. "I'd love to hear how you're navigating this — drop a comment or connect with me." or "If you're building something in Dallas, let's talk.")`;
-  const ctaFinal = currentStream==='eridion' ? ctaEridion : ctaErika;
+  const ctaDion=`\n\nCTA RULES FOR DION:
+- Usually NO CTA at all. Dion builds trust through craft and personality, not lead-gen.
+- If a CTA genuinely fits (rare), make it understated and specific — e.g. "If you've got a weird glass situation on site, happy to have a look" — never "contact us today" language.
+- No email, no website link, no urgency. He's not selling.`;
+  const ctaFinal = currentStream==='eridion' ? ctaEridion : (currentStream==='dion' ? ctaDion : ctaErika);
 
   if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook that stops the scroll. One subtle mid-post CTA. Strong closing CTA. Also generate 5 relevant hashtags.${ctaFinal}`;
   else if(format==='blog+linkedin') fmtInstr=`Generate BOTH a full blog post AND a LinkedIn snippet.
@@ -687,15 +1256,353 @@ ${ctaFinal}`;
     updateCharCount();
     if(topic) document.getElementById('image-search').value=topic;
     logContent(topic,bucketLabel);
+    const libEntry=addToLibrary({
+      linkedin_text:generatedLinkedIn,
+      blog_text:generatedBlog,
+      hashtags:generatedHashtags,
+      title:topic,
+    });
+    // Reset SEO + Substack for fresh blog; both auto-generate for blog format
+    clearSEO(); clearSubstack();
+    renderLibrary();
     document.getElementById('claude-dot').classList.add('active');
     setStatus('Ready',false);
-    showToast('Content generated!','success');
+    showToast('Content generated & saved to library','success');
+    if(format==='blog+linkedin' && generatedBlog && generatedBlog.length>100){
+      Promise.all([
+        generateSEOPackage(true),
+        generateSubstackPackage(true)
+      ]).then(([seo,sub])=>{
+        if(libEntry){
+          if(seo) libEntry.seo=seo;
+          if(sub) libEntry.substack=sub;
+          persistLibrary();
+          renderLibrary();
+        }
+      });
+    }
 
   } catch(e) {
     showToast('Generation failed: '+e.message,'error');
     setStatus('Error',false);
   } finally {
     btn.disabled=false; btn.classList.remove('loading');
+  }
+}
+
+// ── Research Brief (Stage 1) ──
+async function researchTopic() {
+  const topic=document.getElementById('topic-input').value.trim();
+  const bullets=document.getElementById('bullets-input').value.trim();
+  if(!topic){showToast('Enter a topic first','error');return;}
+
+  const btn=document.getElementById('research-btn');
+  btn.disabled=true; btn.classList.add('loading');
+  setStatus('Researching sources...',true);
+
+  const bucketLabel=buckets[currentStream].find(b=>b.id===currentBucket)?.label||currentBucket;
+
+  const prompt=`You are a research analyst curating source material for an article by Eridion Glass — a luxury custom glass and mirror subcontractor in Dallas TX. The writer has not decided on an angle yet. Your job is to lay out the available source material so she can choose.
+
+BUSINESS CONTEXT:
+${getKB()}
+
+CONTENT BUCKET: ${bucketLabel}
+TOPIC / HEADLINE: ${topic}
+KEY POINTS THE WRITER WANTS TO COVER:
+${bullets||'(none specified — use best judgment based on the topic)'}
+
+YOUR TASK:
+Do NOT write an article. Curate 8-12 real research points (studies, industry data, building codes, standards, trade reports, widely-cited frameworks, historical trends, market indicators) that could support OR challenge ANY reasonable angle on this topic. The writer will pick which ones to use.
+
+For each research point provide:
+- title: A clear title summarizing the finding or standard
+- source: The publishing body or document (e.g. "NAHB Cost of Doing Business Study", "ASTM C1048", "IRC R308.4", "Freddie Mac Primary Mortgage Market Survey", "Construction Dive 2024 Labor Report"). If the exact citation is uncertain, use "Industry consensus" or "Widely cited in trade publications" — do NOT invent specific statistic numbers.
+- snippet: 2-3 sentences summarizing what this source says that matters for this topic
+- category: one of STUDY, CODE, INDUSTRY_DATA, TREND, FRAMEWORK, CASE
+
+Be honest and grounded. Well-known codes, standards, and industry dynamics are fair game. Specific proprietary statistics you aren't sure about are NOT fair game — mark them as industry consensus if you include them.
+
+Aim for a mix of categories so the writer has range — some hard codes/standards, some market data, some trend analysis, some case/framework material.
+
+Return ONLY valid JSON, no preamble, no markdown fences:
+{"sources":[{"id":"s1","title":"...","source":"...","snippet":"...","category":"STUDY"}]}`;
+
+  try{
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const text=data.content?.[0]?.text||'';
+    if(!text) throw new Error('Empty response from worker');
+
+    // Robust JSON extraction: strip markdown fences, then find balanced {...} block
+    let jsonText=text.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
+    let startIdx=jsonText.indexOf('{"sources"');
+    if(startIdx<0) startIdx=jsonText.search(/\{\s*"sources"/);
+    if(startIdx<0) startIdx=jsonText.indexOf('{');
+    if(startIdx<0) throw new Error('No JSON found in response');
+    let depth=0,endIdx=-1;
+    for(let i=startIdx;i<jsonText.length;i++){
+      if(jsonText[i]==='{') depth++;
+      else if(jsonText[i]==='}'){depth--;if(depth===0){endIdx=i;break;}}
+    }
+    if(endIdx<0) throw new Error('JSON object not closed — response may be truncated');
+    let parsed;
+    try{parsed=JSON.parse(jsonText.substring(startIdx,endIdx+1));}
+    catch(parseErr){
+      console.error('Research JSON parse failed. Raw response:',text);
+      throw new Error('Could not parse research JSON — check browser console for raw response');
+    }
+    const src=Array.isArray(parsed.sources)?parsed.sources:[];
+    if(!src.length) throw new Error('No sources returned');
+
+    researchSources=src.map((s,i)=>({id:s.id||`s${i+1}`,title:s.title||'Untitled',source:s.source||'Unknown source',snippet:s.snippet||'',category:(s.category||'INDUSTRY_DATA').toUpperCase(),selected:true}));
+
+    // Default POV set from current bucket
+    currentPOVSet=BUCKET_TO_POV_SET[currentBucket]||'industry';
+    selectedPOV=POV_SETS[currentPOVSet].povs.find(p=>p.id==='balanced'||p.id==='neutral')?.id||POV_SETS[currentPOVSet].povs[0].id;
+
+    renderResearchBrief();
+    switchTab('research');
+    document.getElementById('claude-dot').classList.add('active');
+    setStatus('Ready',false);
+    showToast(`${researchSources.length} sources curated — review & pick your angle`,'success');
+  }catch(e){
+    showToast('Research failed: '+e.message,'error');
+    setStatus('Error',false);
+  }finally{
+    btn.disabled=false; btn.classList.remove('loading');
+  }
+}
+
+function renderResearchBrief(){
+  const c=document.getElementById('research-brief-container');
+  if(!researchSources.length){
+    c.innerHTML='<div class="placeholder-card"><p>Enter your topic and key points on the left, then hit <strong style="color:var(--gold)">Research First</strong> to curate source material.</p></div>';
+    return;
+  }
+  const selCount=researchSources.filter(s=>s.selected).length;
+  const povSet=POV_SETS[currentPOVSet];
+  const povLabel=povSet.povs.find(p=>p.id===selectedPOV)?.label||'—';
+  const topic=document.getElementById('topic-input').value.trim();
+
+  c.innerHTML=`
+    <div class="brief-intro">
+      <div class="brief-intro-title">Research Brief${topic?' · '+topic:''}</div>
+      <div class="brief-intro-sub">Below is the raw material curated for this topic. Uncheck anything you don't want in the article. Then pick your angle and draft — the article will only use what you've selected.</div>
+    </div>
+
+    <div class="brief-section-label">
+      <span>Curated Sources</span>
+      <span class="count">· ${selCount} of ${researchSources.length} selected</span>
+    </div>
+    <div class="source-list">
+      ${researchSources.map((s,i)=>`
+        <div class="source-card ${s.selected?'selected':''}">
+          <label class="source-check">
+            <input type="checkbox" ${s.selected?'checked':''} onchange="toggleSource(${i})">
+            <div class="source-body">
+              <div class="source-meta">
+                <span class="source-cat cat-${s.category.toLowerCase()}">${s.category.replace('_',' ')}</span>
+                <span class="source-name">${escapeHTML(s.source)}</span>
+              </div>
+              <div class="source-title">${escapeHTML(s.title)}</div>
+              <div class="source-snippet">${escapeHTML(s.snippet)}</div>
+            </div>
+          </label>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="brief-section-label" style="margin-top:22px">Choose Your Angle</div>
+    <div class="pov-section">
+      <div class="pov-set-row">
+        <span class="pov-set-lbl">POV set:</span>
+        ${Object.keys(POV_SETS).map(k=>`
+          <button class="pov-set-btn ${k===currentPOVSet?'active':''}" onclick="setPOVSet('${k}')">${POV_SETS[k].label}</button>
+        `).join('')}
+      </div>
+      <div class="pov-grid">
+        ${povSet.povs.map(p=>`
+          <button class="pov-btn ${p.id===selectedPOV?'active':''}" onclick="selectPOV('${p.id}')">
+            <div class="pov-label">${p.label}</div>
+            <div class="pov-desc">${p.desc}</div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+
+    <button class="generate-btn" id="draft-btn" onclick="draftFromResearch()">✦ Draft Article with Selected Sources</button>
+    <div class="draft-footnote">Using ${selCount} source${selCount===1?'':'s'} · Angle: ${povLabel}</div>
+  `;
+}
+
+function escapeHTML(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function toggleSource(i){
+  if(!researchSources[i]) return;
+  researchSources[i].selected=!researchSources[i].selected;
+  renderResearchBrief();
+}
+
+function selectPOV(id){
+  selectedPOV=id;
+  renderResearchBrief();
+}
+
+function setPOVSet(k){
+  if(!POV_SETS[k]) return;
+  currentPOVSet=k;
+  // Pick a sensible default POV within the new set
+  selectedPOV=POV_SETS[k].povs.find(p=>p.id==='balanced'||p.id==='neutral')?.id||POV_SETS[k].povs[0].id;
+  renderResearchBrief();
+}
+
+// ── Draft Article from Curated Sources (Stage 2) ──
+async function draftFromResearch(){
+  const selected=researchSources.filter(s=>s.selected);
+  if(!selected.length){showToast('Select at least one source first','error');return;}
+  const pov=POV_SETS[currentPOVSet].povs.find(p=>p.id===selectedPOV);
+  if(!pov){showToast('Pick an angle first','error');return;}
+
+  const btn=document.getElementById('draft-btn');
+  if(btn){btn.disabled=true; btn.classList.add('loading');}
+  setStatus(`Drafting from ${pov.label} angle...`,true);
+
+  const topic=document.getElementById('topic-input').value.trim();
+  const bullets=document.getElementById('bullets-input').value.trim();
+  const format=document.getElementById('format-select').value;
+  const tone=document.getElementById('tone-select').value;
+  const bucketLabel=buckets[currentStream].find(b=>b.id===currentBucket)?.label||currentBucket;
+  const voice=voicePrompts[currentStream];
+
+  const sourcesBlock=selected.map((s,i)=>`[${i+1}] ${s.category} · ${s.source}\nTitle: ${s.title}\n${s.snippet}`).join('\n\n');
+
+  // Reuse the existing CTA + format instructions from generateContent
+  const ctaEridion=`\n\nCTA RULES — APPLY TO ALL FORMATS:
+- Every post must include at least one subtle CTA mid-content
+- Every post must end with a clear strong CTA
+- CTAs should feel like a natural next step, never salesy — always builder-focused`;
+  const ctaErika=`\n\nCTA RULES:
+- Include one soft mid-content CTA
+- End with a clear strong CTA`;
+  const ctaDion=`\n\nCTA RULES FOR DION:
+- Usually NO CTA at all. Dion builds trust through craft and personality, not lead-gen.
+- If a CTA genuinely fits, make it understated — "If you've got a weird glass situation, happy to have a look" — never "contact us today."
+- No email, no website link, no urgency.`;
+  const ctaFinal=currentStream==='eridion'?ctaEridion:(currentStream==='dion'?ctaDion:ctaErika);
+
+  let fmtInstr='';
+  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook. One subtle mid-post CTA. Strong closing CTA. Also 5 relevant hashtags.${ctaFinal}`;
+  else if(format==='blog+linkedin') fmtInstr=`Generate BOTH a full blog post AND a LinkedIn snippet.
+
+BLOG POST (1000-1400 words):
+- SEO-optimized title
+- Strong opening that speaks to the builder's reality
+- 3-4 sections with subheadings
+- Cite the curated sources by name inline (e.g. "according to NAHB..." or "per ASTM C1048...")
+- 2 subtle inline CTAs woven naturally
+- Strong closing CTA paragraph
+
+LINKEDIN SNIPPET (150-300 words):
+- Key insight from blog
+- One mid-post soft CTA
+- Ends with "Read the full post → [link]"
+
+FORMAT EXACTLY:
+===BLOG===
+[full blog post]
+===LINKEDIN===
+[linkedin post]
+===HASHTAGS===
+[5 hashtags, one per line]
+${ctaFinal}`;
+  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post (100-200 words). Start with "Did you know?" then the surprising fact from the sources, why it matters to builders, Eridion's angle, CTA. Also 5 hashtags.${ctaFinal}`;
+  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post (150-250 words). Warm, genuine, not promotional. End with soft CTA. Also 5 hashtags.${ctaErika}`;
+
+  const povInstruction=`\n\n✦ ANGLE / POINT OF VIEW FOR THIS PIECE — FOLLOW THIS CONSISTENTLY THROUGHOUT:\n${pov.modifier}\n\nDo not hedge against the chosen angle. Stay consistent. Every section should reinforce this lean.`;
+
+  const sourceRule=`\n\nSOURCE DISCIPLINE:
+- Use the CURATED SOURCES above as your evidence base
+- You may cite them inline by name (e.g. "per NAHB data," "ASTM C1048 requires...")
+- Do NOT invent or fabricate specific statistics or studies beyond what's in the curated list
+- If you need a supporting claim not in the sources, phrase it generally ("industry practice," "commonly observed") rather than attributing to a specific source`;
+
+  const prompt=`${voice}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\n✦ CURATED SOURCE MATERIAL (the writer has reviewed and selected these — use them):\n\n${sourcesBlock}${sourceRule}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment from sources)'}\nTONE: ${tone}${povInstruction}\n\n${fmtInstr}`;
+
+  const maxTokens=format==='blog+linkedin'?2000:1200;
+
+  try{
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const text=data.content?.[0]?.text||'';
+    if(!text) throw new Error('Empty response');
+
+    // Reuse the same parsing as generateContent
+    if(format==='blog+linkedin'){
+      const bm=text.match(/===BLOG===([\s\S]*?)===LINKEDIN===/i);
+      const lm=text.match(/===LINKEDIN===([\s\S]*?)===HASHTAGS===/i);
+      const hm=text.match(/===HASHTAGS===([\s\S]*?)$/i);
+      if(bm&&lm){generatedBlog=bm[1].trim();generatedLinkedIn=lm[1].trim();}
+      else{const sp=Math.floor(text.length*0.65);const lp=text.lastIndexOf('\n\n',sp);generatedBlog=text.substring(0,lp>0?lp:sp).trim();generatedLinkedIn=text.substring(lp>0?lp:sp).trim();}
+      const hr=hm?hm[1].trim():'';
+      generatedHashtags=hr?hr.split('\n').map(h=>h.trim()).filter(h=>h.startsWith('#')):[...new Set(text.match(/#[A-Za-z][A-Za-z0-9]*/g)||[])].slice(0,6);
+    } else {
+      const lines=text.split('\n');const htLines=[];const ctLines=[];
+      let inH=false;
+      for(let i=lines.length-1;i>=0;i--){const l=lines[i].trim();if(l.match(/^#[A-Za-z]/)||(inH&&l==='')){if(l.startsWith('#')){htLines.unshift(l);inH=true;}}else{ctLines.unshift(...lines.slice(0,i+1));break;}}
+      generatedLinkedIn=(ctLines.length?ctLines:lines).join('\n').trim();
+      generatedHashtags=htLines.length?htLines:(text.match(/#[A-Za-z][A-Za-z0-9]*/g)||[]).slice(0,5);
+      if(!generatedLinkedIn) generatedLinkedIn=text;
+      generatedBlog='';
+    }
+
+    const liOut=document.getElementById('linkedin-output');
+    liOut.innerHTML=''; liOut.textContent=generatedLinkedIn||'No LinkedIn post generated.';
+    document.getElementById('hashtags-container').innerHTML=generatedHashtags.map(h=>`<span class="hashtag">${h}</span>`).join('');
+    const blogOut=document.getElementById('blog-output');
+    blogOut.innerHTML='';
+    const cleanBlog=(generatedBlog||'').replace(/^===BLOG===\s*/i,'').trim();
+    if(cleanBlog) blogOut.innerHTML=formatBlogHTML(cleanBlog);
+    else blogOut.textContent='Select "Blog + LinkedIn" format to generate a full blog post.';
+
+    updateCharCount();
+    if(topic) document.getElementById('image-search').value=topic;
+    logContent(topic+` [${pov.label}]`,bucketLabel);
+    const libEntry=addToLibrary({
+      linkedin_text:generatedLinkedIn,
+      blog_text:generatedBlog,
+      hashtags:generatedHashtags,
+      title:topic,
+      pov:pov.id,
+      pov_label:pov.label,
+    });
+    clearSEO(); clearSubstack();
+    renderLibrary();
+
+    // Switch to output tab
+    switchTab(format==='blog+linkedin'?'blog':'linkedin');
+    setStatus('Ready',false);
+    showToast(`Drafted with ${pov.label} angle — ${selected.length} sources used · Saved to library`,'success');
+    if(format==='blog+linkedin' && generatedBlog && generatedBlog.length>100){
+      Promise.all([
+        generateSEOPackage(true),
+        generateSubstackPackage(true)
+      ]).then(([seo,sub])=>{
+        if(libEntry){
+          if(seo) libEntry.seo=seo;
+          if(sub) libEntry.substack=sub;
+          persistLibrary();
+          renderLibrary();
+        }
+      });
+    }
+  }catch(e){
+    showToast('Draft failed: '+e.message,'error');
+    setStatus('Error',false);
+  }finally{
+    if(btn){btn.disabled=false; btn.classList.remove('loading');}
   }
 }
 
@@ -727,7 +1634,7 @@ async function doWeave(experience, nudgeId, inputId) {
   setStatus('Weaving into LinkedIn and blog...', true);
 
   // LinkedIn prompt — concise, seamless injection
-  const liPrompt=`You are editing a LinkedIn post for Erika González, co-founder of Eridion Glass — a luxury glass and mirror subcontractor in Dallas TX. She has 20+ years in advertising and deeply understands brand voice.
+  const liPrompt=`You are editing a LinkedIn post for Erika Harrison, co-founder of Eridion Glass — a luxury glass and mirror subcontractor in Dallas TX. She has 20+ years in advertising and deeply understands brand voice.
 
 CURRENT POST:
 ${postToEdit}
@@ -747,9 +1654,9 @@ Wrap ONLY the added/rewritten sentence(s) with <HIGHLIGHT> and </HIGHLIGHT> tags
 Return ONLY the rewritten post. No preamble.`;
 
   // Blog prompt — richer, more detailed injection
-  const blogPrompt = blogToEdit.length > 100 ? `You are editing a blog post for Erika González, co-founder of Eridion Glass — a luxury glass and mirror subcontractor in Dallas TX.
+  const blogPrompt = blogToEdit.length > 100 ? `You are editing a blog post for Erika Harrison, co-founder of Eridion Glass — a luxury glass and mirror subcontractor in Dallas TX.
 
-CURRENT BLOG POST:
+CURRENT BLOG POST (in markdown — preserve the formatting EXACTLY):
 ${blogToEdit}
 
 REAL EXPERIENCE TO WEAVE IN:
@@ -761,8 +1668,15 @@ YOUR TASK:
 3. The injection should feel editorial and authoritative — not a personal anecdote bolted on, but a natural part of the expert narrative
 4. Keep Erika's voice: confident, data-informed, builder-focused
 
+CRITICAL — PRESERVE ALL FORMATTING:
+- Keep every # H1, ## H2, and ### H3 heading exactly as written
+- Keep every **bold** emphasis
+- Keep every paragraph break (blank lines between paragraphs)
+- Keep the overall document structure — do NOT reorganize sections, rename headings, or merge paragraphs
+- Return the COMPLETE blog post, not just the edited section
+
 Wrap ONLY the added/rewritten sentence(s) with <HIGHLIGHT> and </HIGHLIGHT> tags.
-Return ONLY the rewritten blog post. No preamble.` : null;
+Return ONLY the rewritten blog post. No preamble, no code fences.` : null;
 
   function renderHighlighted(text) {
     const parts = text.split(/(<HIGHLIGHT>[\s\S]*?<\/HIGHLIGHT>)/g);
@@ -777,6 +1691,20 @@ Return ONLY the rewritten blog post. No preamble.` : null;
       }
     });
     return html;
+  }
+
+  // Blog-specific: preserve markdown formatting (headings, bold, paragraphs) AND highlight spans
+  function renderHighlightedBlog(text) {
+    // Swap highlight tags for unique placeholders so markdown conversion doesn't touch them
+    const withPlaceholders = text
+      .replace(/<HIGHLIGHT>/g, '§§HL_OPEN§§')
+      .replace(/<\/HIGHLIGHT>/g, '§§HL_CLOSE§§');
+    // Run the same markdown→HTML pipeline used on initial generation
+    const htmlWithPlaceholders = formatBlogHTML(withPlaceholders);
+    // Restore highlight spans
+    return htmlWithPlaceholders
+      .replace(/§§HL_OPEN§§/g, '<span class="real-highlight">')
+      .replace(/§§HL_CLOSE§§/g, '</span>');
   }
 
   try {
@@ -805,12 +1733,12 @@ Return ONLY the rewritten blog post. No preamble.` : null;
       liOut.style.whiteSpace = 'pre-wrap';
       liOut.innerHTML = renderHighlighted(newLI);
 
-      // Update Blog
+      // Update Blog — use markdown-aware renderer so headings, bold, and paragraphs survive
       if(newBlog && newBlog.length > 50) {
         generatedBlog = newBlog.replace(/<HIGHLIGHT>/g,'').replace(/<\/HIGHLIGHT>/g,'').trim();
         const blogOut = document.getElementById('blog-output');
-        blogOut.style.whiteSpace = 'pre-wrap';
-        blogOut.innerHTML = renderHighlighted(newBlog);
+        blogOut.style.whiteSpace = 'normal';
+        blogOut.innerHTML = renderHighlightedBlog(newBlog);
       }
 
       // Update nudge banners
@@ -843,128 +1771,6 @@ Return ONLY the rewritten blog post. No preamble.` : null;
 }
 
 // ── Generate Full Week ──
-async function generateWeek() {
-  const topic=document.getElementById('topic-input').value.trim();
-  const content=generatedBlog||generatedLinkedIn;
-  if(!content){showToast('Generate content first','error');return;}
-
-  const btn=document.getElementById('week-gen-btn');
-  btn.disabled=true; btn.textContent='⏳ Building week...';
-  setStatus('Generating weekly schedule...',true);
-
-  const prompt=`You are creating a full week of social media content for Erika González, co-founder of Eridion Glass in Dallas TX. She runs TWO LinkedIn accounts: Eridion Glass (company, B2B authority) and Erika González (personal, female founder).
-
-SOURCE CONTENT:
-${content}
-
-TOPIC: ${topic}
-
-Create exactly 5 posts for Mon-Fri. Each post must be distinct — no repetition. Use this schedule:
-
-MONDAY: Eridion Glass posts the full article intro (authoritative, data-led, 150-200 words)
-TUESDAY: Erika personal reposts/shares with a warm human intro (personal, genuine, 100-150 words — "My team published something this week...")
-WEDNESDAY: Eridion Glass posts a standalone data snippet (punchy, no link needed, 80-120 words, one key stat)
-THURSDAY: Erika personal posts her own take/reaction to the same topic (her perspective as a female founder in construction, 120-180 words)
-FRIDAY: Eridion Glass posts the Did You Know or talking point version (short, scroll-stopping, 60-100 words)
-
-IMPORTANT CTA RULES — every single post must include a CTA:
-- Eridion posts: end with a direct, natural CTA to reach out, get on the schedule, or visit eridionglass.com
-- Erika posts: end with a soft CTA to connect, comment, or DM
-- CTAs should feel like a natural next step — never salesy, always builder or founder focused
-
-Also create cross-post intro copy in BOTH directions:
-- Eridion→Erika: how Erika would introduce sharing the Eridion post on her personal account
-- Erika→Eridion: how the Eridion account would amplify Erika's personal post
-
-FORMAT EXACTLY:
-===MON===
-[monday post]
-===TUE===
-[tuesday post]
-===WED===
-[wednesday post]
-===THU===
-[thursday post]
-===FRI===
-[friday post]
-===CROSSPOST_E2P===
-[Eridion to Erika intro]
-===CROSSPOST_P2E===
-[Erika to Eridion intro]`;
-
-  try {
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
-    const text=data.content?.[0]?.text||'';
-    if(!text) throw new Error('Empty response');
-
-    const extract=(tag1,tag2)=>{const m=text.match(new RegExp(`===${tag1}===([\\s\\S]*?)===${tag2}===`,'i'));return m?m[1].trim():'';};
-    const extractLast=(tag)=>{const m=text.match(new RegExp(`===${tag}===([\\s\\S]*?)$`,'i'));return m?m[1].trim():'';};
-
-    weekPosts=[
-      {day:'Monday',account:'eridion',type:'Full Article Intro',text:extract('MON','TUE')},
-      {day:'Tuesday',account:'erika',type:'Personal Repost',text:extract('TUE','WED')},
-      {day:'Wednesday',account:'eridion',type:'Data Snippet',text:extract('WED','THU')},
-      {day:'Thursday',account:'erika',type:'Personal Take',text:extract('THU','FRI')},
-      {day:'Friday',account:'eridion',type:'Did You Know',text:extract('FRI','CROSSPOST_E2P')},
-    ];
-
-    const e2p=extract('CROSSPOST_E2P','CROSSPOST_P2E');
-    const p2e=extractLast('CROSSPOST_P2E');
-
-    renderWeekGrid();
-
-    if(e2p||p2e){
-      document.getElementById('crosspost-e2p').textContent=e2p;
-      document.getElementById('crosspost-p2e').textContent=p2e;
-      document.getElementById('crosspost-section').style.display='block';
-    }
-
-    showToast('Full week generated!','success');
-    setStatus('Ready',false);
-  } catch(e) {
-    showToast('Week generation failed','error');
-    setStatus('Ready',false);
-  } finally {
-    btn.disabled=false; btn.textContent='✦ Generate Full Week';
-  }
-}
-
-function renderWeekGrid() {
-  const grid=document.getElementById('week-grid');
-  if(!weekPosts.length){grid.innerHTML='<div class="placeholder-card"><p>No posts yet.</p></div>';return;}
-  grid.innerHTML=weekPosts.map((p,i)=>`
-    <div class="day-card">
-      <div class="day-header">
-        <span class="day-name">${p.day}</span>
-        <span class="day-account ${p.account}">${p.account==='eridion'?'Eridion Glass':'Erika González'}</span>
-        <span class="day-type">${p.type}</span>
-      </div>
-      <div class="day-body">
-        <div class="day-post-text" id="day-text-${i}">${p.text||'<em style="color:var(--text-muted)">Could not parse post — try regenerating</em>'}</div>
-        <div class="day-actions">
-          <button class="action-btn primary" onclick="copyDayPost(${i})">Copy</button>
-          <button class="action-btn" onclick="speakText('${escapeAttr(p.text)}')">🔊</button>
-          <button class="action-btn" onclick="openLinkedIn()">Post to LinkedIn</button>
-          <span class="day-expand" onclick="toggleExpand(${i})">Show more ↓</span>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function toggleExpand(i){
-  const el=document.getElementById(`day-text-${i}`);
-  const expanded=el.classList.toggle('expanded');
-  el.nextElementSibling.querySelector('.day-expand').textContent=expanded?'Show less ↑':'Show more ↓';
-}
-
-function copyDayPost(i){
-  const text=weekPosts[i]?.text||'';
-  if(text) navigator.clipboard.writeText(text).then(()=>showToast(`${weekPosts[i].day} post copied!`,'success'));
-}
-
-function escapeAttr(s){return(s||'').replace(/'/g,"&#39;").replace(/\n/g,' ');}
 
 // ── Image Search ──
 async function searchImages(){
@@ -1121,8 +1927,8 @@ We work with: custom home builders, luxury home builders, select commercial
 We do NOT pursue: small residential, big box retail, low-margin commodity work
 
 👥 KEY PEOPLE:
-Erika González — Co-founder, Managing Member, all business operations and client relationships
-Dion Harrison — Co-founder, Master Glazier, 25+ years field experience, leads all installations
+Erika Harrison — Co-founder, Managing Member, all business operations and client relationships
+Dion Harrison — Co-founder, Master Glazier, 25+ years field experience, leads all installations. Originally Australian. Dry plainspoken voice. LinkedIn: https://www.linkedin.com/in/dion-harrison-2279b021a/
 
 🎯 BRAND DIFFERENTIATORS:
 Complex multi-phase luxury installs are our specialty
@@ -1185,10 +1991,12 @@ function updateIndicators(){
 }
 function logContent(topic,bucket){
   contentLog.unshift({topic,bucket,stream:currentStream,timestamp:new Date().toLocaleString()});
-  document.getElementById('content-log').innerHTML=contentLog.slice(0,20).map(e=>`
+  const el=document.getElementById('content-log');
+  if(!el) return; // element lives in old Publish tab — now replaced by Library
+  el.innerHTML=contentLog.slice(0,20).map(e=>`
     <div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:11px;">
       <div style="color:var(--text);margin-bottom:2px">${e.topic}</div>
-      <div style="color:var(--text-muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em">${e.bucket} · ${e.stream==='eridion'?'Eridion Glass':'Erika Personal'} · ${e.timestamp}</div>
+      <div style="color:var(--text-muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em">${e.bucket} · ${e.stream==='eridion'?'Eridion Glass':'Erika Harrison'} · ${e.timestamp}</div>
     </div>`).join('');
 }
 
@@ -1203,7 +2011,7 @@ async function generateBriefing(){
   btn.disabled=true; btn.textContent='⏳ Generating...';
   setStatus('Generating briefing...',true);
 
-  const prompt=`You are creating a personal audio briefing for Erika González, co-founder of Eridion Glass. She will LISTEN to this while driving or walking — not read it. Natural spoken language only.
+  const prompt=`You are creating a personal audio briefing for Erika Harrison, co-founder of Eridion Glass. She will LISTEN to this while driving or walking — not read it. Natural spoken language only.
 
 Based on this content:
 ---
@@ -1276,7 +2084,7 @@ async function askResearch(){
   const el=document.getElementById('research-answer');
   el.textContent='Researching...'; el.className='research-answer loading';
   try{
-    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Erika González is co-founder of Eridion Glass, luxury glass subcontractor Dallas TX. She published:\n---\n${content}\n---\nShe asks: "${q}"\n\nAnswer in plain conversational language. Include: (1) clear 2-3 sentence explanation, (2) source/basis, (3) one sentence she could say confidently on a panel. Tight and practical.`}]})});
+    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Erika Harrison is co-founder of Eridion Glass, luxury glass subcontractor Dallas TX. She published:\n---\n${content}\n---\nShe asks: "${q}"\n\nAnswer in plain conversational language. Include: (1) clear 2-3 sentence explanation, (2) source/basis, (3) one sentence she could say confidently on a panel. Tight and practical.`}]})});
     const d=await r.json(); if(d.error) throw new Error(d.error.message);
     const answer=d.content?.[0]?.text||'';
     el.textContent=answer; el.className='research-answer';
@@ -1313,10 +2121,1108 @@ function speakText(t){
 
 function speakEl(id){speakText(document.getElementById(id).textContent);}
 
-if(window.speechSynthesis){
-  window.speechSynthesis.getVoices();
-  window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+// ── Spin: generate short snippets from existing blog posts ──
+let spinSource = null;           // library item being spun from
+let spinSnippetResults = [];     // last results from one-off spin (for save/regen)
+let spinWeekResults = [];        // last results from week spin
+
+const SPIN_ANGLES = {
+  hook:     {label:'Hook + tease',     instruction:'Write a strong-hook LinkedIn post that teases the key insight of the blog without giving it all away. Open with a scroll-stopping line, sketch the thesis in 2-3 short paragraphs, then end with something like "Full breakdown in my latest post →" so readers are drawn to click through.'},
+  data:     {label:'Data pull',        instruction:'Pull the single most compelling data point, stat, or factual finding from the blog and build a short LinkedIn post around it. Lead with the number/fact, explain in 2-3 sentences why it matters for builders, land on the implication. No "read more" hook needed — this post stands on its own.'},
+  personal: {label:'Personal take',    instruction:'Write a reflective, personal-voice LinkedIn post riffing on one idea from the blog. Opens with an observation or memory ("Was thinking about this today..." or "Had a conversation last week that..."), draws out one insight, ends with a light reflection — no hard CTA, no link-to-blog push.'},
+  question: {label:'Question to audience', instruction:'Write an engagement-focused LinkedIn post that poses a real question the blog answered — asking the audience their view BEFORE revealing the blog\'s answer. Open with framing context (2 sentences), then the question. Short, punchy, designed to drive comments.'},
+  bold:     {label:'Bold claim',       instruction:'Pull a strong, confident statement from the blog and defend it in a short LinkedIn post. Make the claim in the first sentence, give 2-3 sentences of why it\'s true, land with confidence. Not preachy — just direct and opinionated.'},
+  didyouknow: {label:'Did You Know',   instruction:'Write a "Did you know?" style LinkedIn post — short, punchy, educational. Open with "Did you know" and a surprising fact from the blog. Explain why it matters to builders in 2-3 sentences. Close with a subtle CTA if appropriate for the voice.'},
+};
+
+function openSpinSnippetModal(id){
+  const src=library.find(x=>x.id===id);
+  if(!src||!src.blog_text){showToast('This item has no blog content to spin from','error');return;}
+  spinSource=src;
+  spinSnippetResults=[];
+  document.getElementById('spin-source-preview').innerHTML=`<strong>From:</strong> ${escapeHTML(src.title||'Untitled')}<br><br>${escapeHTML(src.blog_text.slice(0,320))}…`;
+  document.getElementById('spin-voice').value=src.voice;
+  document.getElementById('spin-angle').value='hook';
+  document.getElementById('spin-direction').value='';
+  document.getElementById('spin-snippet-results').style.display='none';
+  document.getElementById('spin-snippet-results').innerHTML='';
+  document.getElementById('spin-snippet-modal').classList.add('open');
 }
+
+function openSpinWeekModal(id){
+  const src=library.find(x=>x.id===id);
+  if(!src||!src.blog_text){showToast('This item has no blog content to spin from','error');return;}
+  spinSource=src;
+  spinWeekResults=[];
+  document.getElementById('spin-week-source-preview').innerHTML=`<strong>From:</strong> ${escapeHTML(src.title||'Untitled')}<br><br>${escapeHTML(src.blog_text.slice(0,320))}…`;
+  document.getElementById('spin-week-voice-strategy').value='mix';
+  document.getElementById('spin-week-direction').value='';
+  document.getElementById('spin-week-results').style.display='none';
+  document.getElementById('spin-week-results').innerHTML='';
+  document.getElementById('spin-week-modal').classList.add('open');
+}
+
+function closeSpinModal(id){
+  document.getElementById(id).classList.remove('open');
+  spinSource=null;
+}
+
+// ── Spin one snippet ──
+async function runSpinSnippet(){
+  if(!spinSource){showToast('No source selected','error');return;}
+  const voice=document.getElementById('spin-voice').value;
+  const angleKey=document.getElementById('spin-angle').value;
+  const direction=document.getElementById('spin-direction').value.trim();
+  const angle=SPIN_ANGLES[angleKey];
+  if(!angle){showToast('Invalid angle','error');return;}
+
+  const btn=document.getElementById('spin-snippet-btn');
+  btn.disabled=true;
+  const resultsEl=document.getElementById('spin-snippet-results');
+  resultsEl.style.display='block';
+  resultsEl.innerHTML='<div class="spin-loading">Spinning snippet…</div>';
+
+  const voicePrompt=voicePrompts[voice]||voicePrompts.eridion;
+  const ctaRule = voice==='dion'
+    ? `CTA: Usually none. Dion doesn't sell. If one fits, make it understated and quiet — "if you've got a weird glass situation, happy to have a look" — never urgent.`
+    : voice==='erika'
+      ? `CTA: One soft CTA at the end — invite to connect, comment, or DM. Not salesy.`
+      : `CTA: One natural CTA — get on the schedule, visit eridionglass.com, or reach erika@eridionglass.com. Builder-focused, not pushy.`;
+
+  const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE BLOG POST (this was the original long-form piece):\n---\n${spinSource.blog_text}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source blog post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- 80-200 words total. Punchy. Scroll-stopping.\n- Stay factually consistent with the source blog — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}\n\nReturn the post text + hashtags only. No preamble, no meta-commentary.`;
+
+  try{
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const text=(data.content?.[0]?.text||'').trim();
+    if(!text) throw new Error('Empty response');
+    // Split off trailing hashtags
+    const hashMatches=text.match(/#[A-Za-z][A-Za-z0-9_]*/g)||[];
+    const body=text.replace(/(?:\n\s*)?#[A-Za-z][A-Za-z0-9_]*(?:\s*#[A-Za-z][A-Za-z0-9_]*)*\s*$/,'').trim();
+    const hashtags=hashMatches.slice(0,5);
+
+    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags}];
+    renderSpinSnippetResult();
+    showToast('Snippet ready','success');
+  }catch(e){
+    console.error('Spin snippet failed:',e);
+    resultsEl.innerHTML=`<div class="spin-loading" style="color:var(--error)">Failed: ${escapeHTML(e.message)}</div>`;
+    showToast('Spin failed: '+e.message,'error');
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+function renderSpinSnippetResult(){
+  const resultsEl=document.getElementById('spin-snippet-results');
+  if(!spinSnippetResults.length){resultsEl.style.display='none';return;}
+  const r=spinSnippetResults[0];
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[r.voice];
+  resultsEl.style.display='block';
+  resultsEl.innerHTML=`
+    <div class="spin-result-card">
+      <div class="spin-result-head">
+        <span class="voice-badge ${r.voice}">${voiceLabel}</span>
+        <span class="spin-result-label">${r.angle}</span>
+        <span class="lib-card-date" style="margin-left:auto">${r.text.length} chars</span>
+      </div>
+      <div class="spin-result-text">${escapeHTML(r.text)}${r.hashtags.length?'\n\n'+r.hashtags.join(' '):''}</div>
+      <div class="spin-result-actions">
+        <button class="action-btn primary" onclick="saveSpinSnippetToLibrary(0)">+ Save to Library</button>
+        <button class="action-btn" onclick="copySpinSnippet(0)">Copy</button>
+        <button class="action-btn" onclick="runSpinSnippet()">Regenerate</button>
+      </div>
+    </div>
+  `;
+}
+
+function copySpinSnippet(idx){
+  const r=spinSnippetResults[idx]; if(!r) return;
+  const ht=r.hashtags.join(' ');
+  navigator.clipboard.writeText(ht?`${r.text}\n\n${ht}`:r.text).then(()=>showToast('Copied','success'));
+}
+
+function saveSpinSnippetToLibrary(idx){
+  const r=spinSnippetResults[idx]; if(!r||!spinSource) return;
+  const entry=addToLibrary({
+    voice:r.voice,
+    bucket:spinSource.bucket,
+    format:'linkedin',
+    topic:spinSource.title,
+    title:`${r.angle} — from "${(spinSource.title||'').slice(0,50)}"`,
+    linkedin_text:r.text,
+    blog_text:'',
+    hashtags:r.hashtags,
+  });
+  entry.parent_id=spinSource.id;
+  entry.snippet_angle=r.angleKey;
+  persistLibrary();
+  renderLibrary();
+  showToast('Snippet saved to library','success');
+}
+
+// ── Spin a full week of snippets ──
+async function runSpinWeek(){
+  if(!spinSource){showToast('No source selected','error');return;}
+  const strategy=document.getElementById('spin-week-voice-strategy').value;
+  const direction=document.getElementById('spin-week-direction').value.trim();
+
+  // Map day → voice based on strategy
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+  const voiceByDay={};
+  if(strategy==='parent'){
+    days.forEach(d=>voiceByDay[d]=spinSource.voice);
+  } else if(strategy==='mix'){
+    // Default balanced mix: Eridion leads, Erika mid-week personal take, Dion Thursday field note, Eridion close
+    voiceByDay.Monday='eridion';
+    voiceByDay.Tuesday='erika';
+    voiceByDay.Wednesday='eridion';
+    voiceByDay.Thursday='dion';
+    voiceByDay.Friday='eridion';
+  } else {
+    days.forEach(d=>voiceByDay[d]=strategy);
+  }
+  // Default angle per day
+  const angleByDay={
+    Monday:'hook', Tuesday:'personal', Wednesday:'data', Thursday:'bold', Friday:'didyouknow'
+  };
+
+  const btn=document.getElementById('spin-week-btn');
+  btn.disabled=true;
+  const resultsEl=document.getElementById('spin-week-results');
+  resultsEl.style.display='block';
+  resultsEl.innerHTML='<div class="spin-loading">Spinning 5 snippets — this takes a few seconds…</div>';
+
+  const dayDefs=days.map(d=>({
+    day:d,
+    voice:voiceByDay[d],
+    angleKey:angleByDay[d],
+    angleLabel:SPIN_ANGLES[angleByDay[d]].label,
+    angleInstr:SPIN_ANGLES[angleByDay[d]].instruction,
+  }));
+
+  // Build voice rule reference block to include once
+  const voiceRef=['eridion','erika','dion'].map(v=>`=== VOICE: ${v.toUpperCase()} ===\n${voicePrompts[v]}`).join('\n\n');
+
+  const prompt=`You are generating 5 LinkedIn snippets derived from a single blog post. Each snippet will be posted on a different day of the week, in a specified voice, with a specific angle. Each must be distinct from the others — do not repeat phrasing, opening lines, or the same factual pull.
+
+BUSINESS FACTS:
+${getKB()}
+
+VOICE REFERENCE (follow strictly for each snippet's assigned voice):
+${voiceRef}
+
+SOURCE BLOG POST:
+---
+${spinSource.blog_text}
+---
+
+ORIGINAL TOPIC: ${spinSource.title||''}
+
+THE 5 SNIPPETS TO GENERATE:
+${dayDefs.map((d,i)=>`
+${i+1}. ${d.day} · Voice: ${d.voice.toUpperCase()} · Angle: ${d.angleLabel}
+   Instruction: ${d.angleInstr}`).join('\n')}
+
+RULES FOR EVERY SNIPPET:
+- 80-200 words each
+- Stay factually consistent with the source — no invented data
+- Match the assigned voice precisely (different voices have different CTA rules: Eridion = direct CTA, Erika = soft CTA, Dion = usually NO CTA at all)
+- Include 4 relevant hashtags per snippet
+- Each snippet must be distinct — different hooks, different angles, different factual pulls from the source${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}
+
+Return ONLY valid JSON, no preamble, no markdown fences:
+{"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","text":"full post text here","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}`;
+
+  try{
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const text=(data.content?.[0]?.text||'').trim();
+    // Extract JSON
+    let jsonText=text.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
+    let s=jsonText.indexOf('{'), e=-1, depth=0;
+    for(let i=s;i<jsonText.length;i++){
+      if(jsonText[i]==='{') depth++;
+      else if(jsonText[i]==='}'){depth--;if(depth===0){e=i;break;}}
+    }
+    if(s<0||e<0) throw new Error('No JSON in response');
+    const parsed=JSON.parse(jsonText.substring(s,e+1));
+    const arr=Array.isArray(parsed.snippets)?parsed.snippets:[];
+    if(!arr.length) throw new Error('No snippets returned');
+
+    spinWeekResults=arr.map((x,i)=>({
+      day:x.day||dayDefs[i]?.day||`Day ${i+1}`,
+      voice:x.voice||dayDefs[i]?.voice||'eridion',
+      angleKey:dayDefs[i]?.angleKey||'hook',
+      angleLabel:x.angle_label||dayDefs[i]?.angleLabel||'',
+      text:String(x.text||'').trim(),
+      hashtags:Array.isArray(x.hashtags)?x.hashtags:[],
+    }));
+    renderSpinWeekResults();
+    showToast(`${spinWeekResults.length} snippets generated`,'success');
+  }catch(e){
+    console.error('Spin week failed:',e);
+    resultsEl.innerHTML=`<div class="spin-loading" style="color:var(--error)">Failed: ${escapeHTML(e.message)}</div>`;
+    showToast('Spin week failed: '+e.message,'error');
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+function renderSpinWeekResults(){
+  const resultsEl=document.getElementById('spin-week-results');
+  if(!spinWeekResults.length){resultsEl.style.display='none';return;}
+  resultsEl.style.display='block';
+  const header=`
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--gold-dim)">5 SNIPPETS READY</span>
+      <button class="action-btn primary" style="margin-left:auto" onclick="saveAllSpinWeek()">+ Save All to Library</button>
+      <button class="action-btn" onclick="saveAndScheduleSpinWeek()">+ Save & Auto-Schedule</button>
+    </div>
+  `;
+  const cards=spinWeekResults.map((r,i)=>{
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[r.voice]||r.voice;
+    return `
+      <div class="spin-result-card">
+        <div class="spin-result-head">
+          <span class="spin-result-label">${r.day}</span>
+          <span class="voice-badge ${r.voice}">${voiceLabel}</span>
+          <span class="lib-card-bucket">· ${escapeHTML(r.angleLabel||'')}</span>
+          <span class="lib-card-date" style="margin-left:auto">${r.text.length} chars</span>
+        </div>
+        <div class="spin-result-text">${escapeHTML(r.text)}${r.hashtags.length?'\n\n'+r.hashtags.join(' '):''}</div>
+        <div class="spin-result-actions">
+          <button class="action-btn" onclick="saveOneSpinWeek(${i})">+ Save This One</button>
+          <button class="action-btn" onclick="copyOneSpinWeek(${i})">Copy</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  resultsEl.innerHTML=header+cards;
+}
+
+function copyOneSpinWeek(i){
+  const r=spinWeekResults[i]; if(!r) return;
+  const ht=r.hashtags.join(' ');
+  navigator.clipboard.writeText(ht?`${r.text}\n\n${ht}`:r.text).then(()=>showToast(`${r.day} copied`,'success'));
+}
+
+function saveOneSpinWeek(i){
+  const r=spinWeekResults[i]; if(!r||!spinSource) return;
+  const entry=addToLibrary({
+    voice:r.voice,
+    bucket:spinSource.bucket,
+    format:'linkedin',
+    topic:spinSource.title,
+    title:`${r.day} · ${r.angleLabel} — from "${(spinSource.title||'').slice(0,40)}"`,
+    linkedin_text:r.text,
+    blog_text:'',
+    hashtags:r.hashtags,
+  });
+  entry.parent_id=spinSource.id;
+  entry.snippet_angle=r.angleKey;
+  entry.snippet_day=r.day;
+  persistLibrary();
+  renderLibrary();
+  showToast(`${r.day} saved`,'success');
+}
+
+function saveAllSpinWeek(){
+  if(!spinSource||!spinWeekResults.length) return;
+  spinWeekResults.forEach((r,i)=>saveOneSpinWeek(i));
+  showToast(`All ${spinWeekResults.length} snippets saved to library`,'success');
+}
+
+function saveAndScheduleSpinWeek(){
+  if(!spinSource||!spinWeekResults.length) return;
+  // Determine schedule week — default to current week
+  const weekStart=calWeekStart||getWeekStart(new Date());
+  const dayIndex={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4};
+  const defaultTimes=['09:00','10:00','11:00','14:00','15:00']; // spread through the day
+  let savedCount=0;
+  spinWeekResults.forEach((r,i)=>{
+    const entry=addToLibrary({
+      voice:r.voice,
+      bucket:spinSource.bucket,
+      format:'linkedin',
+      topic:spinSource.title,
+      title:`${r.day} · ${r.angleLabel} — from "${(spinSource.title||'').slice(0,40)}"`,
+      linkedin_text:r.text,
+      blog_text:'',
+      hashtags:r.hashtags,
+    });
+    entry.parent_id=spinSource.id;
+    entry.snippet_angle=r.angleKey;
+    entry.snippet_day=r.day;
+    // Schedule it
+    const dayOffset=dayIndex[r.day];
+    if(dayOffset!==undefined){
+      const schedDate=new Date(weekStart);
+      schedDate.setDate(schedDate.getDate()+dayOffset);
+      entry.status='scheduled';
+      entry.scheduled_for=schedDate.getTime();
+      entry.scheduled_account=r.voice;
+      entry.scheduled_time=defaultTimes[i]||'09:00';
+    }
+    savedCount++;
+  });
+  persistLibrary();
+  renderLibrary();
+  renderCalendar();
+  closeSpinModal('spin-week-modal');
+  switchTab('calendar');
+  showToast(`${savedCount} snippets saved & scheduled across ${new Date(weekStart).toLocaleDateString('en-US',{month:'short',day:'numeric'})}`,'success');
+}
+
+// ── SEO Package: generate Wix-ready SEO metadata from blog body ──
+const SEO_FIELDS = ['focus_keyword','title_tag','meta_description','url_slug','excerpt','alt_text','og_title','og_description'];
+const SEO_LIMITS = {title_tag:60, meta_description:160, excerpt:500, og_title:111, og_description:500};
+
+async function generateSEOPackage(silent=false){
+  const blog=generatedBlog||(document.getElementById('blog-output').innerText||'').trim();
+  const topic=document.getElementById('topic-input').value.trim();
+  if(!blog||blog.length<100){
+    if(!silent) showToast('Generate a blog post first (Blog + LinkedIn format)','error');
+    return null;
+  }
+  const btn=document.getElementById('seo-gen-btn');
+  if(btn){btn.disabled=true; btn.classList.add('loading');}
+  const statusEl=document.getElementById('seo-status');
+  if(statusEl){statusEl.textContent='Generating...'; statusEl.classList.remove('ready');}
+
+  const prompt=`You are an SEO specialist creating search and social metadata for a blog post published on eridionglass.com — the site for Eridion Glass, a luxury custom glass and mirror subcontractor in Dallas TX serving luxury residential ($1M+ homes) and select commercial builders.
+
+BLOG TITLE/TOPIC: ${topic}
+
+BLOG CONTENT:
+---
+${blog.slice(0,3500)}
+---
+
+YOUR TASK:
+Produce a complete SEO package for this post, tuned for Google search and LinkedIn/Facebook social sharing. The audience is builders, GCs, project managers, architects, and luxury homeowners in DFW. Keywords should feel natural to those audiences — not keyword-stuffed.
+
+RULES PER FIELD:
+- focus_keyword: 2-5 words, the primary phrase you want this post to rank for. Should appear naturally in the blog body, title, and meta. Builder or construction-audience-relevant.
+- title_tag: Under 60 characters HARD LIMIT. Punchy, keyword-inclusive, click-worthy. Different from (but echoing) the blog H1.
+- meta_description: Under 160 characters HARD LIMIT. Natural sentence, keyword present, ends with a reason to click (outcome, insight, stat).
+- url_slug: kebab-case (lowercase words separated by hyphens), 3-6 words, keyword-inclusive, no stop words, no special characters.
+- excerpt: 2-3 sentences, up to 500 characters, summarizes the post's thesis and payoff. This appears in the Wix blog listing and RSS.
+- alt_text: 10-15 word description of what a reader would see in the featured image for this post — descriptive and keyword-inclusive (imagine a luxury install that matches the topic).
+- og_title: Under 111 characters HARD LIMIT. Can be slightly more emotional/curious than the SEO title — this is what people see when shared on LinkedIn/Facebook.
+- og_description: Under 500 characters. Can be longer than meta_description and more builder-narrative. First 125 characters matter most (LinkedIn truncates).
+
+Return ONLY valid JSON, no preamble, no markdown fences:
+{"focus_keyword":"...","title_tag":"...","meta_description":"...","url_slug":"...","excerpt":"...","alt_text":"...","og_title":"...","og_description":"..."}`;
+
+  try{
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const text=data.content?.[0]?.text||'';
+    let jsonText=text.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
+    let s=jsonText.indexOf('{'), e=-1, depth=0;
+    for(let i=s;i<jsonText.length;i++){
+      if(jsonText[i]==='{') depth++;
+      else if(jsonText[i]==='}'){depth--;if(depth===0){e=i;break;}}
+    }
+    if(s<0||e<0) throw new Error('No JSON object in response');
+    const parsed=JSON.parse(jsonText.substring(s,e+1));
+    currentSEO={};
+    SEO_FIELDS.forEach(f=>{currentSEO[f]=String(parsed[f]||'').trim();});
+    renderSEOPackage();
+    // Open the section so user sees the result
+    document.getElementById('seo-package').classList.add('open');
+    document.getElementById('seo-arrow').textContent='▼';
+    if(!silent) showToast('SEO package generated','success');
+    return currentSEO;
+  }catch(err){
+    console.error('SEO generation failed:',err);
+    if(!silent) showToast('SEO generation failed: '+err.message,'error');
+    if(statusEl){statusEl.textContent='Generation failed'; statusEl.classList.remove('ready');}
+    return null;
+  }finally{
+    if(btn){btn.disabled=false; btn.classList.remove('loading');}
+  }
+}
+
+function renderSEOPackage(){
+  if(!currentSEO){
+    SEO_FIELDS.forEach(f=>{
+      const v=document.getElementById('seo-val-'+f);
+      const c=document.getElementById('seo-count-'+f);
+      if(v){v.textContent='—'; v.classList.add('empty');}
+      if(c) c.textContent='';
+    });
+    const s=document.getElementById('seo-status');
+    if(s){s.textContent='Not generated yet'; s.classList.remove('ready');}
+    return;
+  }
+  SEO_FIELDS.forEach(f=>{
+    const val=currentSEO[f]||'';
+    const v=document.getElementById('seo-val-'+f);
+    const c=document.getElementById('seo-count-'+f);
+    if(v){
+      v.textContent=val||'—';
+      v.classList.toggle('empty',!val);
+    }
+    if(c){
+      const limit=SEO_LIMITS[f];
+      if(limit){
+        c.textContent=`${val.length} / ${limit}`;
+        c.classList.toggle('warn', val.length>limit*0.9 && val.length<=limit);
+        c.classList.toggle('over', val.length>limit);
+      } else {
+        c.textContent=val.length?`${val.length} chars`:'';
+        c.classList.remove('warn','over');
+      }
+    }
+  });
+  const s=document.getElementById('seo-status');
+  if(s){s.textContent='Ready · 8 fields populated'; s.classList.add('ready');}
+}
+
+function toggleSEOPackage(){
+  const p=document.getElementById('seo-package');
+  const a=document.getElementById('seo-arrow');
+  p.classList.toggle('open');
+  a.textContent=p.classList.contains('open')?'▼':'▶';
+}
+
+function copySEOField(field){
+  if(!currentSEO||!currentSEO[field]){showToast('That field is empty','error');return;}
+  navigator.clipboard.writeText(currentSEO[field]).then(()=>{
+    showToast(`Copied ${field.replace(/_/g,' ')}`,'success');
+    // Briefly mark the button as copied
+    const btn=event?.target;
+    if(btn&&btn.classList.contains('seo-field-copy')){
+      const orig=btn.textContent;
+      btn.textContent='✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(()=>{btn.textContent=orig; btn.classList.remove('copied');},1400);
+    }
+  });
+}
+
+function copyAllSEO(){
+  if(!currentSEO){showToast('Generate SEO package first','error');return;}
+  const block=[
+    `FOCUS KEYWORD:    ${currentSEO.focus_keyword}`,
+    `TITLE TAG:        ${currentSEO.title_tag}`,
+    `META DESCRIPTION: ${currentSEO.meta_description}`,
+    `URL SLUG:         ${currentSEO.url_slug}`,
+    `EXCERPT:          ${currentSEO.excerpt}`,
+    `ALT TEXT:         ${currentSEO.alt_text}`,
+    `OG:TITLE:         ${currentSEO.og_title}`,
+    `OG:DESCRIPTION:   ${currentSEO.og_description}`,
+  ].join('\n\n');
+  navigator.clipboard.writeText(block).then(()=>showToast('Full SEO block copied','success'));
+}
+
+function clearSEO(){
+  currentSEO=null;
+  renderSEOPackage();
+}
+
+// ── Substack Package: platform-specific metadata for Substack publishing ──
+const SUB_FIELDS = ['headline','subtitle','email_preview','alt_text','tags','subscribe_cta'];
+const SUB_LIMITS = {headline:80, subtitle:300, email_preview:90, alt_text:200, subscribe_cta:400};
+
+async function generateSubstackPackage(silent=false){
+  const blog=generatedBlog||(document.getElementById('blog-output').innerText||'').trim();
+  const topic=document.getElementById('topic-input').value.trim();
+  if(!blog||blog.length<100){
+    if(!silent) showToast('Generate a blog post first (Blog + LinkedIn format)','error');
+    return null;
+  }
+  const btn=document.getElementById('sub-gen-btn');
+  if(btn){btn.disabled=true; btn.classList.add('loading');}
+  const statusEl=document.getElementById('sub-status');
+  if(statusEl){statusEl.textContent='Generating...'; statusEl.classList.remove('ready');}
+
+  // Voice-aware author framing for the subscribe CTA
+  const author = currentStream==='erika'
+    ? 'Erika Harrison, co-founder of Eridion Glass in Dallas, former ad exec with 20+ years in brand and marketing, writing on leadership, female founders, and the construction industry'
+    : currentStream==='dion'
+      ? 'Dion Harrison, co-founder and master glazier at Eridion Glass in Dallas, 25+ years in the field, writing on craftsmanship and what actually happens on jobsites'
+      : 'Eridion Glass — a Dallas-based luxury glass and mirror subcontractor, writing on the technical craft and economics of high-end residential construction';
+
+  const prompt=`You are preparing a blog post for publication on Substack — the email-first publishing platform favored by independent writers, commentators, and domain experts. Unlike traditional SEO where we optimize for Google, Substack is about email open rates, subscriber conversion, and cross-Substack recommendations. Readers are already primed for essays — they subscribe because they trust the voice. The tone is editorial, thoughtful, author-forward — not keyword-stuffed.
+
+AUTHOR CONTEXT: ${author}
+
+BLOG TOPIC / WORKING TITLE: ${topic}
+
+BLOG CONTENT:
+---
+${blog.slice(0,3500)}
+---
+
+YOUR TASK:
+Produce a Substack publishing package. Each field has a specific strategic role on the platform — read the rules carefully.
+
+RULES PER FIELD:
+
+- headline: 60-80 chars ideal, 100 MAX. This is what shows in the reader's inbox as the email subject line AND on the web as the H1. Should feel more curiosity-driven and editorial than keyword-driven. Different voice from a typical SEO title — less "how to" and more "what I noticed." Punchy, specific, earns the click.
+
+- subtitle: 150-250 chars ideal, 300 MAX. The line right below the headline. Substack renders this prominently — it's often what decides whether someone opens the email or scrolls past. Should extend the headline's promise, hint at the thesis, or pose the real question the essay answers. Full sentence or two. Not a tagline.
+
+- email_preview: 85-90 chars MAX. This is the inbox preview text — what appears next to the subject line in Gmail/Apple Mail BEFORE the reader opens. Its only job is to earn the open. Should be distinct from the subtitle (readers see both). A hook, a tease, a number, a bold claim. Never a summary. If you waste this on summary, open rates drop.
+
+- alt_text: 10-15 word descriptive sentence for the header image (a reader would see a photo that matches the essay's topic — describe that image). Accessibility + SEO lift.
+
+- tags: 2-3 tags total, comma-separated, no # symbols, lowercase or title case. Substack uses these for internal discovery. Think categories not keywords — e.g. "Leadership, Construction, Women in Business" or "Craftsmanship, Trade Skills, Small Business."
+
+- subscribe_cta: A 2-3 sentence custom end-of-post line that replaces Substack's default "Thanks for reading!" Should reference the author's specific voice/beat in one line (so new readers understand what they're signing up for), then a low-key subscribe invitation. Not salesy. Peer-to-peer tone. Typical format: "I'm [Author], writing about [specific beat]. New essay every [rhythm]. If this resonated, subscribe below — it lands in your inbox on [day]."
+
+Return ONLY valid JSON, no preamble, no markdown fences:
+{"headline":"...","subtitle":"...","email_preview":"...","alt_text":"...","tags":"...","subscribe_cta":"..."}`;
+
+  try{
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const text=data.content?.[0]?.text||'';
+    let jsonText=text.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
+    let s=jsonText.indexOf('{'), e=-1, depth=0;
+    for(let i=s;i<jsonText.length;i++){
+      if(jsonText[i]==='{') depth++;
+      else if(jsonText[i]==='}'){depth--;if(depth===0){e=i;break;}}
+    }
+    if(s<0||e<0) throw new Error('No JSON object in response');
+    const parsed=JSON.parse(jsonText.substring(s,e+1));
+    currentSubstack={};
+    SUB_FIELDS.forEach(f=>{currentSubstack[f]=String(parsed[f]||'').trim();});
+    renderSubstackPackage();
+    document.getElementById('sub-package').classList.add('open');
+    document.getElementById('sub-arrow').textContent='▼';
+    if(!silent) showToast('Substack package generated','success');
+    return currentSubstack;
+  }catch(err){
+    console.error('Substack generation failed:',err);
+    if(!silent) showToast('Substack generation failed: '+err.message,'error');
+    if(statusEl){statusEl.textContent='Generation failed'; statusEl.classList.remove('ready');}
+    return null;
+  }finally{
+    if(btn){btn.disabled=false; btn.classList.remove('loading');}
+  }
+}
+
+function renderSubstackPackage(){
+  if(!currentSubstack){
+    SUB_FIELDS.forEach(f=>{
+      const v=document.getElementById('sub-val-'+f);
+      const c=document.getElementById('sub-count-'+f);
+      if(v){v.textContent='—'; v.classList.add('empty');}
+      if(c) c.textContent='';
+    });
+    const s=document.getElementById('sub-status');
+    if(s){s.textContent='Not generated yet'; s.classList.remove('ready');}
+    return;
+  }
+  SUB_FIELDS.forEach(f=>{
+    const val=currentSubstack[f]||'';
+    const v=document.getElementById('sub-val-'+f);
+    const c=document.getElementById('sub-count-'+f);
+    if(v){
+      v.textContent=val||'—';
+      v.classList.toggle('empty',!val);
+    }
+    if(c){
+      const limit=SUB_LIMITS[f];
+      if(limit){
+        c.textContent=`${val.length} / ${limit}`;
+        c.classList.toggle('warn', val.length>limit*0.9 && val.length<=limit);
+        c.classList.toggle('over', val.length>limit);
+      } else {
+        c.textContent=val.length?`${val.length} chars`:'';
+        c.classList.remove('warn','over');
+      }
+    }
+  });
+  const s=document.getElementById('sub-status');
+  if(s){s.textContent='Ready · 6 fields populated'; s.classList.add('ready');}
+}
+
+function toggleSubstackPackage(){
+  const p=document.getElementById('sub-package');
+  const a=document.getElementById('sub-arrow');
+  p.classList.toggle('open');
+  a.textContent=p.classList.contains('open')?'▼':'▶';
+}
+
+function copySubstackField(field){
+  if(!currentSubstack||!currentSubstack[field]){showToast('That field is empty','error');return;}
+  navigator.clipboard.writeText(currentSubstack[field]).then(()=>{
+    showToast(`Copied ${field.replace(/_/g,' ')}`,'success');
+    const btn=event?.target;
+    if(btn&&btn.classList.contains('seo-field-copy')){
+      const orig=btn.textContent;
+      btn.textContent='✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(()=>{btn.textContent=orig; btn.classList.remove('copied');},1400);
+    }
+  });
+}
+
+function copyAllSubstack(){
+  if(!currentSubstack){showToast('Generate Substack package first','error');return;}
+  const block=[
+    `HEADLINE:         ${currentSubstack.headline}`,
+    `SUBTITLE:         ${currentSubstack.subtitle}`,
+    `EMAIL PREVIEW:    ${currentSubstack.email_preview}`,
+    `IMAGE ALT TEXT:   ${currentSubstack.alt_text}`,
+    `TAGS:             ${currentSubstack.tags}`,
+    `SUBSCRIBE CTA:    ${currentSubstack.subscribe_cta}`,
+  ].join('\n\n');
+  navigator.clipboard.writeText(block).then(()=>showToast('Full Substack block copied','success'));
+}
+
+function clearSubstack(){
+  currentSubstack=null;
+  renderSubstackPackage();
+}
+
+// ── Library: persistent store of all generated content ──
+const LIB_KEY='eridion_studio_library';
+
+function loadLibrary(){
+  try{
+    const raw=localStorage.getItem(LIB_KEY);
+    library=raw?JSON.parse(raw):[];
+    if(!Array.isArray(library)) library=[];
+  }catch(e){library=[];}
+}
+
+function persistLibrary(){
+  try{localStorage.setItem(LIB_KEY,JSON.stringify(library));}catch(e){console.error('Library save failed',e);}
+}
+
+function addToLibrary(item){
+  const voice=item.voice||currentStream;
+  const bucketLabel=buckets[voice]?.find(b=>b.id===(item.bucket||currentBucket))?.label||(item.bucket||currentBucket);
+  const entry={
+    id:'lib_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    voice,
+    bucket:item.bucket||currentBucket,
+    bucketLabel,
+    format:item.format||document.getElementById('format-select').value,
+    topic:item.topic||document.getElementById('topic-input').value.trim(),
+    title:item.title||(item.topic||document.getElementById('topic-input').value.trim())||'Untitled',
+    linkedin_text:item.linkedin_text||'',
+    blog_text:item.blog_text||'',
+    hashtags:item.hashtags||[],
+    pov:item.pov||null,
+    pov_label:item.pov_label||null,
+    created_at:Date.now(),
+    status:'draft',
+    scheduled_for:null,
+    scheduled_account:null,
+    scheduled_time:null,
+  };
+  library.unshift(entry);
+  persistLibrary();
+  return entry;
+}
+
+function saveCurrentToLibrary(){
+  if(!generatedLinkedIn && !generatedBlog){showToast('Nothing to save — generate content first','error');return;}
+  const entry=addToLibrary({
+    linkedin_text:generatedLinkedIn,
+    blog_text:generatedBlog,
+    hashtags:generatedHashtags,
+  });
+  renderLibrary();
+  showToast(`Saved to library (${entry.voice})`,'success');
+}
+
+function setLibFilter(kind,val){
+  libFilters[kind]=val;
+  document.querySelectorAll(`.lib-chip[data-filter="${kind}"]`).forEach(el=>el.classList.toggle('active',el.dataset.val===val));
+  renderLibrary();
+}
+
+function renderLibrary(){
+  const grid=document.getElementById('lib-grid');
+  if(!grid) return;
+  let items=library.slice();
+  if(libFilters.voice!=='all') items=items.filter(i=>i.voice===libFilters.voice);
+  if(libFilters.status!=='all') items=items.filter(i=>i.status===libFilters.status);
+  if(!items.length){
+    grid.innerHTML=`<div class="lib-empty"><p>No items match these filters.<br>Generate content (or hit <strong>Save Current Draft</strong> above) to populate your library.</p></div>`;
+    return;
+  }
+  grid.innerHTML=items.map(it=>{
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[it.voice]||it.voice;
+    const date=new Date(it.created_at);
+    const dateStr=date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    const preview=(it.linkedin_text||it.blog_text||'').slice(0,240);
+    const schedInfo=it.status==='scheduled'?` · ${new Date(it.scheduled_for).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})} on ${it.scheduled_account}`:'';
+    const parentLabel = it.parent_id ? (library.find(x=>x.id===it.parent_id)?.title||'parent post') : null;
+    return `
+      <div class="lib-card" data-id="${it.id}">
+        <div class="lib-card-head">
+          <span class="voice-badge ${it.voice}">${voiceLabel}</span>
+          <span class="lib-card-bucket">${escapeHTML(it.bucketLabel||it.bucket||'')}</span>
+          ${it.pov_label?`<span class="lib-card-bucket">· ${escapeHTML(it.pov_label)}</span>`:''}
+          ${it.seo?`<span class="lib-card-bucket" style="color:var(--success)">· 🔍 SEO ready</span>`:''}
+          ${it.substack?`<span class="lib-card-bucket" style="color:var(--erika)">· 📧 Substack ready</span>`:''}
+          ${it.substack?`<span class="lib-card-bucket" style="color:#FF6719">· 📮 Substack ready</span>`:''}
+          ${parentLabel?`<span class="lib-card-bucket" style="color:var(--gold-dim)">· ✦ Snippet from "${escapeHTML(parentLabel.slice(0,40))}${parentLabel.length>40?'…':''}"</span>`:''}
+          <span class="status-badge ${it.status}">${it.status}${schedInfo}</span>
+          <span class="lib-card-date">${dateStr}</span>
+        </div>
+        <div class="lib-card-title">${escapeHTML(it.title||'Untitled')}</div>
+        <div class="lib-card-snippet">${escapeHTML(preview)}${preview.length>=240?'…':''}</div>
+        <div class="lib-card-actions">
+          <button class="action-btn" onclick="loadFromLibrary('${it.id}')">Load</button>
+          <button class="action-btn" onclick="copyFromLibrary('${it.id}')">Copy Text</button>
+          ${it.blog_text&&it.blog_text.length>200?`<button class="action-btn" onclick="openSpinSnippetModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Snippet</button><button class="action-btn" onclick="openSpinWeekModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Week</button>`:''}
+          <button class="action-btn primary" onclick="openSchedModal('${it.id}')">${it.status==='scheduled'?'Reschedule':'Schedule'}</button>
+          ${it.status==='scheduled'?`<button class="action-btn" onclick="unschedule('${it.id}')">Unschedule</button>`:''}
+          <button class="action-btn" onclick="markPosted('${it.id}')">Mark Posted</button>
+          <button class="action-btn" onclick="deleteFromLibrary('${it.id}')">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function loadFromLibrary(id){
+  const it=library.find(x=>x.id===id);
+  if(!it) return;
+  generatedLinkedIn=it.linkedin_text||'';
+  generatedBlog=it.blog_text||'';
+  generatedHashtags=it.hashtags||[];
+  const liOut=document.getElementById('linkedin-output');
+  liOut.innerHTML=''; liOut.textContent=generatedLinkedIn||'(no LinkedIn text)';
+  document.getElementById('hashtags-container').innerHTML=generatedHashtags.map(h=>`<span class="hashtag">${h}</span>`).join('');
+  const blogOut=document.getElementById('blog-output');
+  blogOut.innerHTML=generatedBlog?formatBlogHTML(generatedBlog):'<em style="color:var(--text-muted)">No blog content.</em>';
+  // Restore SEO + Substack packages if present
+  if(it.seo){
+    currentSEO=it.seo;
+    renderSEOPackage();
+  } else {
+    clearSEO();
+  }
+  if(it.substack){
+    currentSubstack=it.substack;
+    renderSubstackPackage();
+  } else {
+    clearSubstack();
+  }
+  // Restore Substack package if present
+  if(it.substack){
+    currentSubstack=it.substack;
+    renderSubstackPackage();
+  } else {
+    clearSubstack();
+  }
+  updateCharCount();
+  switchTab(generatedBlog?'blog':'linkedin');
+  showToast('Loaded into editor','success');
+}
+
+function copyFromLibrary(id){
+  const it=library.find(x=>x.id===id);
+  if(!it) return;
+  const text=it.linkedin_text||it.blog_text||'';
+  const ht=(it.hashtags||[]).join(' ');
+  navigator.clipboard.writeText(ht?`${text}\n\n${ht}`:text).then(()=>showToast('Copied to clipboard','success'));
+}
+
+function deleteFromLibrary(id){
+  if(!confirm('Delete this item from your library? This cannot be undone.')) return;
+  library=library.filter(x=>x.id!==id);
+  persistLibrary();
+  renderLibrary();
+  renderCalendar();
+  showToast('Deleted','success');
+}
+
+function markPosted(id){
+  const it=library.find(x=>x.id===id);
+  if(!it) return;
+  it.status='posted';
+  persistLibrary();
+  renderLibrary();
+  renderCalendar();
+  showToast('Marked as posted','success');
+}
+
+function unschedule(id){
+  const it=library.find(x=>x.id===id);
+  if(!it) return;
+  it.status='draft';
+  it.scheduled_for=null;
+  it.scheduled_account=null;
+  it.scheduled_time=null;
+  persistLibrary();
+  renderLibrary();
+  renderCalendar();
+  showToast('Unscheduled','success');
+}
+
+function exportLibrary(){
+  const blob=new Blob([JSON.stringify(library,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`eridion_library_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Exported','success');
+}
+
+// ── View Post Modal (for Calendar slot clicks) ──
+let viewingPostId = null;
+
+function openViewPostModal(id){
+  const it=library.find(x=>x.id===id);
+  if(!it){showToast('Post not found','error');return;}
+  viewingPostId=id;
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[it.scheduled_account||it.voice]||it.voice;
+  const schedStr=it.scheduled_for?new Date(it.scheduled_for).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+(it.scheduled_time?' at '+it.scheduled_time:''):'';
+  document.getElementById('view-post-title').textContent=it.title||'Scheduled Post';
+  document.getElementById('view-post-meta').innerHTML=`
+    <span class="voice-badge ${it.scheduled_account||it.voice}">${voiceLabel}</span>
+    <span>· ${escapeHTML(it.bucketLabel||'')}</span>
+    ${schedStr?`<span>· ${schedStr}</span>`:''}
+    ${it.pov_label?`<span>· ${escapeHTML(it.pov_label)}</span>`:''}
+  `;
+  const fullText=it.linkedin_text||it.blog_text||'(no text)';
+  document.getElementById('view-post-body').textContent=fullText;
+  const hashtagsEl=document.getElementById('view-post-hashtags');
+  if(it.hashtags&&it.hashtags.length){
+    hashtagsEl.innerHTML=it.hashtags.map(h=>`<span class="hashtag">${escapeHTML(h)}</span>`).join('');
+    hashtagsEl.style.display='flex';
+  } else {
+    hashtagsEl.innerHTML='';
+    hashtagsEl.style.display='none';
+  }
+  document.getElementById('view-post-modal').classList.add('open');
+}
+
+function closeViewPostModal(){
+  document.getElementById('view-post-modal').classList.remove('open');
+  viewingPostId=null;
+}
+
+function copyViewPost(){
+  if(!viewingPostId) return;
+  const it=library.find(x=>x.id===viewingPostId);
+  if(!it) return;
+  const text=it.linkedin_text||it.blog_text||'';
+  const ht=(it.hashtags||[]).join(' ');
+  navigator.clipboard.writeText(ht?`${text}\n\n${ht}`:text).then(()=>showToast('Copied with hashtags','success'));
+}
+
+function copyViewPostTextOnly(){
+  if(!viewingPostId) return;
+  const it=library.find(x=>x.id===viewingPostId);
+  if(!it) return;
+  navigator.clipboard.writeText(it.linkedin_text||it.blog_text||'').then(()=>showToast('Copied text only','success'));
+}
+
+function viewPostGoToLibrary(){
+  if(!viewingPostId) return;
+  const id=viewingPostId;
+  closeViewPostModal();
+  loadFromLibrary(id);
+}
+
+// ── Import Library from JSON (pairs with Export) ──
+function triggerImportLibrary(){
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='.json,application/json';
+  input.onchange=(e)=>{
+    const file=e.target.files[0];
+    if(!file){return;}
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      try{
+        const parsed=JSON.parse(ev.target.result);
+        if(!Array.isArray(parsed)) throw new Error('File is not a library array');
+        // Validate minimum shape
+        const valid=parsed.filter(x=>x&&typeof x==='object'&&x.id&&(x.linkedin_text!==undefined||x.blog_text!==undefined));
+        if(!valid.length) throw new Error('No valid library items found in file');
+        // Merge: existing IDs are preserved as-is, new items added
+        const existingIds=new Set(library.map(i=>i.id));
+        const incoming=valid.filter(i=>!existingIds.has(i.id));
+        const dupCount=valid.length-incoming.length;
+        if(!incoming.length){
+          showToast(`All ${valid.length} items already in library — nothing to import`,'error');
+          return;
+        }
+        if(!confirm(`Import ${incoming.length} new items into your library?${dupCount>0?` (${dupCount} items with matching IDs will be skipped.)`:''}`)) return;
+        library=[...incoming, ...library];
+        persistLibrary();
+        renderLibrary();
+        renderCalendar();
+        showToast(`Imported ${incoming.length} items`,'success');
+      }catch(err){
+        console.error('Import failed:',err);
+        showToast('Import failed: '+err.message,'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ── Schedule Modal ──
+function openSchedModal(id){
+  const it=library.find(x=>x.id===id);
+  if(!it) return;
+  pendingSchedItem=it;
+  document.getElementById('sched-preview').textContent=(it.linkedin_text||it.blog_text||'').slice(0,200)+'…';
+  // Populate days (current week + next week)
+  const daySel=document.getElementById('sched-day');
+  const days=[];
+  const start=calWeekStart?new Date(calWeekStart):getWeekStart(new Date());
+  for(let w=0;w<2;w++){
+    for(let d=0;d<7;d++){
+      const dt=new Date(start); dt.setDate(dt.getDate()+w*7+d);
+      days.push(dt);
+    }
+  }
+  daySel.innerHTML=days.map(d=>`<option value="${d.toISOString()}">${d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</option>`).join('');
+  document.getElementById('sched-account').value=it.scheduled_account||it.voice;
+  document.getElementById('sched-time').value=it.scheduled_time||'09:00';
+  document.getElementById('sched-modal').classList.add('open');
+}
+
+function closeSchedModal(){
+  pendingSchedItem=null;
+  document.getElementById('sched-modal').classList.remove('open');
+}
+
+function confirmSchedule(){
+  if(!pendingSchedItem) return;
+  const day=document.getElementById('sched-day').value;
+  const account=document.getElementById('sched-account').value;
+  const time=document.getElementById('sched-time').value.trim()||'09:00';
+  pendingSchedItem.status='scheduled';
+  pendingSchedItem.scheduled_for=new Date(day).getTime();
+  pendingSchedItem.scheduled_account=account;
+  pendingSchedItem.scheduled_time=time;
+  persistLibrary();
+  renderLibrary();
+  renderCalendar();
+  closeSchedModal();
+  showToast('Scheduled','success');
+  switchTab('calendar');
+}
+
+// ── Calendar ──
+function getWeekStart(d){
+  const dt=new Date(d);
+  const day=dt.getDay(); // 0=Sun,1=Mon...
+  const diff=dt.getDate()-day+(day===0?-6:1); // snap to Monday
+  dt.setDate(diff);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+
+function calPrev(){calWeekStart=new Date(calWeekStart);calWeekStart.setDate(calWeekStart.getDate()-7);renderCalendar();}
+function calNext(){calWeekStart=new Date(calWeekStart);calWeekStart.setDate(calWeekStart.getDate()+7);renderCalendar();}
+function calThis(){calWeekStart=getWeekStart(new Date());renderCalendar();}
+
+function renderCalendar(){
+  if(!calWeekStart) calWeekStart=getWeekStart(new Date());
+  const grid=document.getElementById('cal-grid');
+  const label=document.getElementById('cal-week-label');
+  const summary=document.getElementById('cal-summary');
+  if(!grid) return;
+
+  const weekEnd=new Date(calWeekStart); weekEnd.setDate(weekEnd.getDate()+6);
+  label.textContent=`${calWeekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${weekEnd.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+
+  // Collect scheduled items for this week
+  const weekItems=library.filter(i=>{
+    if(i.status!=='scheduled'&&i.status!=='posted') return false;
+    if(!i.scheduled_for) return false;
+    const t=i.scheduled_for;
+    return t>=calWeekStart.getTime() && t<weekEnd.getTime()+86400000;
+  });
+
+  // Summary counts
+  const counts={eridion:0,erika:0,dion:0,total:weekItems.length};
+  weekItems.forEach(i=>{if(counts[i.scheduled_account]!==undefined) counts[i.scheduled_account]++;});
+  summary.innerHTML=`
+    <span class="cal-summary-item"><strong>${counts.total}</strong>posts this week</span>
+    <span class="cal-summary-item"><strong>${counts.eridion}</strong>Eridion</span>
+    <span class="cal-summary-item"><strong>${counts.erika}</strong>Erika</span>
+    <span class="cal-summary-item"><strong>${counts.dion}</strong>Dion</span>
+  `;
+
+  // Build each day
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  let html='';
+  for(let d=0;d<7;d++){
+    const dayDate=new Date(calWeekStart); dayDate.setDate(dayDate.getDate()+d);
+    const dayStart=dayDate.getTime();
+    const dayEnd=dayStart+86400000;
+    const dayItems=weekItems.filter(i=>i.scheduled_for>=dayStart && i.scheduled_for<dayEnd)
+      .sort((a,b)=>(a.scheduled_time||'').localeCompare(b.scheduled_time||''));
+    html+=`
+      <div class="cal-day">
+        <div class="cal-day-head">
+          <span class="cal-day-name">${days[d]}</span>
+          <span class="cal-day-date">${dayDate.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+          <span class="cal-day-count">${dayItems.length} post${dayItems.length===1?'':'s'}</span>
+        </div>
+        <div class="cal-day-body">
+          ${dayItems.length?dayItems.map(i=>{
+            const voiceLabel={eridion:'Eridion',erika:'Erika',dion:'Dion'}[i.scheduled_account]||i.scheduled_account;
+            const textPreview=(i.linkedin_text||i.blog_text||i.title||'').slice(0,80);
+            return `
+              <div class="cal-slot">
+                <div class="cal-slot-voice ${i.scheduled_account}"></div>
+                <div class="cal-slot-body" onclick="openViewPostModal('${i.id}')" title="Click to see full post + copy">
+                  <div class="cal-slot-meta">${i.scheduled_time||'—'} · ${voiceLabel} · ${escapeHTML(i.bucketLabel||'')}</div>
+                  <div class="cal-slot-text">${escapeHTML(textPreview)}…</div>
+                </div>
+                <span class="cal-slot-x" onclick="unschedule('${i.id}')" title="Unschedule">✕</span>
+              </div>
+            `;
+          }).join(''):'<div class="cal-day-empty">No posts scheduled</div>'}
+        </div>
+      </div>
+    `;
+  }
+  grid.innerHTML=html;
+}
+
+function copyWeekForBuffer(){
+  if(!calWeekStart){calThis();}
+  const weekEnd=new Date(calWeekStart); weekEnd.setDate(weekEnd.getDate()+7);
+  const weekItems=library.filter(i=>i.status==='scheduled'&&i.scheduled_for>=calWeekStart.getTime()&&i.scheduled_for<weekEnd.getTime())
+    .sort((a,b)=>a.scheduled_for-b.scheduled_for||(a.scheduled_time||'').localeCompare(b.scheduled_time||''));
+  if(!weekItems.length){showToast('No scheduled posts this week','error');return;}
+  const lines=[];
+  lines.push(`=== ERIDION STUDIO · WEEK OF ${calWeekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} ===\n`);
+  weekItems.forEach((i,idx)=>{
+    const d=new Date(i.scheduled_for);
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[i.scheduled_account];
+    lines.push(`--- POST ${idx+1} ---`);
+    lines.push(`DAY:     ${d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}`);
+    lines.push(`TIME:    ${i.scheduled_time||'09:00'}`);
+    lines.push(`ACCOUNT: ${voiceLabel} (LinkedIn)`);
+    lines.push(`BUCKET:  ${i.bucketLabel||''}`);
+    lines.push('');
+    lines.push(i.linkedin_text||i.blog_text||'');
+    if((i.hashtags||[]).length){lines.push('\n'+i.hashtags.join(' '));}
+    lines.push('\n');
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    showToast(`${weekItems.length} posts copied — paste into Buffer`,'success');
+  });
+}
+
 </script>
 </body>
 </html>
