@@ -1033,6 +1033,9 @@ textarea{min-height:80px;line-height:1.6;}
               <select id="spin-week-voice-strategy">
                 <option value="parent">All 5 snippets in the parent's voice</option>
                 <option value="mix" selected>Mix all three voices across the week (auto-distribute)</option>
+                <option value="eridion_dion">Eridion + Dion alternating (skip Erika)</option>
+                <option value="eridion_erika">Eridion + Erika alternating (skip Dion)</option>
+                <option value="erika_dion">Erika + Dion alternating (skip Eridion)</option>
                 <option value="eridion">All Eridion Glass</option>
                 <option value="erika">All Erika Harrison</option>
                 <option value="dion">All Dion Harrison</option>
@@ -1393,6 +1396,7 @@ function renderTodayCard(it){
   const voiceClass=it.scheduled_account||it.voice;
   const text=(it.linkedin_text||it.blog_text||'').slice(0,400);
   const showLaunch=it.status==='scheduled';
+  const canSpin=((it.blog_text&&it.blog_text.length>200)||(it.linkedin_text&&it.linkedin_text.length>200));
   return `
     <div class="today-card ${it.status}">
       <div class="today-card-head">
@@ -1407,6 +1411,8 @@ function renderTodayCard(it){
         ${showLaunch?`<button class="launch-btn linkedin" onclick="launchToLinkedIn('${it.id}')">💼 Open LinkedIn</button>`:''}
         ${showLaunch?`<button class="launch-btn substack" onclick="launchToSubstack('${it.id}')">📮 Open Substack</button>`:''}
         ${showLaunch?`<button class="launch-btn posted" onclick="markPostedFromToday('${it.id}')">✓ Mark Posted</button>`:''}
+        ${canSpin?`<button class="action-btn" onclick="openSpinSnippetModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Snippet</button>`:''}
+        ${canSpin?`<button class="action-btn" onclick="openSpinWeekModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Week</button>`:''}
         <button class="action-btn" onclick="copyFromLibrary('${it.id}')">Copy</button>
         <button class="action-btn" onclick="loadFromLibrary('${it.id}')">Open in Editor</button>
       </div>
@@ -2740,12 +2746,22 @@ const SPIN_ANGLES = {
   didyouknow: {label:'Did You Know',   instruction:'Write a "Did you know?" style LinkedIn post — short, punchy, educational. Open with "Did you know" and a surprising fact from the blog. Explain why it matters to builders in 2-3 sentences. Close with a subtle CTA if appropriate for the voice.'},
 };
 
+// Helper: get the best long-form text to spin from (prefers blog, falls back to linkedin)
+function getSpinSourceText(item){
+  if(!item) return '';
+  if(item.blog_text && item.blog_text.length>=80) return item.blog_text;
+  if(item.linkedin_text && item.linkedin_text.length>=80) return item.linkedin_text;
+  return '';
+}
+
 function openSpinSnippetModal(id){
   const src=library.find(x=>x.id===id);
-  if(!src||!src.blog_text){showToast('This item has no blog content to spin from','error');return;}
+  const sourceText=getSpinSourceText(src);
+  if(!src||!sourceText){showToast('This item has no content to spin from (need at least 80 chars)','error');return;}
   spinSource=src;
   spinSnippetResults=[];
-  document.getElementById('spin-source-preview').innerHTML=`<strong>From:</strong> ${escapeHTML(src.title||'Untitled')}<br><br>${escapeHTML(src.blog_text.slice(0,320))}…`;
+  const sourceLabel=src.blog_text&&src.blog_text.length>=80?'blog post':'post';
+  document.getElementById('spin-source-preview').innerHTML=`<strong>From ${sourceLabel}:</strong> ${escapeHTML(src.title||'Untitled')}<br><br>${escapeHTML(sourceText.slice(0,320))}…`;
   document.getElementById('spin-voice').value=src.voice;
   document.getElementById('spin-angle').value='hook';
   document.getElementById('spin-direction').value='';
@@ -2756,11 +2772,18 @@ function openSpinSnippetModal(id){
 
 function openSpinWeekModal(id){
   const src=library.find(x=>x.id===id);
-  if(!src||!src.blog_text){showToast('This item has no blog content to spin from','error');return;}
+  const sourceText=getSpinSourceText(src);
+  if(!src||!sourceText){showToast('This item has no content to spin from (need at least 80 chars)','error');return;}
   spinSource=src;
   spinWeekResults=[];
-  document.getElementById('spin-week-source-preview').innerHTML=`<strong>From:</strong> ${escapeHTML(src.title||'Untitled')}<br><br>${escapeHTML(src.blog_text.slice(0,320))}…`;
-  document.getElementById('spin-week-voice-strategy').value='mix';
+  const sourceLabel=src.blog_text&&src.blog_text.length>=80?'blog post':'post';
+  document.getElementById('spin-week-source-preview').innerHTML=`<strong>From ${sourceLabel}:</strong> ${escapeHTML(src.title||'Untitled')}<br><br>${escapeHTML(sourceText.slice(0,320))}…`;
+  // Smart default: if source voice is Erika, default to Eridion+Dion (skip her since she wrote it)
+  // For other voices, default to balanced mix
+  const smartDefault = src.voice==='erika' ? 'eridion_dion'
+    : src.voice==='dion' ? 'eridion_erika'
+    : 'mix';
+  document.getElementById('spin-week-voice-strategy').value=smartDefault;
   document.getElementById('spin-week-direction').value='';
   document.getElementById('spin-week-results').style.display='none';
   document.getElementById('spin-week-results').innerHTML='';
@@ -2794,7 +2817,7 @@ async function runSpinSnippet(){
       ? `CTA: One soft CTA at the end — invite to connect, comment, or DM. Not salesy.`
       : `CTA: One natural CTA — get on the schedule, visit eridionglass.com, or reach erika@eridionglass.com. Builder-focused, not pushy.`;
 
-  const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE BLOG POST (this was the original long-form piece):\n---\n${spinSource.blog_text}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source blog post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- 80-200 words total. Punchy. Scroll-stopping.\n- Stay factually consistent with the source blog — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}\n\nReturn the post text + hashtags only. No preamble, no meta-commentary.`;
+  const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (this was the original piece):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- 80-200 words total. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}\n\nReturn the post text + hashtags only. No preamble, no meta-commentary.`;
 
   try{
     const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
@@ -2885,6 +2908,25 @@ async function runSpinWeek(){
     voiceByDay.Wednesday='eridion';
     voiceByDay.Thursday='dion';
     voiceByDay.Friday='eridion';
+  } else if(strategy==='eridion_dion'){
+    // Eridion + Dion alternating — perfect for repurposing your own writing across the business + craft voices
+    voiceByDay.Monday='eridion';
+    voiceByDay.Tuesday='dion';
+    voiceByDay.Wednesday='eridion';
+    voiceByDay.Thursday='dion';
+    voiceByDay.Friday='eridion';
+  } else if(strategy==='eridion_erika'){
+    voiceByDay.Monday='eridion';
+    voiceByDay.Tuesday='erika';
+    voiceByDay.Wednesday='eridion';
+    voiceByDay.Thursday='erika';
+    voiceByDay.Friday='eridion';
+  } else if(strategy==='erika_dion'){
+    voiceByDay.Monday='erika';
+    voiceByDay.Tuesday='dion';
+    voiceByDay.Wednesday='erika';
+    voiceByDay.Thursday='dion';
+    voiceByDay.Friday='erika';
   } else {
     days.forEach(d=>voiceByDay[d]=strategy);
   }
@@ -2918,9 +2960,9 @@ ${getKB()}
 VOICE REFERENCE (follow strictly for each snippet's assigned voice):
 ${voiceRef}
 
-SOURCE BLOG POST:
+SOURCE POST:
 ---
-${spinSource.blog_text}
+${getSpinSourceText(spinSource)}
 ---
 
 ORIGINAL TOPIC: ${spinSource.title||''}
@@ -3487,7 +3529,7 @@ function renderLibrary(){
         <div class="lib-card-actions">
           <button class="action-btn" onclick="loadFromLibrary('${it.id}')">Load</button>
           <button class="action-btn" onclick="copyFromLibrary('${it.id}')">Copy Text</button>
-          ${it.blog_text&&it.blog_text.length>200?`<button class="action-btn" onclick="openSpinSnippetModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Snippet</button><button class="action-btn" onclick="openSpinWeekModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Week</button>`:''}
+          ${((it.blog_text&&it.blog_text.length>200)||(it.linkedin_text&&it.linkedin_text.length>200))?`<button class="action-btn" onclick="openSpinSnippetModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Snippet</button><button class="action-btn" onclick="openSpinWeekModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Week</button>`:''}
           <button class="action-btn primary" onclick="openSchedModal('${it.id}')">${it.status==='scheduled'?'Reschedule':'Schedule'}</button>
           ${it.status==='scheduled'?`<button class="action-btn" onclick="unschedule('${it.id}')">Unschedule</button>`:''}
           <button class="action-btn" onclick="markPosted('${it.id}')">Mark Posted</button>
