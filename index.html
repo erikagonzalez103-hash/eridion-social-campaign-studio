@@ -1042,23 +1042,26 @@ PERSONAL VOICE: Thoughtfully vulnerable (not oversharing), approachable but poli
 IMPORTANT: Vulnerability stays in business/industry friction only — never personal health or anything undermining professional credibility. Frame struggles as learning moments.
 AUDIENCE: Female founders, women in construction, business leaders, DFW entrepreneurial community.`,
 
-  dion:`You are writing personal brand content for Dion Harrison, co-founder and master glazier at Eridion Glass LLC — a luxury custom glass and mirror subcontractor in Dallas TX. Dion has 25+ years in the field, originally Australian, and personally leads every installation. He is the technical authority behind the business.
+  dion:`You are writing personal brand content for Dion Harrison, co-founder of Eridion Glass LLC — a luxury custom glass and mirror subcontractor in Dallas TX. Dion is a master glazier with 25+ years in the field, originally Australian, who personally leads installations AND helps run the business as an owner-operator. He is technical authority, jobsite boss, and co-founder — comfortable talking about craft, operations, leadership, hiring, margin, and the realities of running a construction company.
 
-PERSONAL VOICE: Dry, plainspoken, and funny. Dion is shy in person but humor is how he connects — he'd rather make a builder laugh than sell them anything. His sense of humor is Australian: understated, self-deprecating, observational, occasionally absurdist. He notices things other people miss and has strong opinions about workmanship, but he'd never phrase them that way.
+PERSONAL VOICE: Dry, plainspoken, and funny. Dion is shy in person but humor is how he connects — he'd rather make a builder laugh than lecture them. His humor is Australian: understated, self-deprecating, observational, occasionally absurdist. He notices things others miss and has strong opinions about how work should be done, but he delivers them flat — no soapbox.
 
-WRITING RULES — FOLLOW THESE STRICTLY:
-- Never pitch. Never sell. Never mention Eridion's services or capabilities directly. The business benefits when Dion is likeable and trusted, not when he pushes product.
-- Lead with observation, not claim. "Saw a shower door yesterday that..." not "At Eridion we believe..."
-- Humor is the hook, craft is the payoff. A funny line gets them reading, then he drops actual technical knowledge that only 25 years in the trade would teach you.
-- Never try too hard. If a post feels like it's trying to be funny, rewrite it flatter. The humor should feel incidental — like he's talking to another tradesman who happens to be listening.
+WRITING RULES:
+- Lead with observation, not claim. "Saw a shower door yesterday that..." lands better than "Here's what we believe about showers..." Start on the jobsite, in the shop, or in a specific moment whenever the topic allows it.
+- Humor is the hook, substance is the payoff. A wry line earns the read, then he drops the actual insight — a technical detail, an ops lesson, a hiring mistake, whatever the bucket calls for.
+- Never try too hard. If a line feels like it's trying to be funny, flatten it. Humor should feel incidental — like he's talking to another tradesman who happens to be listening.
 - Australian touches are welcome but sparing — one "mate," understatement, or bit of dry phrasing per post. Don't overdo it or it reads as costume.
 - Short paragraphs. Line breaks where he'd pause. He'd say it like he says it to himself in the truck.
-- Zero corporate language. No "thought leadership," no "stakeholders," no "value-add," no "passionate about."
-- CTAs, if any at all, are understated — "if you've got a project with something weird going on, I'll have a look" not "contact us today!" Most posts should have NO CTA. Dion builds trust through craft and personality, not lead-gen.
+- Zero corporate language. No "thought leadership," no "stakeholders," no "value-add," no "passionate about," no "leveraging."
+- He CAN mention Eridion directly — he co-founded it, he runs it. Talking about the business, its crews, its standards, and where it's headed is fair game. "At Eridion we..." is fine in moderation; "At Eridion we are the premier choice for..." is not. Let the business show up naturally in the story.
+- CTAs are allowed where they genuinely fit the post's arc. Keep them specific and grounded — "if you're speccing a frameless shower in the next 90 days, worth a conversation before the drawings lock" beats "contact us today." Direct mentions of the website, email, or getting on the schedule are fine. Avoid urgency and superlatives.
 - He's technical when it matters. He knows ASTM C1048, IRC R308, CPSC 16 CFR 1201, how silicone behaves on different substrates, why tempered glass spontaneously breaks, edge work, hardware load calcs. But he only gets technical when there's a reason — and always in plain language.
+- He's also an owner now. He can speak to hiring, training, crew accountability, pricing discipline, the difference between a trade and a business — from the perspective of someone who learned it the hard way on the tools before he learned it in a boardroom.
 - He respects other tradesmen. Framers, tile setters, plumbers, electricians — never punches down. Punches sideways at his own work when it goes wrong.
 
-AUDIENCE: Builders, project managers, other tradespeople, architects, site supers. People who can tell when someone actually knows what they're doing versus someone reading a brochure.`
+ERR ON THE SIDE OF INCLUDING MORE. Dion prefers to delete from a post rather than add to one. If unsure whether to include a business mention, a CTA, or a technical detail — include it. He'll trim what doesn't fit a given post's voice.
+
+AUDIENCE: Builders, project managers, tradespeople, architects, site supers, designers. People who can tell when someone actually knows the work versus someone reading a brochure.`
 };
 
 // ── POV Sets: four angles per topic category ──
@@ -1144,6 +1147,7 @@ function selectBucket(id) {
 const toneMap={market:'authoritative',didyouknow:'educational',labor:'authoritative',innovation:'educational',partnership:'conversational',leadership:'personal',organic:'personal',spotlight:'conversational',industry:'authoritative',journey:'personal',owner_op:'personal',design_install:'educational',coo_systems:'authoritative',leadership_growth:'personal',glass_education:'educational'};
   if(fmtMap[id]) document.getElementById('format-select').value=fmtMap[id];
   if(toneMap[id]) document.getElementById('tone-select').value=toneMap[id];
+}
 
 function switchTab(tab) {
   const names=['research','linkedin','blog','library','calendar','image','briefing'];
@@ -1176,9 +1180,10 @@ async function generateContent() {
 - Include one soft mid-content CTA (e.g. invite to connect, comment, or DM)
 - End with a clear strong CTA (e.g. "I'd love to hear how you're navigating this — drop a comment or connect with me." or "If you're building something in Dallas, let's talk.")`;
   const ctaDion=`\n\nCTA RULES FOR DION:
-- Usually NO CTA at all. Dion builds trust through craft and personality, not lead-gen.
-- If a CTA genuinely fits (rare), make it understated and specific — e.g. "If you've got a weird glass situation on site, happy to have a look" — never "contact us today" language.
-- No email, no website link, no urgency. He's not selling.`;
+- Include a CTA where it genuinely fits the post's arc. Not every post needs one — story-driven or pure observation posts can stand on their own.
+- When a CTA fits, keep it specific and grounded — e.g. "If you're speccing a frameless shower in the next 90 days, worth a conversation before the drawings lock" or "We're on the schedule through Q3 already — reach out if you want to lock Q4."
+- Direct mentions of Eridion, the website (eridionglass.com), email, and getting on the schedule are fine. Avoid urgency language, superlatives, and anything that reads like a sales page.
+- Err on the side of including the CTA — Dion would rather trim it than be missing it.`;
   const ctaFinal = currentStream==='eridion' ? ctaEridion : (currentStream==='dion' ? ctaDion : ctaErika);
 
   if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook that stops the scroll. One subtle mid-post CTA. Strong closing CTA. Also generate 5 relevant hashtags.${ctaFinal}`;
@@ -1487,9 +1492,10 @@ async function draftFromResearch(){
 - Include one soft mid-content CTA
 - End with a clear strong CTA`;
   const ctaDion=`\n\nCTA RULES FOR DION:
-- Usually NO CTA at all. Dion builds trust through craft and personality, not lead-gen.
-- If a CTA genuinely fits, make it understated — "If you've got a weird glass situation, happy to have a look" — never "contact us today."
-- No email, no website link, no urgency.`;
+- Include a CTA where it genuinely fits the post's arc. Not every post needs one — story-driven or pure observation posts can stand on their own.
+- When a CTA fits, keep it specific and grounded — e.g. "If you're speccing a frameless shower in the next 90 days, worth a conversation before the drawings lock" or "We're on the schedule through Q3 already — reach out if you want to lock Q4."
+- Direct mentions of Eridion, the website (eridionglass.com), email, and getting on the schedule are fine. Avoid urgency language, superlatives, and anything that reads like a sales page.
+- Err on the side of including the CTA — Dion would rather trim it than be missing it.`;
   const ctaFinal=currentStream==='eridion'?ctaEridion:(currentStream==='dion'?ctaDion:ctaErika);
 
   let fmtInstr='';
@@ -2184,7 +2190,7 @@ async function runSpinSnippet(){
 
   const voicePrompt=voicePrompts[voice]||voicePrompts.eridion;
   const ctaRule = voice==='dion'
-    ? `CTA: Usually none. Dion doesn't sell. If one fits, make it understated and quiet — "if you've got a weird glass situation, happy to have a look" — never urgent.`
+    ? `CTA: Include one if it genuinely fits the post's arc. Keep it specific and grounded — "if you're speccing a frameless shower in the next 90 days, worth a conversation" or a natural mention of Eridion, the website, or the schedule. Avoid urgency and superlatives. If no CTA fits, skip it — but when in doubt, include it. Dion prefers to trim rather than add.`
     : voice==='erika'
       ? `CTA: One soft CTA at the end — invite to connect, comment, or DM. Not salesy.`
       : `CTA: One natural CTA — get on the schedule, visit eridionglass.com, or reach erika@eridionglass.com. Builder-focused, not pushy.`;
