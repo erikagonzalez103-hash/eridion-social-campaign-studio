@@ -1019,11 +1019,11 @@ const buckets = {
     {id:'journey',icon:'🌱',label:'Business Journey'},
   ],
   dion:[
-    {id:'field',icon:'🔧',label:'Field Notes'},
-    {id:'rules',icon:'📜',label:"Dion's Rules"},
-    {id:'shop',icon:'🛠️',label:'From the Shop'},
-    {id:'sideways',icon:'🎯',label:'This Week in Glass'},
-    {id:'apprentice',icon:'👷',label:'Apprentice Hour'},
+    {id:'owner_op',icon:'🏗️',label:'Owner/Operator Reality'},
+    {id:'design_install',icon:'📐',label:'From Design to the Install'},
+    {id:'coo_systems',icon:'⚙️',label:'COO Systems, Process, and Standards'},
+    {id:'leadership_growth',icon:'🧭',label:'Lessons in Leadership and Business Growth'},
+    {id:'glass_education',icon:'🪟',label:'Glass Education, Design, and Customer Guidance'},
   ]
 };
 
@@ -1109,7 +1109,8 @@ const BUCKET_TO_POV_SET = {
   market:'market', didyouknow:'industry', labor:'industry', innovation:'industry',
   partnership:'industry', leadership:'industry', organic:'industry',
   spotlight:'industry', industry:'industry', journey:'industry',
-  field:'industry', rules:'industry', shop:'industry', sideways:'industry', apprentice:'industry'
+  owner_op:'industry', design_install:'industry', coo_systems:'industry',
+  leadership_growth:'industry', glass_education:'industry'
 };
 
 // ── Init ──
@@ -1140,8 +1141,7 @@ function setStream(s) {
 function selectBucket(id) {
   currentBucket=id; renderBuckets();
   const fmtMap={didyouknow:'didyouknow',spotlight:'spotlight'};
-  const toneMap={market:'authoritative',didyouknow:'educational',labor:'authoritative',innovation:'educational',partnership:'conversational',leadership:'personal',organic:'personal',spotlight:'conversational',industry:'authoritative',journey:'personal',field:'conversational',rules:'conversational',shop:'educational',sideways:'personal',apprentice:'conversational'};
-  if(fmtMap[id]) document.getElementById('format-select').value=fmtMap[id];
+owner_op:'personal',design_install:'educational',coo_systems:'authoritative',leadership_growth:'personal',glass_education:'educational'  if(fmtMap[id]) document.getElementById('format-select').value=fmtMap[id];
   if(toneMap[id]) document.getElementById('tone-select').value=toneMap[id];
 }
 
