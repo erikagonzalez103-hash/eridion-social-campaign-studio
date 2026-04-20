@@ -1141,9 +1141,9 @@ function setStream(s) {
 function selectBucket(id) {
   currentBucket=id; renderBuckets();
   const fmtMap={didyouknow:'didyouknow',spotlight:'spotlight'};
-owner_op:'personal',design_install:'educational',coo_systems:'authoritative',leadership_growth:'personal',glass_education:'educational'  if(fmtMap[id]) document.getElementById('format-select').value=fmtMap[id];
+const toneMap={market:'authoritative',didyouknow:'educational',labor:'authoritative',innovation:'educational',partnership:'conversational',leadership:'personal',organic:'personal',spotlight:'conversational',industry:'authoritative',journey:'personal',owner_op:'personal',design_install:'educational',coo_systems:'authoritative',leadership_growth:'personal',glass_education:'educational'};
+  if(fmtMap[id]) document.getElementById('format-select').value=fmtMap[id];
   if(toneMap[id]) document.getElementById('tone-select').value=toneMap[id];
-}
 
 function switchTab(tab) {
   const names=['research','linkedin','blog','library','calendar','image','briefing'];
