@@ -341,6 +341,56 @@ textarea{min-height:80px;line-height:1.6;}
 .seo-gen-btn.loading{position:relative;color:transparent;}
 .seo-gen-btn.loading::after{content:'';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;content:'GENERATING...';}
 
+/* ── Morning Brief Banner ── */
+.morning-banner{display:flex;align-items:center;gap:14px;padding:12px 16px;margin:0 0 16px;background:linear-gradient(90deg,rgba(200,169,110,0.10) 0%,rgba(200,169,110,0.04) 100%);border:1px solid rgba(200,169,110,0.3);border-left:3px solid var(--gold);}
+.morning-banner-icon{font-size:22px;line-height:1;}
+.morning-banner-body{flex:1;min-width:0;}
+.morning-banner-title{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--gold-bright);line-height:1.3;}
+.morning-banner-sub{font-size:11px;color:var(--text-dim);margin-top:2px;font-family:'DM Mono',monospace;letter-spacing:0.05em;}
+.morning-banner-cta{padding:7px 14px;background:transparent;border:1px solid var(--gold-dim);color:var(--gold);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.morning-banner-cta:hover{background:rgba(200,169,110,0.08);border-color:var(--gold);}
+.morning-banner-x{color:var(--text-muted);cursor:pointer;padding:0 4px;font-size:14px;}
+.morning-banner-x:hover{color:var(--text);}
+
+/* ── Today Tab ── */
+.today-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
+.today-greeting{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--gold-bright);line-height:1.1;}
+.today-date{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--text-dim);text-transform:uppercase;margin-top:4px;}
+.today-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.today-summary{display:flex;gap:14px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.today-sum-item{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--text-dim);}
+.today-sum-item strong{color:var(--gold);font-size:18px;font-family:'Outfit',sans-serif;font-weight:500;margin-right:5px;letter-spacing:normal;}
+.today-content{display:flex;flex-direction:column;gap:12px;}
+.today-section-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-dim);margin:8px 0 4px;}
+.today-card{background:var(--surface2);border:1px solid var(--border);padding:16px;transition:border-color 0.2s;}
+.today-card:hover{border-color:var(--border-bright);}
+.today-card.posted{opacity:0.55;}
+.today-card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.today-card-time{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:0.1em;font-weight:500;min-width:48px;}
+.today-card-bucket{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:0.1em;}
+.today-card-status{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;padding:3px 8px;text-transform:uppercase;}
+.today-card-status.scheduled{color:var(--gold);border:1px solid var(--gold-dim);background:rgba(200,169,110,0.05);}
+.today-card-status.posted{color:var(--success);border:1px solid rgba(95,173,138,0.3);background:rgba(95,173,138,0.05);}
+.today-card-title{font-size:14px;color:var(--text);line-height:1.4;margin-bottom:8px;font-weight:400;}
+.today-card-text{font-size:12px;color:var(--text-dim);line-height:1.6;max-height:80px;overflow:hidden;position:relative;margin-bottom:10px;white-space:pre-wrap;}
+.today-card-text::after{content:'';position:absolute;bottom:0;left:0;right:0;height:24px;background:linear-gradient(transparent,var(--surface2));pointer-events:none;}
+.today-card-text.expanded{max-height:none;}
+.today-card-text.expanded::after{display:none;}
+.today-card-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.today-empty{padding:50px 20px;text-align:center;border:1px dashed var(--border);background:var(--surface2);}
+.today-empty-icon{font-size:38px;margin-bottom:10px;opacity:0.6;}
+.today-empty p{font-size:13px;color:var(--text-muted);line-height:1.7;}
+
+/* ── Platform Launch Buttons ── */
+.launch-btn{padding:7px 14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;border:1px solid var(--border);background:transparent;color:var(--text-dim);display:inline-flex;align-items:center;gap:6px;}
+.launch-btn:hover{border-color:var(--border-bright);color:var(--text);}
+.launch-btn.linkedin{border-color:rgba(74,158,191,0.4);color:var(--eridion);}
+.launch-btn.linkedin:hover{background:rgba(74,158,191,0.08);border-color:var(--eridion);}
+.launch-btn.substack{border-color:rgba(255,103,25,0.4);color:#FF8B47;}
+.launch-btn.substack:hover{background:rgba(255,103,25,0.08);border-color:#FF6719;}
+.launch-btn.posted{border-color:rgba(95,173,138,0.4);color:var(--success);}
+.launch-btn.posted:hover{background:rgba(95,173,138,0.08);border-color:var(--success);}
+
 /* ── Status bar ── */
 .status-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px;font-family:'DM Mono',monospace;font-size:10px;z-index:100;}
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);}
@@ -469,13 +519,41 @@ textarea{min-height:80px;line-height:1.6;}
     <div>
       <div class="panel output-panel">
         <div class="tabs">
+          <div class="tab active" onclick="switchTab('today')">☀️ Today</div>
           <div class="tab" onclick="switchTab('research')">🔬 Research</div>
-          <div class="tab active" onclick="switchTab('linkedin')">LinkedIn</div>
+          <div class="tab" onclick="switchTab('linkedin')">LinkedIn</div>
           <div class="tab" onclick="switchTab('blog')">Blog Post</div>
           <div class="tab" onclick="switchTab('library')">📚 Library</div>
           <div class="tab" onclick="switchTab('calendar')">📆 Calendar</div>
           <div class="tab" onclick="switchTab('image')">Image</div>
           <div class="tab" onclick="switchTab('briefing')">🎙 Briefing</div>
+        </div>
+
+        <!-- Morning Brief Banner (shows on every tab when posts due today) -->
+        <div id="morning-brief-banner" class="morning-banner" style="display:none">
+          <div class="morning-banner-icon">☀️</div>
+          <div class="morning-banner-body">
+            <div class="morning-banner-title" id="mbb-title">Good morning · 0 posts on the schedule today</div>
+            <div class="morning-banner-sub" id="mbb-sub">Click to open today's brief</div>
+          </div>
+          <button class="morning-banner-cta" onclick="switchTab('today')">View Today →</button>
+          <span class="morning-banner-x" onclick="dismissMorningBanner()" title="Hide for the rest of the day">✕</span>
+        </div>
+
+        <!-- Today Tab -->
+        <div class="tab-content active" id="tab-today">
+          <div class="today-header">
+            <div>
+              <div class="today-greeting" id="today-greeting">Good morning</div>
+              <div class="today-date" id="today-date">—</div>
+            </div>
+            <div class="today-actions">
+              <button class="action-btn" onclick="generateMorningBriefAudio()" id="today-audio-btn">🎙 Read Today Aloud</button>
+              <button class="action-btn" onclick="renderToday()">Refresh</button>
+            </div>
+          </div>
+          <div class="today-summary" id="today-summary"></div>
+          <div class="today-content" id="today-content"></div>
         </div>
 
         <!-- Research Brief Tab -->
@@ -749,6 +827,7 @@ textarea{min-height:80px;line-height:1.6;}
             </div>
             <div>
               <button class="action-btn" onclick="saveCurrentToLibrary()">+ Save Current Draft</button>
+              <button class="action-btn primary" onclick="openLogPostModal()">📝 Log Past Post</button>
               <button class="action-btn" onclick="triggerImportLibrary()">Import JSON</button>
               <button class="action-btn" onclick="exportLibrary()">Export JSON</button>
             </div>
@@ -846,7 +925,8 @@ textarea{min-height:80px;line-height:1.6;}
           <div class="cal-summary" id="cal-summary"></div>
           <div class="cal-grid" id="cal-grid"></div>
           <div class="cal-actions">
-            <button class="action-btn primary" onclick="copyWeekForBuffer()">📋 Copy Week for Buffer</button>
+            <button class="action-btn primary" onclick="openAutoSchedModal()">⚡ Auto-Schedule Week</button>
+            <button class="action-btn" onclick="copyWeekForBuffer()">📋 Copy Week for Buffer</button>
             <button class="action-btn" onclick="publishToWix()">Publish Latest to Wix Blog</button>
             <button class="action-btn" onclick="publishToWix(true)">Save to Wix as Draft</button>
             <button class="action-btn" onclick="openLinkedIn()">Open LinkedIn</button>
@@ -861,6 +941,11 @@ textarea{min-height:80px;line-height:1.6;}
             <div id="view-post-meta" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--text-muted);margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"></div>
             <div id="view-post-body" style="background:var(--surface2);border:1px solid var(--border);padding:16px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:400px;overflow-y:auto;margin-bottom:12px;"></div>
             <div id="view-post-hashtags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+              <button class="launch-btn linkedin" onclick="launchToLinkedIn(viewingPostId)">💼 Open LinkedIn (text copied)</button>
+              <button class="launch-btn substack" onclick="launchToSubstack(viewingPostId)">📮 Open Substack (text copied)</button>
+              <button class="launch-btn posted" onclick="markPostedFromView()">✓ Mark Posted</button>
+            </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <button class="action-btn primary" onclick="copyViewPost()">📋 Copy Text + Hashtags</button>
               <button class="action-btn" onclick="copyViewPostTextOnly()">Copy Text Only</button>
@@ -962,6 +1047,83 @@ textarea{min-height:80px;line-height:1.6;}
               <button class="action-btn" onclick="closeSpinModal('spin-week-modal')">Cancel</button>
             </div>
             <div class="spin-results" id="spin-week-results" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- Log Past Post Modal -->
+        <div class="sched-modal" id="log-post-modal">
+          <div class="sched-modal-inner" style="max-width:600px">
+            <div class="sched-modal-title">📝 Log a Past Post</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-bottom:18px;line-height:1.6">Already posted something? Paste it here and it'll show up in your calendar history so the schedule stays continuous.</div>
+            <div class="sched-field">
+              <label class="field-label">Voice / Account</label>
+              <select id="log-post-voice">
+                <option value="eridion">Eridion Glass</option>
+                <option value="erika">Erika Harrison</option>
+                <option value="dion">Dion Harrison</option>
+              </select>
+            </div>
+            <div class="sched-field">
+              <label class="field-label">Date Posted</label>
+              <input type="date" id="log-post-date" />
+            </div>
+            <div class="sched-field">
+              <label class="field-label">Time (HH:MM — optional)</label>
+              <input type="text" id="log-post-time" placeholder="09:00" />
+            </div>
+            <div class="sched-field">
+              <label class="field-label">Title / Topic (optional — auto-generated if blank)</label>
+              <input type="text" id="log-post-title" placeholder="e.g. DFW market April 2026" />
+            </div>
+            <div class="sched-field">
+              <label class="field-label">Post Text</label>
+              <textarea id="log-post-text" placeholder="Paste the full post text here..." style="min-height:140px;font-size:12px;line-height:1.6"></textarea>
+            </div>
+            <div class="sched-field">
+              <label class="field-label">Hashtags (one per line, with # — optional)</label>
+              <textarea id="log-post-hashtags" placeholder="#DallasBuilders&#10;#LuxuryHomes&#10;#GlassDesign" style="min-height:60px;font-size:12px;line-height:1.6"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:18px">
+              <button class="action-btn primary" style="flex:1" onclick="confirmLogPost()">📝 Log as Posted</button>
+              <button class="action-btn" onclick="closeLogPostModal()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-Schedule Week Modal -->
+        <div class="sched-modal" id="auto-sched-modal">
+          <div class="sched-modal-inner" style="max-width:600px">
+            <div class="sched-modal-title">⚡ Auto-Schedule Week</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-bottom:18px;line-height:1.6">Fill empty slots in the selected week using the default cadence (Mon/Wed/Fri Eridion · Tue Erika · Thu Dion · weekends off). Pulls from your existing library drafts in matching voice — uses oldest drafts first.</div>
+            <div class="sched-field">
+              <label class="field-label">Week to Schedule</label>
+              <select id="auto-sched-week">
+                <option value="0">This Week</option>
+                <option value="1" selected>Next Week</option>
+                <option value="2">In 2 Weeks</option>
+                <option value="3">In 3 Weeks</option>
+              </select>
+            </div>
+            <div class="sched-field">
+              <label class="field-label">Time of Day for All Posts</label>
+              <input type="text" id="auto-sched-time" value="09:00" placeholder="09:00" />
+            </div>
+            <div class="sched-field">
+              <label class="field-label">Cadence Plan</label>
+              <div style="background:var(--surface2);border:1px solid var(--border);padding:12px 14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.9;color:var(--text-dim)">
+                <div>MON · <span style="color:var(--eridion)">Eridion Glass</span></div>
+                <div>TUE · <span style="color:var(--erika)">Erika Harrison</span></div>
+                <div>WED · <span style="color:var(--eridion)">Eridion Glass</span></div>
+                <div>THU · <span style="color:var(--dion)">Dion Harrison</span></div>
+                <div>FRI · <span style="color:var(--eridion)">Eridion Glass</span></div>
+                <div style="color:var(--text-muted);margin-top:4px">SAT–SUN · skipped</div>
+              </div>
+            </div>
+            <div id="auto-sched-preview" style="background:rgba(200,169,110,0.05);border-left:2px solid var(--gold-dim);padding:10px 14px;font-size:12px;color:var(--text-dim);line-height:1.7;margin-bottom:14px"></div>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <button class="action-btn primary" style="flex:1" onclick="confirmAutoSchedule()">⚡ Auto-Schedule Empty Slots</button>
+              <button class="action-btn" onclick="closeAutoSchedModal()">Cancel</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1150,11 +1312,448 @@ const toneMap={market:'authoritative',didyouknow:'educational',labor:'authoritat
 }
 
 function switchTab(tab) {
-  const names=['research','linkedin','blog','library','calendar','image','briefing'];
+  const names=['today','research','linkedin','blog','library','calendar','image','briefing'];
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===tab));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');
+  if(tab==='today') renderToday();
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// ── TODAY TAB + MORNING BRIEF ──
+// ═══════════════════════════════════════════════════════════════════
+
+function getTodayBounds(){
+  const start=new Date(); start.setHours(0,0,0,0);
+  const end=new Date(start); end.setDate(end.getDate()+1);
+  return [start.getTime(), end.getTime()];
+}
+
+function getTodaysPosts(){
+  const [start,end]=getTodayBounds();
+  return library.filter(i=>{
+    if(!i.scheduled_for) return false;
+    return i.scheduled_for>=start && i.scheduled_for<end;
+  }).sort((a,b)=>(a.scheduled_time||'09:00').localeCompare(b.scheduled_time||'09:00'));
+}
+
+function renderToday(){
+  const greeting=document.getElementById('today-greeting');
+  const dateEl=document.getElementById('today-date');
+  const sumEl=document.getElementById('today-summary');
+  const contentEl=document.getElementById('today-content');
+  if(!greeting) return;
+
+  const now=new Date();
+  const hour=now.getHours();
+  const greet = hour<5?'Working late':hour<12?'Good morning':hour<17?'Good afternoon':hour<21?'Good evening':'Working late';
+  greeting.textContent=greet;
+  dateEl.textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+  const posts=getTodaysPosts();
+  const scheduled=posts.filter(p=>p.status==='scheduled');
+  const posted=posts.filter(p=>p.status==='posted');
+  const counts={eridion:0,erika:0,dion:0};
+  scheduled.forEach(p=>{const k=p.scheduled_account||p.voice; if(counts[k]!==undefined) counts[k]++;});
+
+  sumEl.innerHTML=`
+    <span class="today-sum-item"><strong>${scheduled.length}</strong>to post today</span>
+    <span class="today-sum-item"><strong>${posted.length}</strong>already posted</span>
+    ${counts.eridion?`<span class="today-sum-item"><strong style="color:var(--eridion)">${counts.eridion}</strong>Eridion</span>`:''}
+    ${counts.erika?`<span class="today-sum-item"><strong style="color:var(--erika)">${counts.erika}</strong>Erika</span>`:''}
+    ${counts.dion?`<span class="today-sum-item"><strong style="color:var(--dion)">${counts.dion}</strong>Dion</span>`:''}
+  `;
+
+  if(!posts.length){
+    contentEl.innerHTML=`
+      <div class="today-empty">
+        <div class="today-empty-icon">☕</div>
+        <p>Nothing scheduled for today.<br>
+        <a onclick="switchTab('calendar')" style="color:var(--gold);cursor:pointer;text-decoration:underline">Open Calendar</a> to schedule posts, or
+        <a onclick="openAutoSchedModal()" style="color:var(--gold);cursor:pointer;text-decoration:underline">Auto-Schedule the week</a>.</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html='';
+  if(scheduled.length){
+    html+=`<div class="today-section-label">To Post Today</div>`;
+    html+=scheduled.map(it=>renderTodayCard(it)).join('');
+  }
+  if(posted.length){
+    html+=`<div class="today-section-label" style="margin-top:14px">Already Posted Today</div>`;
+    html+=posted.map(it=>renderTodayCard(it)).join('');
+  }
+  contentEl.innerHTML=html;
+}
+
+function renderTodayCard(it){
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[it.scheduled_account||it.voice]||it.voice;
+  const voiceClass=it.scheduled_account||it.voice;
+  const text=(it.linkedin_text||it.blog_text||'').slice(0,400);
+  const showLaunch=it.status==='scheduled';
+  return `
+    <div class="today-card ${it.status}">
+      <div class="today-card-head">
+        <span class="today-card-time">${it.scheduled_time||'09:00'}</span>
+        <span class="voice-badge ${voiceClass}">${voiceLabel}</span>
+        <span class="today-card-bucket">${escapeHTML(it.bucketLabel||'')}</span>
+        <span class="today-card-status ${it.status}">${it.status}</span>
+      </div>
+      <div class="today-card-title">${escapeHTML(it.title||'Untitled')}</div>
+      <div class="today-card-text" onclick="this.classList.toggle('expanded')">${escapeHTML(text)}${(it.linkedin_text||it.blog_text||'').length>400?'…':''}</div>
+      <div class="today-card-actions">
+        ${showLaunch?`<button class="launch-btn linkedin" onclick="launchToLinkedIn('${it.id}')">💼 Open LinkedIn</button>`:''}
+        ${showLaunch?`<button class="launch-btn substack" onclick="launchToSubstack('${it.id}')">📮 Open Substack</button>`:''}
+        ${showLaunch?`<button class="launch-btn posted" onclick="markPostedFromToday('${it.id}')">✓ Mark Posted</button>`:''}
+        <button class="action-btn" onclick="copyFromLibrary('${it.id}')">Copy</button>
+        <button class="action-btn" onclick="loadFromLibrary('${it.id}')">Open in Editor</button>
+      </div>
+    </div>
+  `;
+}
+
+function markPostedFromToday(id){
+  const it=library.find(x=>x.id===id);
+  if(!it) return;
+  it.status='posted';
+  persistLibrary();
+  renderToday();
+  renderLibrary();
+  renderCalendar();
+  renderMorningBanner();
+  showToast('Marked as posted','success');
+}
+
+function renderMorningBanner(){
+  const banner=document.getElementById('morning-brief-banner');
+  if(!banner) return;
+  // Check if dismissed today
+  const todayKey=new Date().toISOString().slice(0,10);
+  const dismissed=localStorage.getItem('eridion_banner_dismissed');
+  if(dismissed===todayKey){banner.style.display='none';return;}
+
+  const posts=getTodaysPosts();
+  const scheduled=posts.filter(p=>p.status==='scheduled');
+  if(!scheduled.length){banner.style.display='none';return;}
+
+  const titleEl=document.getElementById('mbb-title');
+  const subEl=document.getElementById('mbb-sub');
+  const counts={eridion:0,erika:0,dion:0};
+  scheduled.forEach(p=>{const k=p.scheduled_account||p.voice; if(counts[k]!==undefined) counts[k]++;});
+  const breakdown=[];
+  if(counts.eridion) breakdown.push(`${counts.eridion} Eridion`);
+  if(counts.erika) breakdown.push(`${counts.erika} Erika`);
+  if(counts.dion) breakdown.push(`${counts.dion} Dion`);
+
+  titleEl.textContent=`Good morning · ${scheduled.length} post${scheduled.length===1?'':'s'} on the schedule today`;
+  subEl.textContent=breakdown.join(' · ');
+  banner.style.display='flex';
+}
+
+function dismissMorningBanner(){
+  const todayKey=new Date().toISOString().slice(0,10);
+  localStorage.setItem('eridion_banner_dismissed',todayKey);
+  document.getElementById('morning-brief-banner').style.display='none';
+}
+
+async function generateMorningBriefAudio(){
+  const posts=getTodaysPosts();
+  const scheduled=posts.filter(p=>p.status==='scheduled');
+  if(!scheduled.length){showToast('No scheduled posts to read','error');return;}
+
+  const btn=document.getElementById('today-audio-btn');
+  btn.disabled=true; btn.textContent='⏳ Building...';
+
+  // Build a spoken brief
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  let script=`Good morning. Today is ${dateStr}. You have ${scheduled.length} post${scheduled.length===1?'':'s'} on the schedule. `;
+  scheduled.forEach((p,i)=>{
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[p.scheduled_account||p.voice];
+    const time=p.scheduled_time||'9 AM';
+    script+=`Post ${i+1}, scheduled for ${time}, in the voice of ${voiceLabel}, in the ${p.bucketLabel||'general'} bucket. `;
+    script+=`Title: ${p.title||'untitled'}. `;
+    const preview=(p.linkedin_text||p.blog_text||'').slice(0,300);
+    script+=`Opening: ${preview}. `;
+  });
+  script+=`That's everything on your plate for today. Have a good one.`;
+
+  // Use existing TTS
+  briefingText=script;
+  briefingSentences=script.match(/[^.!?]+[.!?]+/g)||[script];
+  currentSentenceIndex=0;
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  ttsPlaying=true;
+  playSentence(0);
+
+  btn.disabled=false; btn.textContent='🎙 Read Today Aloud';
+  showToast('Reading today\'s posts aloud','success');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── LAUNCH TO PLATFORM (LinkedIn, Substack) ──
+// ═══════════════════════════════════════════════════════════════════
+
+function getLibraryItem(id){return library.find(x=>x.id===id);}
+
+function launchToLinkedIn(id){
+  const it=getLibraryItem(id);
+  if(!it){showToast('Post not found','error');return;}
+  const text=it.linkedin_text||it.blog_text||'';
+  const ht=(it.hashtags||[]).join(' ');
+  const fullText=ht?`${text}\n\n${ht}`:text;
+  navigator.clipboard.writeText(fullText).then(()=>{
+    showToast('✓ Copied — LinkedIn opening...','success');
+    setTimeout(()=>window.open('https://www.linkedin.com/feed/?shareActive=true','_blank'),300);
+  }).catch(()=>{
+    // Fallback: open without copy success
+    window.open('https://www.linkedin.com/feed/?shareActive=true','_blank');
+    showToast('Copy may have failed — paste manually','error');
+  });
+}
+
+function launchToSubstack(id){
+  const it=getLibraryItem(id);
+  if(!it){showToast('Post not found','error');return;}
+  // Substack: prefer blog text if available, otherwise linkedin text
+  const text=it.blog_text||it.linkedin_text||'';
+  navigator.clipboard.writeText(text).then(()=>{
+    showToast('✓ Copied — Substack opening...','success');
+    setTimeout(()=>window.open('https://substack.com/home/post/new','_blank'),300);
+  }).catch(()=>{
+    window.open('https://substack.com/home/post/new','_blank');
+    showToast('Copy may have failed — paste manually','error');
+  });
+}
+
+function markPostedFromView(){
+  if(!viewingPostId) return;
+  const it=getLibraryItem(viewingPostId);
+  if(!it) return;
+  it.status='posted';
+  persistLibrary();
+  renderLibrary();
+  renderCalendar();
+  renderToday();
+  renderMorningBanner();
+  closeViewPostModal();
+  showToast('Marked as posted','success');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── LOG PAST POST (BACKFILL) ──
+// ═══════════════════════════════════════════════════════════════════
+
+function openLogPostModal(){
+  // Pre-fill date with today
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('log-post-date').value=today;
+  document.getElementById('log-post-time').value='09:00';
+  document.getElementById('log-post-voice').value=currentStream;
+  document.getElementById('log-post-title').value='';
+  document.getElementById('log-post-text').value='';
+  document.getElementById('log-post-hashtags').value='';
+  document.getElementById('log-post-modal').classList.add('open');
+}
+
+function closeLogPostModal(){
+  document.getElementById('log-post-modal').classList.remove('open');
+}
+
+function confirmLogPost(){
+  const voice=document.getElementById('log-post-voice').value;
+  const dateStr=document.getElementById('log-post-date').value;
+  const time=document.getElementById('log-post-time').value.trim()||'09:00';
+  const titleInput=document.getElementById('log-post-title').value.trim();
+  const text=document.getElementById('log-post-text').value.trim();
+  const hashtagsRaw=document.getElementById('log-post-hashtags').value.trim();
+
+  if(!text){showToast('Paste the post text first','error');return;}
+  if(!dateStr){showToast('Pick a date','error');return;}
+
+  // Parse date as local time at the specified hour
+  const [y,m,d]=dateStr.split('-').map(Number);
+  const [hh,mm]=(time.match(/^(\d{1,2}):?(\d{2})?/)||[null,9,0]).slice(1).map(v=>v?parseInt(v,10):0);
+  const dt=new Date(y,m-1,d,hh||9,mm||0,0,0);
+
+  // Auto-title from first 50 chars if not provided
+  const title=titleInput||text.slice(0,50).replace(/\n/g,' ')+(text.length>50?'…':'');
+
+  // Parse hashtags
+  const hashtags=hashtagsRaw
+    ? hashtagsRaw.split(/[\n,]/).map(h=>h.trim()).filter(h=>h.startsWith('#'))
+    : [];
+
+  // Build entry — bypass addToLibrary because we want non-default status + voice + bucket handling
+  const entry={
+    id:'lib_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    voice,
+    bucket:'',
+    bucketLabel:'(logged post)',
+    format:'linkedin',
+    topic:title,
+    title,
+    linkedin_text:text,
+    blog_text:'',
+    hashtags,
+    pov:null,
+    pov_label:null,
+    created_at:dt.getTime(),
+    status:'posted',
+    scheduled_for:dt.getTime(),
+    scheduled_account:voice,
+    scheduled_time:time,
+    backfilled:true,
+  };
+  library.unshift(entry);
+  persistLibrary();
+  renderLibrary();
+  renderCalendar();
+  renderToday();
+  renderMorningBanner();
+  closeLogPostModal();
+  showToast(`Logged ${voice} post for ${dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`,'success');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── AUTO-SCHEDULE WEEK ──
+// ═══════════════════════════════════════════════════════════════════
+
+// Day-of-week → voice cadence (Monday=1...Friday=5)
+const AUTO_CADENCE = {
+  1:'eridion',  // Monday
+  2:'erika',    // Tuesday
+  3:'eridion',  // Wednesday
+  4:'dion',     // Thursday
+  5:'eridion',  // Friday
+};
+
+function openAutoSchedModal(){
+  document.getElementById('auto-sched-week').value='1';
+  document.getElementById('auto-sched-time').value='09:00';
+  refreshAutoSchedPreview();
+  document.getElementById('auto-sched-modal').classList.add('open');
+  // Hook up live preview
+  document.getElementById('auto-sched-week').onchange=refreshAutoSchedPreview;
+}
+
+function closeAutoSchedModal(){
+  document.getElementById('auto-sched-modal').classList.remove('open');
+}
+
+function refreshAutoSchedPreview(){
+  const weeksOut=parseInt(document.getElementById('auto-sched-week').value,10)||0;
+  const weekStart=getWeekStart(new Date());
+  weekStart.setDate(weekStart.getDate()+weeksOut*7);
+  const weekEnd=new Date(weekStart); weekEnd.setDate(weekEnd.getDate()+7);
+
+  // What's already scheduled this week?
+  const existing=library.filter(i=>i.scheduled_for>=weekStart.getTime()&&i.scheduled_for<weekEnd.getTime()&&(i.status==='scheduled'||i.status==='posted'));
+  const filledByDay={};
+  existing.forEach(i=>{
+    const d=new Date(i.scheduled_for); const key=d.getDay();
+    filledByDay[key]=(filledByDay[key]||0)+1;
+  });
+
+  // For each Mon-Fri, decide: skip (already filled) or pick from drafts
+  const plan=[];
+  for(let dow=1;dow<=5;dow++){
+    const dt=new Date(weekStart); dt.setDate(dt.getDate()+(dow-1));
+    const voice=AUTO_CADENCE[dow];
+    const dayName=['Mon','Tue','Wed','Thu','Fri'][dow-1];
+    if(filledByDay[dow]){
+      plan.push({day:dayName,date:dt,status:'already filled',voice});
+    } else {
+      // Find an unposted draft in this voice
+      const draft=library.find(i=>i.voice===voice&&i.status==='draft'&&!i.scheduled_for);
+      if(draft){
+        plan.push({day:dayName,date:dt,status:'will use draft',voice,draftTitle:draft.title});
+      } else {
+        plan.push({day:dayName,date:dt,status:'no draft available',voice});
+      }
+    }
+  }
+
+  const willSchedule=plan.filter(p=>p.status==='will use draft').length;
+  const skipped=plan.filter(p=>p.status==='already filled').length;
+  const noDraft=plan.filter(p=>p.status==='no draft available').length;
+
+  const previewEl=document.getElementById('auto-sched-preview');
+  let html=`<div style="color:var(--gold);margin-bottom:6px"><strong>Preview · Week of ${weekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</strong></div>`;
+  plan.forEach(p=>{
+    const statusColor=p.status==='will use draft'?'var(--success)':p.status==='already filled'?'var(--text-muted)':'var(--error)';
+    html+=`<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.05em">${p.day} ${p.date.getDate()} · <span style="color:${statusColor}">${p.status}</span>${p.draftTitle?` · "${escapeHTML(p.draftTitle.slice(0,40))}${p.draftTitle.length>40?'…':''}"`:''}</div>`;
+  });
+  html+=`<div style="margin-top:8px;color:var(--text-dim)"><strong style="color:var(--gold)">${willSchedule}</strong> will be scheduled${skipped?` · ${skipped} already filled`:''}${noDraft?` · ${noDraft} need drafts first`:''}</div>`;
+  previewEl.innerHTML=html;
+}
+
+function confirmAutoSchedule(){
+  const weeksOut=parseInt(document.getElementById('auto-sched-week').value,10)||0;
+  const time=document.getElementById('auto-sched-time').value.trim()||'09:00';
+  const weekStart=getWeekStart(new Date());
+  weekStart.setDate(weekStart.getDate()+weeksOut*7);
+  const weekEnd=new Date(weekStart); weekEnd.setDate(weekEnd.getDate()+7);
+
+  // What's already scheduled this week?
+  const existing=library.filter(i=>i.scheduled_for>=weekStart.getTime()&&i.scheduled_for<weekEnd.getTime()&&(i.status==='scheduled'||i.status==='posted'));
+  const filledByDay={};
+  existing.forEach(i=>{
+    const d=new Date(i.scheduled_for); const key=d.getDay();
+    filledByDay[key]=true;
+  });
+
+  // Track which drafts we've used so we don't use the same one twice
+  const usedIds=new Set();
+  let scheduled=0;
+
+  for(let dow=1;dow<=5;dow++){
+    if(filledByDay[dow]) continue; // skip already-filled days
+    const voice=AUTO_CADENCE[dow];
+    const draft=library.find(i=>i.voice===voice&&i.status==='draft'&&!i.scheduled_for&&!usedIds.has(i.id));
+    if(!draft) continue;
+    usedIds.add(draft.id);
+    const dt=new Date(weekStart); dt.setDate(dt.getDate()+(dow-1));
+    const [hh,mm]=(time.match(/^(\d{1,2}):?(\d{2})?/)||[null,9,0]).slice(1).map(v=>v?parseInt(v,10):0);
+    dt.setHours(hh||9,mm||0,0,0);
+    draft.status='scheduled';
+    draft.scheduled_for=dt.getTime();
+    draft.scheduled_account=voice;
+    draft.scheduled_time=time;
+    scheduled++;
+  }
+
+  persistLibrary();
+  renderLibrary();
+  renderCalendar();
+  renderToday();
+  renderMorningBanner();
+  closeAutoSchedModal();
+
+  if(scheduled){
+    showToast(`✓ Scheduled ${scheduled} post${scheduled===1?'':'s'} for week of ${weekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`,'success');
+    // Jump to calendar so user sees the result
+    calWeekStart=weekStart;
+    renderCalendar();
+    switchTab('calendar');
+  } else {
+    showToast('No empty slots could be filled — check the preview','error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── INIT HOOKS — wire up Today + Banner on every relevant action ──
+// ═══════════════════════════════════════════════════════════════════
+// Hook into existing render flow on initial load
+window.addEventListener('DOMContentLoaded',()=>{
+  // Defer until after main init so library is loaded
+  setTimeout(()=>{
+    renderToday();
+    renderMorningBanner();
+  },50);
+});
 
 // ── Generate Content ──
 async function generateContent() {
@@ -2851,6 +3450,9 @@ function setLibFilter(kind,val){
 }
 
 function renderLibrary(){
+  // Side-effect: keep Today view and morning banner in sync with library state
+  if(typeof renderToday==='function') renderToday();
+  if(typeof renderMorningBanner==='function') renderMorningBanner();
   const grid=document.getElementById('lib-grid');
   if(!grid) return;
   let items=library.slice();
