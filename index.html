@@ -971,6 +971,24 @@ textarea { min-height: 80px; line-height: 1.6; }
 .voice-badge.erika   { background: var(--green-faint); color: var(--green-deep); border: 1px solid rgba(67,176,71,0.3); }
 .voice-badge.dion    { background: rgba(124,124,124,0.08); color: var(--dion); border: 1px solid rgba(124,124,124,0.25); }
 
+/* Bridge tag — marks cross-voice reposts in spin results, library, calendar */
+.bridge-tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-subhead);
+  font-size: 9px; font-weight: 600;
+  letter-spacing: var(--track-alta);
+  padding: 3px 8px;
+  text-transform: uppercase;
+  background: var(--green-faint);
+  color: var(--green-deep);
+  border: 1px solid rgba(67, 176, 71, 0.35);
+  white-space: nowrap;
+}
+@media (max-width: 1100px) {
+  .bridge-tag { font-size: 8px !important; padding: 2px 6px !important; letter-spacing: 0.1em !important; }
+}
+
 .status-badge {
   font-family: var(--font-subhead);
   font-size: 10px; font-weight: 600;
@@ -4608,6 +4626,9 @@ async function runSpinSnippet(){
   const angle=SPIN_ANGLES[angleKey];
   if(!angle){showToast('Invalid angle','error');return;}
 
+  const sourceVoice=spinSource.voice||'eridion';
+  const crossVoice=voice!==sourceVoice;
+
   const btn=document.getElementById('spin-snippet-btn');
   btn.disabled=true;
   const resultsEl=document.getElementById('spin-snippet-results');
@@ -4621,7 +4642,30 @@ async function runSpinSnippet(){
       ? `CTA: One soft CTA at the end — invite to connect, comment, or DM. Not salesy.`
       : `CTA: One natural CTA — get on the schedule, visit eridionglass.com, or reach erika@eridionglass.com. Builder-focused, not pushy.`;
 
-  const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (this was the original piece):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- 80-200 words total. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}\n\nReturn the post text + hashtags only. No preamble, no meta-commentary.`;
+  // Voice-natural narrative bridge instructions (applied only on cross-voice reposts)
+  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',dion:'Dion (Dion Harrison, master glazier & co-founder)'};
+  const sourceDisplay=VOICE_DISPLAY_NAMES[sourceVoice]||sourceVoice;
+  const bridgeRule=crossVoice?`
+
+✦ NARRATIVE BRIDGE (REQUIRED — this snippet is in a DIFFERENT voice from the source):
+The source post was originally written in the ${sourceVoice.toUpperCase()} voice (${sourceDisplay}). Since you are now writing as ${voice.toUpperCase()}, you MUST open this snippet with a short, voice-natural narrative bridge — 1-2 sentences that:
+  (a) Credit the original ${sourceDisplay} naturally — by name or relationship, not as a formal citation
+  (b) Bridge into WHY this voice is amplifying it — what it triggered, what it confirmed, what to add from this angle
+  (c) Then transition into the snippet body in the ${voice.toUpperCase()} voice's natural rhythm
+
+The bridge is NOT a formatted credit line. NEVER use "↳", "Re:", "Reposting:", "Originally posted by:", or any social-media-style tag. NEVER quote the original verbatim. Pull the insight forward in the new voice.
+
+Voice-natural bridge patterns (cadence reference only — never copy verbatim):
+  • Eridion → Erika: "Erika wrote something last week about [X]. From the business side, the line that matters most to builders is..."
+  • Eridion → Dion: "Dion flagged something on a jobsite Tuesday. Translated to a builder's spec sheet, here's what it means..."
+  • Erika → Eridion: "Our team published a piece on [X] this week. The part I keep coming back to as a founder is..."
+  • Erika → Dion: "Dion came in from a job last week and said [paraphrase]. I haven't been able to stop thinking about it because..."
+  • Dion → Eridion: "The company put out a piece on [X] this week. They're right. From the field side, here's what nobody says about it..."
+  • Dion → Erika: "Erika wrote something earlier. She nailed the [X] part. The bit no one mentions on the install side is..."`:'';
+
+  const wordRange=crossVoice?'90-220 words total (allowance for the narrative bridge)':'80-200 words total';
+
+  const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}\n\nReturn the post text + hashtags only. No preamble, no meta-commentary.`;
 
   try{
     const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
@@ -4634,9 +4678,9 @@ async function runSpinSnippet(){
     const body=text.replace(/(?:\n\s*)?#[A-Za-z][A-Za-z0-9_]*(?:\s*#[A-Za-z][A-Za-z0-9_]*)*\s*$/,'').trim();
     const hashtags=hashMatches.slice(0,5);
 
-    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags}];
+    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags,crossVoice,bridgeFrom:crossVoice?sourceVoice:null}];
     renderSpinSnippetResult();
-    showToast('Snippet ready','success');
+    showToast(crossVoice?`Snippet ready (with bridge to ${sourceVoice})`:'Snippet ready','success');
   }catch(e){
     console.error('Spin snippet failed:',e);
     resultsEl.innerHTML=`<div class="spin-loading" style="color:var(--error)">Failed: ${escapeHTML(e.message)}</div>`;
@@ -4651,11 +4695,14 @@ function renderSpinSnippetResult(){
   if(!spinSnippetResults.length){resultsEl.style.display='none';return;}
   const r=spinSnippetResults[0];
   const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[r.voice];
+  const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[r.bridgeFrom]:'';
+  const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
   resultsEl.style.display='block';
   resultsEl.innerHTML=`
     <div class="spin-result-card">
       <div class="spin-result-head">
         <span class="voice-badge ${r.voice}">${voiceLabel}</span>
+        ${bridgeTag}
         <span class="spin-result-label">${r.angle}</span>
         <span class="lib-card-date" style="margin-left:auto">${r.text.length} chars</span>
       </div>
@@ -4689,6 +4736,10 @@ function saveSpinSnippetToLibrary(idx){
   });
   entry.parent_id=spinSource.id;
   entry.snippet_angle=r.angleKey;
+  if(r.crossVoice){
+    entry.cross_voice=true;
+    entry.bridge_from=r.bridgeFrom;
+  }
   persistLibrary();
   renderLibrary();
   showToast('Snippet saved to library','success');
@@ -4745,9 +4796,11 @@ async function runSpinWeek(){
   resultsEl.style.display='block';
   resultsEl.innerHTML='<div class="spin-loading">Spinning 5 snippets — this takes a few seconds…</div>';
 
+  const sourceVoice=spinSource.voice||'eridion';
   const dayDefs=days.map(d=>({
     day:d,
     voice:voiceByDay[d],
+    crossVoice:voiceByDay[d]!==sourceVoice,
     angleKey:angleByDay[d],
     angleLabel:SPIN_ANGLES[angleByDay[d]].label,
     angleInstr:SPIN_ANGLES[angleByDay[d]].instruction,
@@ -4755,6 +4808,29 @@ async function runSpinWeek(){
 
   // Build voice rule reference block to include once
   const voiceRef=['eridion','erika','dion'].map(v=>`=== VOICE: ${v.toUpperCase()} ===\n${voicePrompts[v]}`).join('\n\n');
+
+  // Voice-natural bridge styles for cross-voice reposts
+  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',dion:'Dion (Dion Harrison, master glazier & co-founder)'};
+  const sourceDisplay=VOICE_DISPLAY_NAMES[sourceVoice]||sourceVoice;
+
+  const bridgeStyleRules=`
+NARRATIVE BRIDGE RULES (for cross-voice snippets only):
+When a snippet's assigned voice differs from the source voice (${sourceVoice.toUpperCase()}), the snippet MUST open with a short, voice-natural narrative bridge — 1-2 sentences that:
+  (a) Credits the original ${sourceDisplay} naturally — by name or by relationship, not as a formal citation
+  (b) Bridges into WHY this voice is amplifying it — what it triggered for them, what it confirmed, what they want to add from their angle
+  (c) Then transitions into the snippet body in the assigned voice's natural rhythm
+
+The bridge is NOT a header or formatted credit line. It's part of the post — first 1-2 sentences that flow naturally into the rest. NEVER use formats like "↳", "Re:", "Reposting:", "From the archive:", "Originally posted by:", or any social-media-style tag. NEVER quote the original verbatim. Pull the insight forward in the new voice.
+
+Voice-natural bridge examples (study the cadence — these are PATTERNS, never copy them word-for-word):
+  • Eridion picking up Erika: "Erika wrote something last week about [X]. From the business side, the line that matters most to builders is..."
+  • Eridion picking up Dion: "Dion flagged something on a jobsite Tuesday. Translated to a builder's spec sheet, here's what it means..."
+  • Erika picking up Eridion: "Our team published a piece on [X] this week. The part I keep coming back to as a founder is..."
+  • Erika picking up Dion: "Dion came in from a job last week and said [paraphrase]. I haven't been able to stop thinking about it because..."
+  • Dion picking up Eridion: "The company put out a piece on [X] this week. They're right. From the field side, here's what nobody says about it..."
+  • Dion picking up Erika: "Erika wrote something earlier. She nailed the [X] part. The bit no one mentions on the install side is..."
+
+For SAME-VOICE snippets (voice === ${sourceVoice.toUpperCase()}): NO bridge. Open directly with the angle. Treat the source as your own prior thinking — don't credit yourself.`;
 
   const prompt=`You are generating 5 LinkedIn snippets derived from a single blog post. Each snippet will be posted on a different day of the week, in a specified voice, with a specific angle. Each must be distinct from the others — do not repeat phrasing, opening lines, or the same factual pull.
 
@@ -4764,27 +4840,32 @@ ${getKB()}
 VOICE REFERENCE (follow strictly for each snippet's assigned voice):
 ${voiceRef}
 
-SOURCE POST:
+SOURCE POST (originally written in the ${sourceVoice.toUpperCase()} voice):
 ---
 ${getSpinSourceText(spinSource)}
 ---
 
 ORIGINAL TOPIC: ${spinSource.title||''}
+SOURCE VOICE: ${sourceVoice.toUpperCase()} — ${sourceDisplay}
+${bridgeStyleRules}
 
 THE 5 SNIPPETS TO GENERATE:
 ${dayDefs.map((d,i)=>`
-${i+1}. ${d.day} · Voice: ${d.voice.toUpperCase()} · Angle: ${d.angleLabel}
+${i+1}. ${d.day} · Voice: ${d.voice.toUpperCase()} · Angle: ${d.angleLabel} · ${d.crossVoice?`CROSS-VOICE — must open with narrative bridge crediting ${sourceDisplay}`:'SAME-VOICE — no bridge needed'}
    Instruction: ${d.angleInstr}`).join('\n')}
 
 RULES FOR EVERY SNIPPET:
-- 80-200 words each
+- 80-200 words each (cross-voice snippets can run to 220 to accommodate the bridge)
 - Stay factually consistent with the source — no invented data
 - Match the assigned voice precisely (different voices have different CTA rules: Eridion = direct CTA, Erika = soft CTA, Dion = usually NO CTA at all)
 - Include 4 relevant hashtags per snippet
-- Each snippet must be distinct — different hooks, different angles, different factual pulls from the source${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}
+- Each snippet must be distinct — different hooks, different angles, different factual pulls from the source
+- For cross-voice snippets: bridge MUST be in the voice doing the reposting, not the source voice${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","text":"full post text here","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}`;
+{"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","cross_voice":true,"bridge_from":"erika","text":"full post text here","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}
+
+For same-voice snippets, set cross_voice:false and bridge_from:null.`;
 
   try{
     const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
@@ -4810,6 +4891,8 @@ Return ONLY valid JSON, no preamble, no markdown fences:
       angleLabel:x.angle_label||dayDefs[i]?.angleLabel||'',
       text:String(x.text||'').trim(),
       hashtags:Array.isArray(x.hashtags)?x.hashtags:[],
+      crossVoice:dayDefs[i]?.crossVoice||false,
+      bridgeFrom:dayDefs[i]?.crossVoice?(sourceVoice):null,
     }));
     renderSpinWeekResults();
     showToast(`${spinWeekResults.length} snippets generated`,'success');
@@ -4835,11 +4918,14 @@ function renderSpinWeekResults(){
   `;
   const cards=spinWeekResults.map((r,i)=>{
     const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[r.voice]||r.voice;
+    const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[r.bridgeFrom]:'';
+    const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
     return `
       <div class="spin-result-card">
         <div class="spin-result-head">
           <span class="spin-result-label">${r.day}</span>
           <span class="voice-badge ${r.voice}">${voiceLabel}</span>
+          ${bridgeTag}
           <span class="lib-card-bucket">· ${escapeHTML(r.angleLabel||'')}</span>
           <span class="lib-card-date" style="margin-left:auto">${r.text.length} chars</span>
         </div>
@@ -4875,6 +4961,10 @@ function saveOneSpinWeek(i){
   entry.parent_id=spinSource.id;
   entry.snippet_angle=r.angleKey;
   entry.snippet_day=r.day;
+  if(r.crossVoice){
+    entry.cross_voice=true;
+    entry.bridge_from=r.bridgeFrom;
+  }
   persistLibrary();
   renderLibrary();
   showToast(`${r.day} saved`,'success');
@@ -4907,6 +4997,10 @@ function saveAndScheduleSpinWeek(){
     entry.parent_id=spinSource.id;
     entry.snippet_angle=r.angleKey;
     entry.snippet_day=r.day;
+    if(r.crossVoice){
+      entry.cross_voice=true;
+      entry.bridge_from=r.bridgeFrom;
+    }
     // Schedule it
     const dayOffset=dayIndex[r.day];
     if(dayOffset!==undefined){
@@ -5315,10 +5409,13 @@ function renderLibrary(){
     const preview=(it.linkedin_text||it.blog_text||'').slice(0,240);
     const schedInfo=it.status==='scheduled'?` · ${new Date(it.scheduled_for).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})} on ${it.scheduled_account}`:'';
     const parentLabel = it.parent_id ? (library.find(x=>x.id===it.parent_id)?.title||'parent post') : null;
+    const bridgeShortName=it.cross_voice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[it.bridge_from]:null;
+    const bridgeTag=bridgeShortName?`<span class="bridge-tag" title="Credits and amplifies the original ${bridgeShortName} post">↳ amplifying ${bridgeShortName}</span>`:'';
     return `
       <div class="lib-card" data-id="${it.id}">
         <div class="lib-card-head">
           <span class="voice-badge ${it.voice}">${voiceLabel}</span>
+          ${bridgeTag}
           <span class="lib-card-bucket">${escapeHTML(it.bucketLabel||it.bucket||'')}</span>
           ${it.pov_label?`<span class="lib-card-bucket">· ${escapeHTML(it.pov_label)}</span>`:''}
           ${it.seo?`<span class="lib-card-bucket" style="color:var(--success)">· 🔍 SEO ready</span>`:''}
@@ -5633,11 +5730,13 @@ function renderCalendar(){
           ${dayItems.length?dayItems.map(i=>{
             const voiceLabel={eridion:'Eridion',erika:'Erika',dion:'Dion'}[i.scheduled_account]||i.scheduled_account;
             const textPreview=(i.linkedin_text||i.blog_text||i.title||'').slice(0,80);
+            const bridgeShortName=i.cross_voice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[i.bridge_from]:null;
+            const bridgeMeta=bridgeShortName?` · <span style="color:var(--green-deep);font-weight:600">↳ amplifying ${bridgeShortName}</span>`:'';
             return `
               <div class="cal-slot">
                 <div class="cal-slot-voice ${i.scheduled_account}"></div>
                 <div class="cal-slot-body" onclick="openViewPostModal('${i.id}')" title="Click to see full post + copy">
-                  <div class="cal-slot-meta">${i.scheduled_time||'—'} · ${voiceLabel} · ${escapeHTML(i.bucketLabel||'')}</div>
+                  <div class="cal-slot-meta">${i.scheduled_time||'—'} · ${voiceLabel} · ${escapeHTML(i.bucketLabel||'')}${bridgeMeta}</div>
                   <div class="cal-slot-text">${escapeHTML(textPreview)}…</div>
                 </div>
                 <span class="cal-slot-x" onclick="unschedule('${i.id}')" title="Unschedule">✕</span>
