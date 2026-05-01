@@ -5916,7 +5916,8 @@ async function pushPostToBuffer(id){
   const igFlag=payload.channels.instagram_eridion.over_limit?' (IG skipped — over 2,200 chars)':'';
   try{
     setStatus('Pushing to Buffer...',true);
-    const res=await fetch(webhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    // text/plain avoids CORS preflight; Zapier parses valid JSON body regardless of declared type
+    const res=await fetch(webhook,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
     if(!res.ok) throw new Error(`Zapier webhook returned ${res.status}`);
     item.buffer_queued=true;
     item.buffer_queued_at=Date.now();
@@ -5960,7 +5961,7 @@ async function pushWeekToBuffer(){
     const payload=buildBufferPayload(item);
     if(payload.channels.instagram_eridion.over_limit) igSkipped++;
     try{
-      const res=await fetch(webhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const res=await fetch(webhook,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       item.buffer_queued=true;
       item.buffer_queued_at=Date.now();
