@@ -481,6 +481,149 @@ textarea { min-height: 80px; line-height: 1.6; }
 .upload-zone p { font-size: 13px; color: var(--medium-gray); }
 .upload-zone .upload-icon { font-size: 28px; margin-bottom: 8px; }
 #file-input { display: none; }
+
+/* ── Reusable Image Picker (view-post modal, library cards, image ideas) ── */
+.img-picker {
+  background: var(--off-white);
+  border: 1px solid var(--hairline);
+  padding: 14px;
+  margin: 8px 0 14px;
+}
+.img-picker-label {
+  font-family: var(--font-subhead);
+  font-size: 10px; font-weight: 600;
+  letter-spacing: var(--track-alta);
+  text-transform: uppercase;
+  color: var(--medium-gray);
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.img-picker-label .ip-status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--light-gray);
+}
+.img-picker-label.has-image .ip-status-dot { background: var(--green); }
+.img-picker-thumb-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  margin-bottom: 10px;
+}
+.img-picker-thumb {
+  width: 96px; height: 96px;
+  flex-shrink: 0;
+  background: var(--white);
+  border: 1px solid var(--hairline-strong);
+  object-fit: cover;
+  display: block;
+}
+.img-picker-thumb.empty {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--medium-gray);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: repeating-linear-gradient(
+    45deg, var(--off-white), var(--off-white) 6px,
+    var(--white) 6px, var(--white) 12px
+  );
+}
+.img-picker-meta {
+  flex: 1;
+  font-size: 11px;
+  color: var(--medium-gray);
+  line-height: 1.5;
+  word-break: break-all;
+}
+.img-picker-meta .ip-source {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+.img-picker-meta .ip-url {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--medium-gray);
+  opacity: 0.8;
+}
+.img-picker-actions {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.img-picker-btn {
+  padding: 8px 14px;
+  background: var(--white);
+  border: 1px solid var(--hairline-strong);
+  color: var(--dark-gray);
+  font-family: var(--font-subhead);
+  font-size: 10px; font-weight: 600;
+  letter-spacing: var(--track-alta);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.img-picker-btn:hover { border-color: var(--navy); color: var(--navy); }
+.img-picker-btn.danger:hover { border-color: var(--error); color: var(--error); }
+.img-picker-btn.primary {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--white);
+}
+.img-picker-btn.primary:hover { background: var(--navy-soft); }
+.img-picker-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.img-picker-url-row {
+  display: none;
+  margin-top: 10px;
+  gap: 6px;
+}
+.img-picker-url-row.open { display: flex; }
+.img-picker-url-row input {
+  flex: 1;
+  padding: 9px 11px;
+  background: var(--white);
+  border: 1px solid var(--hairline-strong);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dark-gray);
+}
+.img-picker-url-row input:focus { outline: none; border-color: var(--navy); }
+.img-picker-progress {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--navy);
+  margin-top: 8px;
+  display: none;
+}
+.img-picker-progress.show { display: block; }
+.img-picker-hint {
+  font-size: 10px;
+  color: var(--medium-gray);
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Library card image badge ── */
+.lib-card-img-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green-deep);
+  padding: 2px 7px;
+  border: 1px solid var(--green);
+  background: var(--green-faint);
+}
+.lib-card-img-tag.missing {
+  color: var(--medium-gray);
+  border-color: var(--hairline-strong);
+  background: transparent;
+}
+
 .connect-section {
   background: var(--off-white);
   border: 1px solid var(--hairline);
@@ -2278,6 +2421,10 @@ textarea { min-height: 80px; line-height: 1.6; }
             <label class="field-label">Zapier Webhook URL <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(catches "Push to Buffer" payloads)</span></label>
             <input type="password" id="zapier-webhook" placeholder="https://hooks.zapier.com/hooks/catch/..." />
           </div>
+          <div class="field">
+            <label class="field-label">ImgBB API Key <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(image hosting for Buffer)</span></label>
+            <input type="password" id="imgbb-key" placeholder="Free key at api.imgbb.com" />
+          </div>
           <div style="margin-top:8px;margin-bottom:12px;">
             <button class="action-btn" onclick="saveKeys()" style="width:100%">Save Keys Locally</button>
           </div>
@@ -2711,6 +2858,10 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div id="view-post-meta" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--text-muted);margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"></div>
             <div id="view-post-body" style="background:var(--surface2);border:1px solid var(--border);padding:16px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:400px;overflow-y:auto;margin-bottom:12px;"></div>
             <div id="view-post-hashtags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;"></div>
+
+            <!-- Image attachment (Buffer needs this on every post) -->
+            <div id="view-post-image-picker"></div>
+
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
               <button class="launch-btn linkedin" onclick="launchToLinkedIn(viewingPostId)">💼 Open LinkedIn (text copied)</button>
               <button class="launch-btn substack" onclick="launchToSubstack(viewingPostId)">📮 Open Substack (text copied)</button>
@@ -2913,6 +3064,7 @@ textarea { min-height: 80px; line-height: 1.6; }
               <div class="ii-tab active" onclick="iiSwitchTab('extract')">1 · Auto-Suggest</div>
               <div class="ii-tab" onclick="iiSwitchTab('highlight')">2 · Highlight Text</div>
               <div class="ii-tab" onclick="iiSwitchTab('concepts')">3 · Image Concepts</div>
+              <div class="ii-tab" onclick="iiSwitchTab('upload')">4 · Use My Image</div>
             </div>
 
             <!-- Tab 1: Auto-extract the most visual-worthy items -->
@@ -2966,8 +3118,29 @@ textarea { min-height: 80px; line-height: 1.6; }
               </div>
             </div>
 
+            <!-- Tab 4: Upload your own image -->
+            <div class="ii-tab-content" id="ii-tab-upload">
+              <div style="font-size:13px;color:var(--text-dim);line-height:1.65;margin-bottom:16px">
+                Already have a photo for this post? Upload it directly — it gets hosted on ImgBB and attached to this library item, so the URL flows into your Buffer payload automatically.
+              </div>
+              <div id="ii-upload-picker"></div>
+            </div>
+
             <div style="display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
               <button class="action-btn" onclick="closeImageIdeasModal()" style="margin-left:auto">Close</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Image Attach Modal (opened from library cards) -->
+        <div class="sched-modal" id="image-attach-modal">
+          <div class="sched-modal-inner" style="max-width:560px">
+            <div class="sched-modal-title">🖼 Attach Image to Post</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">Upload from your computer (or paste a public URL). The image is hosted on ImgBB and the URL flows into the Buffer payload as <code style="font-family:var(--font-mono);font-size:11px;background:var(--off-white);padding:1px 5px">image_url</code>.</div>
+            <div id="image-attach-meta" style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.12em;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase"></div>
+            <div id="image-attach-picker"></div>
+            <div style="display:flex;gap:8px;margin-top:16px">
+              <button class="action-btn" onclick="closeImageAttachModal()" style="margin-left:auto">Done</button>
             </div>
           </div>
         </div>
@@ -4262,16 +4435,264 @@ function selectImage(url,credit,el){
 }
 
 function handleUpload(e){
+  // Image tab "upload" — uploads to ImgBB and stores the public URL in the
+  // global selectedImageUrl so saveCurrentToLibrary picks it up automatically.
   const file=e.target.files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=(ev)=>{
-    selectedImageUrl=ev.target.result; selectedImageCredit='Your photo';
+  uploadImageToImgBB(file).then(({url, displayUrl})=>{
+    selectedImageUrl=url; selectedImageCredit='Your photo (uploaded)';
     const prev=document.getElementById('selected-preview');
-    prev.src=selectedImageUrl; prev.classList.add('visible');
-    document.getElementById('image-credit').textContent='Your own Eridion photo ✓';
-    showToast('Photo uploaded','success');
+    prev.src=displayUrl||url; prev.classList.add('visible');
+    document.getElementById('image-credit').textContent='Your own photo ✓ — hosted at '+url;
+    showToast('Photo uploaded ✓','success');
+    // If a library item is currently being edited (loaded into the
+    // editor), attach the URL there too — but that flow is handled in
+    // saveCurrentToLibrary on save. No extra wiring needed here.
+  }).catch(err=>{
+    showToast('Upload failed: '+err.message,'error');
+    if(/key/i.test(err.message)) toggleKeys();
+  }).finally(()=>{
+    // Reset the file input so the same file can be re-selected if needed
+    e.target.value='';
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── IMGBB UPLOAD + REUSABLE IMAGE PICKER ───────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// Single source of truth for getting a public image URL onto a library item.
+// Used by: view-post modal, lib-card "🖼 Image" button, Image Ideas modal
+// ("Use My Image" tab), and the Image tab's plain upload zone.
+// Result URL persists on item.selectedImageUrl so buildBufferPayload can
+// pick it up unchanged.
+
+const IMGBB_ENDPOINT='https://api.imgbb.com/1/upload';
+const ALLOWED_IMG_EXT=/\.(jpe?g|png|webp|gif)$/i;
+const MAX_UPLOAD_BYTES=32*1024*1024; // ImgBB free-tier limit
+
+function getImgBBKey(){
+  return (document.getElementById('imgbb-key')?.value||localStorage.getItem('imgbb_key')||'').trim();
+}
+
+async function uploadImageToImgBB(file){
+  const key=getImgBBKey();
+  if(!key){
+    throw new Error('Add your ImgBB API key in API Keys (free at api.imgbb.com)');
+  }
+  if(!file) throw new Error('No file selected');
+  if(file.size>MAX_UPLOAD_BYTES) throw new Error('File over 32MB — ImgBB free tier limit');
+  if(!file.type.startsWith('image/')) throw new Error('That doesn\'t look like an image');
+  const fd=new FormData();
+  fd.append('image', file);
+  // ImgBB takes the key as a query param OR form field; query is more reliable.
+  const res=await fetch(`${IMGBB_ENDPOINT}?key=${encodeURIComponent(key)}`,{
+    method:'POST', body:fd
+  });
+  const json=await res.json().catch(()=>null);
+  if(!res.ok || !json || !json.success){
+    const msg=json?.error?.message||json?.error||`ImgBB returned ${res.status}`;
+    throw new Error(msg);
+  }
+  // ImgBB response shape: data.url is the direct image URL with extension,
+  // data.display_url is the page-friendly URL. Both end in .jpg/.png/.gif/.webp.
+  return {
+    url: json.data.url,             // direct, what Buffer fetches
+    displayUrl: json.data.display_url || json.data.url,
+    deleteUrl: json.data.delete_url || null,
+    thumb: json.data.thumb?.url || json.data.url,
   };
-  reader.readAsDataURL(file);
+}
+
+// Validate a pasted URL: must look like a real http(s) URL pointing to a
+// supported image extension. Buffer requires .jpg/.jpeg/.png/.gif (.webp
+// works on most channels but not all — we allow it and let Buffer reject).
+function validateImageUrl(url){
+  if(!url) return {ok:false, reason:'Empty URL'};
+  let u;
+  try{ u=new URL(url); }catch(_){ return {ok:false, reason:'Not a valid URL'}; }
+  if(!/^https?:$/.test(u.protocol)) return {ok:false, reason:'URL must start with http:// or https://'};
+  // Strip query/fragment for extension check; some CDNs append signed params.
+  const path=u.pathname.toLowerCase();
+  if(!ALLOWED_IMG_EXT.test(path)){
+    return {ok:false, reason:'URL path must end in .jpg, .png, .webp, or .gif'};
+  }
+  return {ok:true};
+}
+
+// Set image on a library item and persist. `source` is one of:
+// 'upload' | 'unsplash' | 'url' | 'image-ideas'
+function attachImageToLibraryItem(itemId, url, source, credit){
+  const it=library.find(x=>x.id===itemId);
+  if(!it) return false;
+  it.selectedImageUrl=url;
+  it.image_url=url; // mirror, in case downstream code reads either field
+  it.imageSource=source||'upload';
+  it.imageCredit=credit||'';
+  it.imageAttachedAt=Date.now();
+  persistLibrary();
+  // Refresh any UI that shows image state
+  renderLibrary();
+  if(typeof renderCalendar==='function') renderCalendar();
+  // Refresh any open picker instances (they all read from the item)
+  refreshAllOpenImagePickers();
+  return true;
+}
+
+function removeImageFromLibraryItem(itemId){
+  const it=library.find(x=>x.id===itemId);
+  if(!it) return false;
+  delete it.selectedImageUrl;
+  delete it.image_url;
+  delete it.imageSource;
+  delete it.imageCredit;
+  delete it.imageAttachedAt;
+  persistLibrary();
+  renderLibrary();
+  if(typeof renderCalendar==='function') renderCalendar();
+  refreshAllOpenImagePickers();
+  return true;
+}
+
+// Re-renders every img-picker that's currently in the DOM. Cheap because
+// they all share the same render function and only fire on attach/remove.
+function refreshAllOpenImagePickers(){
+  document.querySelectorAll('[data-img-picker-item]').forEach(el=>{
+    const itemId=el.getAttribute('data-img-picker-item');
+    if(itemId) renderImagePicker(el.id, itemId);
+  });
+}
+
+// Renders a complete image-picker control inside the given container.
+// Reads current state from library[itemId] each call, so it's safe to
+// call repeatedly after every change.
+function renderImagePicker(containerId, itemId){
+  const container=document.getElementById(containerId);
+  if(!container) return;
+  const it=library.find(x=>x.id===itemId);
+  if(!it){
+    container.innerHTML='<div class="img-picker-hint">Save this draft to the Library before attaching an image.</div>';
+    return;
+  }
+  // Mark the container so refreshAllOpenImagePickers can find it later.
+  container.setAttribute('data-img-picker-item', itemId);
+  const url=it.selectedImageUrl||it.image_url||'';
+  const hasImg=!!url;
+  const sourceLabel={
+    upload:'Uploaded',
+    unsplash:'Unsplash',
+    url:'Pasted URL',
+    'image-ideas':'Image Ideas',
+  }[it.imageSource]||(hasImg?'Attached':'');
+  const safeUrl=escapeHTML(url);
+  // Use a unique ID for the file input so multiple pickers can co-exist.
+  const fileInputId=`ip-file-${containerId}`;
+  const urlInputId=`ip-url-${containerId}`;
+  const urlRowId=`ip-url-row-${containerId}`;
+  const progressId=`ip-progress-${containerId}`;
+  container.innerHTML=`
+    <div class="img-picker">
+      <div class="img-picker-label ${hasImg?'has-image':''}">
+        <span class="ip-status-dot"></span>
+        <span>${hasImg?'Image attached':'No image attached'}</span>
+        ${hasImg?`<span style="margin-left:auto;font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">${escapeHTML(sourceLabel)}</span>`:''}
+      </div>
+      <div class="img-picker-thumb-row">
+        ${hasImg
+          ? `<img class="img-picker-thumb" src="${safeUrl}" alt="Attached image" onerror="this.outerHTML='<div class=\\'img-picker-thumb empty\\'>Broken</div>'">`
+          : `<div class="img-picker-thumb empty">No image</div>`
+        }
+        <div class="img-picker-meta">
+          ${hasImg
+            ? `<div class="ip-source">${escapeHTML(sourceLabel)}</div>
+               <div class="ip-url" title="${safeUrl}">${escapeHTML(url.length>80?url.slice(0,80)+'…':url)}</div>
+               ${it.imageCredit?`<div style="margin-top:4px">${escapeHTML(it.imageCredit)}</div>`:''}`
+            : `<div style="color:var(--medium-gray)">Buffer needs an image URL on every post (LinkedIn included). Upload from your computer or paste a public URL.</div>`
+          }
+        </div>
+      </div>
+      <div class="img-picker-actions">
+        <input type="file" id="${fileInputId}" accept="image/*" style="display:none" onchange="handleImagePickerUpload(event,'${itemId}','${containerId}')">
+        <button class="img-picker-btn primary" onclick="document.getElementById('${fileInputId}').click()">${hasImg?'Replace · Upload':'📷 Upload Image'}</button>
+        <button class="img-picker-btn" onclick="toggleImagePickerUrlRow('${urlRowId}')">${hasImg?'Replace · Paste URL':'Paste URL'}</button>
+        ${hasImg?`<button class="img-picker-btn danger" onclick="removeImageFromLibraryItem('${itemId}')">Remove</button>`:''}
+      </div>
+      <div class="img-picker-url-row" id="${urlRowId}">
+        <input type="url" id="${urlInputId}" placeholder="https://example.com/photo.jpg" />
+        <button class="img-picker-btn" onclick="handleImagePickerUrlPaste('${itemId}','${urlInputId}','${containerId}')">Attach</button>
+      </div>
+      <div class="img-picker-progress" id="${progressId}"></div>
+      ${!getImgBBKey()?`<div class="img-picker-hint">⚠ ImgBB key not set — upload won't work yet. <a href="#" onclick="event.preventDefault();toggleKeys();" style="color:var(--navy)">Add it in API Keys</a> (free at api.imgbb.com).</div>`:''}
+    </div>
+  `;
+}
+
+function toggleImagePickerUrlRow(rowId){
+  const row=document.getElementById(rowId);
+  if(!row) return;
+  row.classList.toggle('open');
+  if(row.classList.contains('open')){
+    const input=row.querySelector('input');
+    if(input) input.focus();
+  }
+}
+
+async function handleImagePickerUpload(event, itemId, containerId){
+  const file=event.target.files[0];
+  if(!file) return;
+  const progressEl=document.getElementById(`ip-progress-${containerId}`);
+  if(progressEl){
+    progressEl.textContent='Uploading to ImgBB…';
+    progressEl.classList.add('show');
+  }
+  try{
+    const {url}=await uploadImageToImgBB(file);
+    attachImageToLibraryItem(itemId, url, 'upload', 'Your photo (uploaded '+new Date().toLocaleDateString()+')');
+    showToast('Image attached ✓','success');
+  }catch(err){
+    showToast('Upload failed: '+err.message,'error');
+    if(progressEl){
+      progressEl.textContent='✗ '+err.message;
+      progressEl.style.color='var(--error)';
+    }
+    if(/key/i.test(err.message)) toggleKeys();
+    return;
+  }finally{
+    event.target.value='';
+  }
+}
+
+function handleImagePickerUrlPaste(itemId, inputId, containerId){
+  const input=document.getElementById(inputId);
+  if(!input) return;
+  const url=input.value.trim();
+  const v=validateImageUrl(url);
+  if(!v.ok){
+    showToast(v.reason,'error');
+    const progressEl=document.getElementById(`ip-progress-${containerId}`);
+    if(progressEl){
+      progressEl.textContent='✗ '+v.reason;
+      progressEl.style.color='var(--error)';
+      progressEl.classList.add('show');
+    }
+    return;
+  }
+  attachImageToLibraryItem(itemId, url, 'url', 'Pasted URL');
+  showToast('Image URL attached ✓','success');
+}
+
+// Standalone modal opened from library cards.
+function openImageAttachModal(itemId){
+  const it=library.find(x=>x.id===itemId);
+  if(!it){showToast('Post not found','error');return;}
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[it.voice]||it.voice;
+  document.getElementById('image-attach-meta').textContent=`${voiceLabel} · ${it.title||'Untitled'}`;
+  renderImagePicker('image-attach-picker', itemId);
+  document.getElementById('image-attach-modal').classList.add('open');
+}
+
+function closeImageAttachModal(){
+  document.getElementById('image-attach-modal').classList.remove('open');
+  const pEl=document.getElementById('image-attach-picker');
+  if(pEl){pEl.innerHTML=''; pEl.removeAttribute('data-img-picker-item');}
 }
 
 // ── Publish ──
@@ -4426,10 +4847,12 @@ function saveKeys(){
   const wk=document.getElementById('wix-key').value;
   const ws=document.getElementById('wix-site-id').value;
   const zw=document.getElementById('zapier-webhook').value;
+  const ib=document.getElementById('imgbb-key')?.value;
   if(uk) localStorage.setItem('unsplash_key',uk);
   if(wk) localStorage.setItem('wix_key',wk);
   if(ws) localStorage.setItem('wix_site_id',ws);
   if(zw) localStorage.setItem('zapier_webhook',zw);
+  if(ib) localStorage.setItem('imgbb_key',ib);
   showToast('Keys saved','success'); updateIndicators();
 }
 function loadKeys(){
@@ -4437,10 +4860,12 @@ function loadKeys(){
   const wk=localStorage.getItem('wix_key');
   const ws=localStorage.getItem('wix_site_id');
   const zw=localStorage.getItem('zapier_webhook');
+  const ib=localStorage.getItem('imgbb_key');
   if(uk) document.getElementById('unsplash-key').value=uk;
   if(wk) document.getElementById('wix-key').value=wk;
   if(ws) document.getElementById('wix-site-id').value=ws;
   if(zw) document.getElementById('zapier-webhook').value=zw;
+  if(ib && document.getElementById('imgbb-key')) document.getElementById('imgbb-key').value=ib;
 }
 function updateIndicators(){
   const uk=document.getElementById('unsplash-key').value||localStorage.getItem('unsplash_key');
@@ -5455,6 +5880,11 @@ function addToLibrary(item){
     scheduled_account:null,
     scheduled_time:null,
   };
+  // Optional image fields — only set if caller provided them.
+  if(item.selectedImageUrl) entry.selectedImageUrl=item.selectedImageUrl;
+  if(item.image_url) entry.image_url=item.image_url;
+  if(item.imageSource) entry.imageSource=item.imageSource;
+  if(item.imageCredit) entry.imageCredit=item.imageCredit;
   library.unshift(entry);
   persistLibrary();
   return entry;
@@ -5462,11 +5892,20 @@ function addToLibrary(item){
 
 function saveCurrentToLibrary(){
   if(!generatedLinkedIn && !generatedBlog){showToast('Nothing to save — generate content first','error');return;}
-  const entry=addToLibrary({
+  const payload={
     linkedin_text:generatedLinkedIn,
     blog_text:generatedBlog,
     hashtags:generatedHashtags,
-  });
+  };
+  // If the user picked an image in the Image tab, flow it onto the new
+  // entry. Guard against legacy data: URLs that wouldn't work for Buffer.
+  if(selectedImageUrl && /^https?:\/\//i.test(selectedImageUrl)){
+    payload.selectedImageUrl=selectedImageUrl;
+    payload.image_url=selectedImageUrl;
+    payload.imageSource=/imgbb|ibb\.co/i.test(selectedImageUrl)?'upload':(/unsplash/i.test(selectedImageUrl)?'unsplash':'url');
+    payload.imageCredit=selectedImageCredit||'';
+  }
+  const entry=addToLibrary(payload);
   renderLibrary();
   showToast(`Saved to library (${entry.voice})`,'success');
 }
@@ -5499,6 +5938,10 @@ function renderLibrary(){
     const parentLabel = it.parent_id ? (library.find(x=>x.id===it.parent_id)?.title||'parent post') : null;
     const bridgeShortName=it.cross_voice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[it.bridge_from]:null;
     const bridgeTag=bridgeShortName?`<span class="bridge-tag" title="Credits and amplifies the original ${bridgeShortName} post">↳ amplifying ${bridgeShortName}</span>`:'';
+    const hasImage=!!(it.selectedImageUrl||it.image_url);
+    const imgTag=hasImage
+      ? `<span class="lib-card-img-tag" title="Image attached — Buffer ready">📎 image</span>`
+      : (it.status==='scheduled' ? `<span class="lib-card-img-tag missing" title="Buffer requires an image — add one before pushing">⊘ no image</span>` : '');
     return `
       <div class="lib-card" data-id="${it.id}">
         <div class="lib-card-head">
@@ -5510,6 +5953,7 @@ function renderLibrary(){
           ${it.substack?`<span class="lib-card-bucket" style="color:var(--erika)">· 📧 Substack ready</span>`:''}
           ${it.substack?`<span class="lib-card-bucket" style="color:#FF6719">· 📮 Substack ready</span>`:''}
           ${parentLabel?`<span class="lib-card-bucket" style="color:var(--gold-dim)">· ✦ Snippet from "${escapeHTML(parentLabel.slice(0,40))}${parentLabel.length>40?'…':''}"</span>`:''}
+          ${imgTag}
           <span class="status-badge ${it.status}">${it.status}${schedInfo}</span>
           <span class="lib-card-date">${dateStr}</span>
         </div>
@@ -5518,6 +5962,7 @@ function renderLibrary(){
         <div class="lib-card-actions">
           <button class="action-btn" onclick="loadFromLibrary('${it.id}')">Load</button>
           <button class="action-btn" onclick="copyFromLibrary('${it.id}')">Copy Text</button>
+          <button class="action-btn" onclick="openImageAttachModal('${it.id}')" style="${hasImage?'color:var(--green-deep);border-color:var(--green)':'color:var(--navy);border-color:var(--navy-soft)'}">🖼 ${hasImage?'Edit Image':'Add Image'}</button>
           ${((it.blog_text&&it.blog_text.length>200)||(it.linkedin_text&&it.linkedin_text.length>200))?`<button class="action-btn" onclick="openSpinSnippetModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Snippet</button><button class="action-btn" onclick="openSpinWeekModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Week</button><button class="action-btn" onclick="openImageIdeasModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">🎨 Image Ideas</button>`:''}
           <button class="action-btn primary" onclick="openSchedModal('${it.id}')">${it.status==='scheduled'?'Reschedule':'Schedule'}</button>
           ${it.status==='scheduled'?`<button class="action-btn" onclick="unschedule('${it.id}')">Unschedule</button>`:''}
@@ -5641,11 +6086,17 @@ function openViewPostModal(id){
     hashtagsEl.innerHTML='';
     hashtagsEl.style.display='none';
   }
+  // Render the image picker — it reads from the library item, so it
+  // automatically reflects whether an image is already attached.
+  renderImagePicker('view-post-image-picker', id);
   document.getElementById('view-post-modal').classList.add('open');
 }
 
 function closeViewPostModal(){
   document.getElementById('view-post-modal').classList.remove('open');
+  // Clear picker container so it's not picked up by refreshAllOpenImagePickers
+  const pickerEl=document.getElementById('view-post-image-picker');
+  if(pickerEl){pickerEl.innerHTML=''; pickerEl.removeAttribute('data-img-picker-item');}
   viewingPostId=null;
 }
 
@@ -5912,6 +6363,13 @@ async function pushPostToBuffer(id){
   const item=getLibraryItem(id);
   if(!item){showToast('Post not found','error');return;}
   if(!item.scheduled_for){showToast('Schedule this post first','error');return;}
+  if(!(item.selectedImageUrl||item.image_url)){
+    if(!confirm('This post has no image attached. Buffer requires an image on every post and will reject this. Push anyway?')){
+      // Open the attach modal so the user can add one without hunting
+      openImageAttachModal(id);
+      return;
+    }
+  }
   const payload=buildBufferPayload(item);
   const igFlag=payload.channels.instagram_eridion.over_limit?' (IG skipped — over 2,200 chars)':'';
   try{
@@ -6299,17 +6757,22 @@ function openImageIdeasModal(libraryItemId){
 
 function closeImageIdeasModal(){
   document.getElementById('image-ideas-modal').classList.remove('open');
+  const upEl=document.getElementById('ii-upload-picker');
+  if(upEl){upEl.innerHTML=''; upEl.removeAttribute('data-img-picker-item');}
 }
 
 function iiSwitchTab(tab){
-  document.querySelectorAll('.ii-tab').forEach(el=>{
-    const isActive = el.textContent.toLowerCase().includes(
-      tab==='extract'?'auto-suggest':tab==='highlight'?'highlight':'concepts'
-    );
-    el.classList.toggle('active', isActive);
-  });
-  document.querySelectorAll('.ii-tab-content').forEach(c=>c.classList.remove('active'));
+  const tabOrder=['extract','highlight','concepts','upload'];
+  const idx=tabOrder.indexOf(tab);
+  const tabEls=document.querySelectorAll('#image-ideas-modal .ii-tab');
+  tabEls.forEach((el,i)=>el.classList.toggle('active', i===idx));
+  document.querySelectorAll('#image-ideas-modal .ii-tab-content').forEach(c=>c.classList.remove('active'));
   document.getElementById('ii-tab-'+tab).classList.add('active');
+  // Lazily render the upload picker when the tab is opened so the
+  // current library item state is reflected.
+  if(tab==='upload' && iiState.sourceItem){
+    renderImagePicker('ii-upload-picker', iiState.sourceItem.id);
+  }
 }
 
 function iiSetVoice(v){iiState.voice=v; iiUpdateChips(); iiRenderConcepts();}
