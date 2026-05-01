@@ -1449,6 +1449,21 @@ textarea { min-height: 80px; line-height: 1.6; }
 .launch-btn.substack:hover { background: #FF6719; color: var(--white); border-color: #FF6719; }
 .launch-btn.posted { border-color: var(--green); color: var(--green-deep); background: var(--green-faint); }
 .launch-btn.posted:hover { background: var(--green); color: var(--white); }
+.launch-btn.buffer { border-color: var(--green); color: var(--green-deep); }
+.launch-btn.buffer:hover { background: var(--green); color: var(--white); border-color: var(--green); }
+.launch-btn.buffer.queued { background: var(--green-faint); }
+.cal-slot-buffer-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  color: var(--green-deep);
+  background: var(--green-faint);
+  border: 1px solid var(--green);
+  padding: 1px 6px;
+  border-radius: 2px;
+  margin-left: 6px;
+  text-transform: uppercase;
+}
 
 /* ── Status bar ─────────────────────────────────────── */
 .status-bar {
@@ -2259,6 +2274,10 @@ textarea { min-height: 80px; line-height: 1.6; }
             <label class="field-label">Wix Site ID</label>
             <input type="text" id="wix-site-id" placeholder="Found in Wix Dashboard URL" />
           </div>
+          <div class="field">
+            <label class="field-label">Zapier Webhook URL <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(catches "Push to Buffer" payloads)</span></label>
+            <input type="password" id="zapier-webhook" placeholder="https://hooks.zapier.com/hooks/catch/..." />
+          </div>
           <div style="margin-top:8px;margin-bottom:12px;">
             <button class="action-btn" onclick="saveKeys()" style="width:100%">Save Keys Locally</button>
           </div>
@@ -2676,6 +2695,7 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div class="cal-grid" id="cal-grid"></div>
           <div class="cal-actions">
             <button class="action-btn primary" onclick="openAutoSchedModal()">⚡ Auto-Schedule Week</button>
+            <button class="action-btn primary" onclick="pushWeekToBuffer()" style="background:var(--green);border-color:var(--green);color:var(--white)">🚀 Push Week to Buffer</button>
             <button class="action-btn" onclick="copyWeekForBuffer()">📋 Copy Week for Buffer</button>
             <button class="action-btn" onclick="publishToWix()">Publish Latest to Wix Blog</button>
             <button class="action-btn" onclick="publishToWix(true)">Save to Wix as Draft</button>
@@ -2694,6 +2714,7 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
               <button class="launch-btn linkedin" onclick="launchToLinkedIn(viewingPostId)">💼 Open LinkedIn (text copied)</button>
               <button class="launch-btn substack" onclick="launchToSubstack(viewingPostId)">📮 Open Substack (text copied)</button>
+              <button class="launch-btn buffer" onclick="pushPostToBuffer(viewingPostId)" style="border-color:var(--green);color:var(--green-deep)">🚀 Push to Buffer</button>
               <button class="launch-btn posted" onclick="markPostedFromView()">✓ Mark Posted</button>
               <button class="action-btn" onclick="openImageIdeasModal(viewingPostId);closeViewPostModal();" style="color:var(--gold);border-color:var(--gold-dim)">🎨 Image Ideas</button>
             </div>
@@ -2963,6 +2984,7 @@ textarea { min-height: 80px; line-height: 1.6; }
   <div class="api-indicator"><div class="status-dot" id="claude-dot"></div><span>Claude API</span></div>
   <div class="api-indicator" style="margin-left:16px"><div class="status-dot" id="wix-dot"></div><span>Wix</span></div>
   <div class="api-indicator" style="margin-left:16px"><div class="status-dot" id="unsplash-dot"></div><span>Unsplash</span></div>
+  <div class="api-indicator" style="margin-left:16px"><div class="status-dot" id="buffer-dot"></div><span>Buffer</span></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -4403,24 +4425,30 @@ function saveKeys(){
   const uk=document.getElementById('unsplash-key').value;
   const wk=document.getElementById('wix-key').value;
   const ws=document.getElementById('wix-site-id').value;
+  const zw=document.getElementById('zapier-webhook').value;
   if(uk) localStorage.setItem('unsplash_key',uk);
   if(wk) localStorage.setItem('wix_key',wk);
   if(ws) localStorage.setItem('wix_site_id',ws);
+  if(zw) localStorage.setItem('zapier_webhook',zw);
   showToast('Keys saved','success'); updateIndicators();
 }
 function loadKeys(){
   const uk=localStorage.getItem('unsplash_key');
   const wk=localStorage.getItem('wix_key');
   const ws=localStorage.getItem('wix_site_id');
+  const zw=localStorage.getItem('zapier_webhook');
   if(uk) document.getElementById('unsplash-key').value=uk;
   if(wk) document.getElementById('wix-key').value=wk;
   if(ws) document.getElementById('wix-site-id').value=ws;
+  if(zw) document.getElementById('zapier-webhook').value=zw;
 }
 function updateIndicators(){
   const uk=document.getElementById('unsplash-key').value||localStorage.getItem('unsplash_key');
   const wk=document.getElementById('wix-key').value||localStorage.getItem('wix_key');
+  const zw=document.getElementById('zapier-webhook').value||localStorage.getItem('zapier_webhook');
   if(uk) document.getElementById('unsplash-dot').style.background='var(--gold-dim)';
   if(wk) document.getElementById('wix-dot').style.background='var(--gold-dim)';
+  const bd=document.getElementById('buffer-dot'); if(bd && zw) bd.style.background='var(--gold-dim)';
 }
 function logContent(topic,bucket){
   contentLog.unshift({topic,bucket,stream:currentStream,timestamp:new Date().toLocaleString()});
@@ -4663,22 +4691,52 @@ Voice-natural bridge patterns (cadence reference only — never copy verbatim):
   • Dion → Eridion: "The company put out a piece on [X] this week. They're right. From the field side, here's what nobody says about it..."
   • Dion → Erika: "Erika wrote something earlier. She nailed the [X] part. The bit no one mentions on the install side is..."`:'';
 
-  const wordRange=crossVoice?'90-220 words total (allowance for the narrative bridge)':'80-200 words total';
+  // IG channel intro — only for Erika/Dion voices (since their content cross-posts to @eridion handle)
+  const igIntroRule=(voice!=='eridion')?`
 
-  const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}\n\nReturn the post text + hashtags only. No preamble, no meta-commentary.`;
+✦ INSTAGRAM CHANNEL INTRO (REQUIRED — this snippet may cross-post to the @eridion Instagram handle, where the audience does not assume your voice):
+Generate an additional short "ig_intro" — 1-2 sentences, voice-natural, that establishes you (${VOICE_DISPLAY_NAMES[voice]}) are the one speaking when this appears under @eridion. It should:
+  (a) Signal who is speaking through the brand channel — by name and relationship to Eridion
+  (b) Flow naturally into the post body when prepended (do NOT modify the post body itself)
+  (c) Vary cadence — sometimes a direct identifier, sometimes weaving identity into the first thought
+
+Voice-natural patterns (study cadence — never copy verbatim):
+  ${voice==='erika'?`• "Erika here. Co-founder hat on for a moment —"
+  • "From the founder's desk:"
+  • "Erika checking in. As one of the people building this thing,"
+  • "Co-founder's notebook today:"`:`• "Dion here, master glazier."
+  • "G'day. Dion checking in from a job today —"
+  • "Eridion's master glazier and co-founder, back with a thing I've been chewing on:"
+  • "Field note from Dion:"`}
+
+NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The intro must read as natural opening flow, not a tag.`:'';
+
+  const wordRange=crossVoice?'90-220 words total (allowance for the narrative bridge)':'80-200 words total';
+  const igOutputRule=(voice!=='eridion')?`\n\n✦ OUTPUT FORMAT:\nReturn the post text + hashtags FIRST. Then on a new line, the literal separator "===IG_INTRO===" followed by the 1-2 sentence IG channel intro. No other commentary anywhere.`:'';
+
+  const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:900,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
-    const text=(data.content?.[0]?.text||'').trim();
-    if(!text) throw new Error('Empty response');
-    // Split off trailing hashtags
-    const hashMatches=text.match(/#[A-Za-z][A-Za-z0-9_]*/g)||[];
-    const body=text.replace(/(?:\n\s*)?#[A-Za-z][A-Za-z0-9_]*(?:\s*#[A-Za-z][A-Za-z0-9_]*)*\s*$/,'').trim();
+    const rawText=(data.content?.[0]?.text||'').trim();
+    if(!rawText) throw new Error('Empty response');
+
+    // Split off IG intro if present
+    let mainText=rawText, igIntro='';
+    const igMatch=rawText.match(/^([\s\S]*?)\n\s*===\s*IG_INTRO\s*===\s*\n([\s\S]+)$/);
+    if(igMatch){
+      mainText=igMatch[1].trim();
+      igIntro=igMatch[2].trim();
+    }
+
+    // Split off trailing hashtags from main text
+    const hashMatches=mainText.match(/#[A-Za-z][A-Za-z0-9_]*/g)||[];
+    const body=mainText.replace(/(?:\n\s*)?#[A-Za-z][A-Za-z0-9_]*(?:\s*#[A-Za-z][A-Za-z0-9_]*)*\s*$/,'').trim();
     const hashtags=hashMatches.slice(0,5);
 
-    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags,crossVoice,bridgeFrom:crossVoice?sourceVoice:null}];
+    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags,crossVoice,bridgeFrom:crossVoice?sourceVoice:null,ig_intro:igIntro}];
     renderSpinSnippetResult();
     showToast(crossVoice?`Snippet ready (with bridge to ${sourceVoice})`:'Snippet ready','success');
   }catch(e){
@@ -4697,6 +4755,11 @@ function renderSpinSnippetResult(){
   const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[r.voice];
   const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[r.bridgeFrom]:'';
   const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
+  const igBlock=r.ig_intro?`
+      <div style="margin-top:10px;padding:10px 12px;background:rgba(67,176,71,0.06);border:1px solid var(--green-faint);border-radius:4px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--green-deep);margin-bottom:6px">📷 IG INTRO (PREPENDED FOR @ERIDION CROSS-POST)</div>
+        <div style="font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap">${escapeHTML(r.ig_intro)}</div>
+      </div>`:'';
   resultsEl.style.display='block';
   resultsEl.innerHTML=`
     <div class="spin-result-card">
@@ -4707,6 +4770,7 @@ function renderSpinSnippetResult(){
         <span class="lib-card-date" style="margin-left:auto">${r.text.length} chars</span>
       </div>
       <div class="spin-result-text">${escapeHTML(r.text)}${r.hashtags.length?'\n\n'+r.hashtags.join(' '):''}</div>
+      ${igBlock}
       <div class="spin-result-actions">
         <button class="action-btn primary" onclick="saveSpinSnippetToLibrary(0)">+ Save to Library</button>
         <button class="action-btn" onclick="copySpinSnippet(0)">Copy</button>
@@ -4740,6 +4804,7 @@ function saveSpinSnippetToLibrary(idx){
     entry.cross_voice=true;
     entry.bridge_from=r.bridgeFrom;
   }
+  if(r.ig_intro) entry.ig_intro=r.ig_intro;
   persistLibrary();
   renderLibrary();
   showToast('Snippet saved to library','success');
@@ -4830,7 +4895,20 @@ Voice-natural bridge examples (study the cadence — these are PATTERNS, never c
   • Dion picking up Eridion: "The company put out a piece on [X] this week. They're right. From the field side, here's what nobody says about it..."
   • Dion picking up Erika: "Erika wrote something earlier. She nailed the [X] part. The bit no one mentions on the install side is..."
 
-For SAME-VOICE snippets (voice === ${sourceVoice.toUpperCase()}): NO bridge. Open directly with the angle. Treat the source as your own prior thinking — don't credit yourself.`;
+For SAME-VOICE snippets (voice === ${sourceVoice.toUpperCase()}): NO bridge. Open directly with the angle. Treat the source as your own prior thinking — don't credit yourself.
+
+✦ INSTAGRAM CHANNEL INTRO (REQUIRED for any snippet whose voice is ERIKA or DION):
+Snippets in non-Eridion voices may cross-post to the @eridion Instagram handle, where the audience does not assume the voice. For each ERIKA or DION snippet, generate an additional short "ig_intro" — 1-2 sentences, voice-natural, that establishes who is speaking through the brand channel. The intro:
+  (a) Signals the speaker by name and relationship to Eridion
+  (b) Flows naturally into the post body when prepended (do NOT modify the post text itself)
+  (c) Varies cadence — sometimes direct identifier, sometimes weaving identity into the first thought
+  (d) NEVER uses formatted header lines like "↳ From:" or "Posted by:". Reads as natural opening flow, not a tag.
+
+Voice-natural patterns (cadence reference only — never copy verbatim):
+  • Erika: "Erika here. Co-founder hat on for a moment —" / "From the founder's desk:" / "Co-founder's notebook today:" / "Erika checking in. As one of the people building this thing,"
+  • Dion: "Dion here, master glazier." / "G'day. Dion checking in from a job today —" / "Eridion's master glazier and co-founder, back with a thing I've been chewing on:" / "Field note from Dion:"
+
+For ERIDION-voice snippets: set ig_intro to empty string "" (the voice already matches the channel).`;
 
   const prompt=`You are generating 5 LinkedIn snippets derived from a single blog post. Each snippet will be posted on a different day of the week, in a specified voice, with a specific angle. Each must be distinct from the others — do not repeat phrasing, opening lines, or the same factual pull.
 
@@ -4863,9 +4941,10 @@ RULES FOR EVERY SNIPPET:
 - For cross-voice snippets: bridge MUST be in the voice doing the reposting, not the source voice${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","cross_voice":true,"bridge_from":"erika","text":"full post text here","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}
+{"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","cross_voice":true,"bridge_from":"erika","text":"full post text here","ig_intro":"","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}
 
-For same-voice snippets, set cross_voice:false and bridge_from:null.`;
+For same-voice snippets, set cross_voice:false and bridge_from:null.
+For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Dion-voice snippets, ig_intro must be a 1-2 sentence channel intro per the rules above.`;
 
   try{
     const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
@@ -4893,6 +4972,7 @@ For same-voice snippets, set cross_voice:false and bridge_from:null.`;
       hashtags:Array.isArray(x.hashtags)?x.hashtags:[],
       crossVoice:dayDefs[i]?.crossVoice||false,
       bridgeFrom:dayDefs[i]?.crossVoice?(sourceVoice):null,
+      ig_intro:String(x.ig_intro||'').trim(),
     }));
     renderSpinWeekResults();
     showToast(`${spinWeekResults.length} snippets generated`,'success');
@@ -4920,6 +5000,11 @@ function renderSpinWeekResults(){
     const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[r.voice]||r.voice;
     const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[r.bridgeFrom]:'';
     const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
+    const igBlock=r.ig_intro?`
+        <div style="margin-top:10px;padding:10px 12px;background:rgba(67,176,71,0.06);border:1px solid var(--green-faint);border-radius:4px">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--green-deep);margin-bottom:6px">📷 IG INTRO (PREPENDED FOR @ERIDION CROSS-POST)</div>
+          <div style="font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap">${escapeHTML(r.ig_intro)}</div>
+        </div>`:'';
     return `
       <div class="spin-result-card">
         <div class="spin-result-head">
@@ -4930,6 +5015,7 @@ function renderSpinWeekResults(){
           <span class="lib-card-date" style="margin-left:auto">${r.text.length} chars</span>
         </div>
         <div class="spin-result-text">${escapeHTML(r.text)}${r.hashtags.length?'\n\n'+r.hashtags.join(' '):''}</div>
+        ${igBlock}
         <div class="spin-result-actions">
           <button class="action-btn" onclick="saveOneSpinWeek(${i})">+ Save This One</button>
           <button class="action-btn" onclick="copyOneSpinWeek(${i})">Copy</button>
@@ -4965,6 +5051,7 @@ function saveOneSpinWeek(i){
     entry.cross_voice=true;
     entry.bridge_from=r.bridgeFrom;
   }
+  if(r.ig_intro) entry.ig_intro=r.ig_intro;
   persistLibrary();
   renderLibrary();
   showToast(`${r.day} saved`,'success');
@@ -5001,6 +5088,7 @@ function saveAndScheduleSpinWeek(){
       entry.cross_voice=true;
       entry.bridge_from=r.bridgeFrom;
     }
+    if(r.ig_intro) entry.ig_intro=r.ig_intro;
     // Schedule it
     const dayOffset=dayIndex[r.day];
     if(dayOffset!==undefined){
@@ -5732,11 +5820,12 @@ function renderCalendar(){
             const textPreview=(i.linkedin_text||i.blog_text||i.title||'').slice(0,80);
             const bridgeShortName=i.cross_voice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[i.bridge_from]:null;
             const bridgeMeta=bridgeShortName?` · <span style="color:var(--green-deep);font-weight:600">↳ amplifying ${bridgeShortName}</span>`:'';
+            const queuedBadge=i.buffer_queued?`<span class="cal-slot-buffer-badge" title="Pushed to Buffer at ${new Date(i.buffer_queued_at||0).toLocaleString()}">queued ✓</span>`:'';
             return `
               <div class="cal-slot">
                 <div class="cal-slot-voice ${i.scheduled_account}"></div>
                 <div class="cal-slot-body" onclick="openViewPostModal('${i.id}')" title="Click to see full post + copy">
-                  <div class="cal-slot-meta">${i.scheduled_time||'—'} · ${voiceLabel} · ${escapeHTML(i.bucketLabel||'')}${bridgeMeta}</div>
+                  <div class="cal-slot-meta">${i.scheduled_time||'—'} · ${voiceLabel} · ${escapeHTML(i.bucketLabel||'')}${bridgeMeta}${queuedBadge}</div>
                   <div class="cal-slot-text">${escapeHTML(textPreview)}…</div>
                 </div>
                 <span class="cal-slot-x" onclick="unschedule('${i.id}')" title="Unschedule">✕</span>
@@ -5774,6 +5863,126 @@ function copyWeekForBuffer(){
   navigator.clipboard.writeText(lines.join('\n')).then(()=>{
     showToast(`${weekItems.length} posts copied — paste into Buffer`,'success');
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── PUSH TO BUFFER (via Zapier webhook) ──
+// All 3 voices feed their own LinkedIn channel. All 3 voices ALSO cross-post
+// to Eridion IG with the same image; Erika/Dion posts get an ig_intro prepended
+// to establish who's speaking under the brand handle.
+// ═══════════════════════════════════════════════════════════════════
+
+const IG_CHAR_LIMIT = 2200;
+
+function buildBufferPayload(item){
+  const voice=item.scheduled_account||item.voice||'eridion';
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[voice];
+  const text=item.linkedin_text||item.blog_text||'';
+  const hashtags=item.hashtags||[];
+  const linkedinFull=hashtags.length?`${text}\n\n${hashtags.join(' ')}`:text;
+  // IG version: prepend ig_intro for non-Eridion voices
+  const igBody=(voice!=='eridion'&&item.ig_intro)?`${item.ig_intro}\n\n${text}`:text;
+  const igFull=hashtags.length?`${igBody}\n\n${hashtags.join(' ')}`:igBody;
+  const igOversize=igFull.length>IG_CHAR_LIMIT;
+  return {
+    post_id:item.id,
+    voice,
+    voice_label:voiceLabel,
+    scheduled_for_iso:new Date(item.scheduled_for||Date.now()).toISOString(),
+    scheduled_time:item.scheduled_time||'09:00',
+    channels:{
+      linkedin:{enabled:true,account:voice,text:linkedinFull},
+      instagram_eridion:{enabled:!igOversize,text:igFull,char_count:igFull.length,over_limit:igOversize}
+    },
+    image_url:item.selectedImageUrl||item.image_url||null,
+    bucket:item.bucketLabel||item.bucket||'',
+    cross_voice:!!item.cross_voice,
+    bridge_from:item.bridge_from||null,
+    has_ig_intro:!!(item.ig_intro&&voice!=='eridion'),
+  };
+}
+
+async function pushPostToBuffer(id){
+  const webhook=document.getElementById('zapier-webhook')?.value||localStorage.getItem('zapier_webhook');
+  if(!webhook){
+    showToast('Set the Zapier webhook URL in API Keys first','error');
+    toggleKeys();
+    return;
+  }
+  const item=getLibraryItem(id);
+  if(!item){showToast('Post not found','error');return;}
+  if(!item.scheduled_for){showToast('Schedule this post first','error');return;}
+  const payload=buildBufferPayload(item);
+  const igFlag=payload.channels.instagram_eridion.over_limit?' (IG skipped — over 2,200 chars)':'';
+  try{
+    setStatus('Pushing to Buffer...',true);
+    const res=await fetch(webhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok) throw new Error(`Zapier webhook returned ${res.status}`);
+    item.buffer_queued=true;
+    item.buffer_queued_at=Date.now();
+    persistLibrary();
+    renderCalendar();
+    renderLibrary();
+    showToast(`Pushed to Buffer ✓${igFlag}`,'success');
+    document.getElementById('buffer-dot').classList.add('active');
+  }catch(e){
+    console.error('Push to Buffer failed:',e);
+    showToast('Push failed: '+e.message,'error');
+  }finally{
+    setStatus('Ready',false);
+  }
+}
+
+async function pushWeekToBuffer(){
+  const webhook=document.getElementById('zapier-webhook')?.value||localStorage.getItem('zapier_webhook');
+  if(!webhook){
+    showToast('Set the Zapier webhook URL in API Keys first','error');
+    toggleKeys();
+    return;
+  }
+  if(!calWeekStart){calThis();}
+  const weekEnd=new Date(calWeekStart); weekEnd.setDate(weekEnd.getDate()+7);
+  const weekItems=library.filter(i=>i.status==='scheduled'&&i.scheduled_for>=calWeekStart.getTime()&&i.scheduled_for<weekEnd.getTime())
+    .sort((a,b)=>a.scheduled_for-b.scheduled_for||(a.scheduled_time||'').localeCompare(b.scheduled_time||''));
+  if(!weekItems.length){showToast('No scheduled posts this week','error');return;}
+
+  // Confirm — especially if some are already queued
+  const alreadyQueued=weekItems.filter(i=>i.buffer_queued).length;
+  if(alreadyQueued>0){
+    if(!confirm(`${alreadyQueued} of ${weekItems.length} posts are already queued in Buffer. Push all again? (Will create duplicates if Buffer hasn't deduped them.)`)) return;
+  } else {
+    if(!confirm(`Push all ${weekItems.length} scheduled posts this week to Buffer via Zapier?`)) return;
+  }
+
+  setStatus(`Pushing ${weekItems.length} posts to Buffer...`,true);
+  let success=0, failed=0, igSkipped=0;
+  for(const item of weekItems){
+    const payload=buildBufferPayload(item);
+    if(payload.channels.instagram_eridion.over_limit) igSkipped++;
+    try{
+      const res=await fetch(webhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      item.buffer_queued=true;
+      item.buffer_queued_at=Date.now();
+      success++;
+    }catch(e){
+      console.error('Push failed for',item.id,e);
+      failed++;
+    }
+    // Small gap so Zapier doesn't get hit too fast
+    await new Promise(r=>setTimeout(r,250));
+  }
+  persistLibrary();
+  renderCalendar();
+  renderLibrary();
+  setStatus('Ready',false);
+  document.getElementById('buffer-dot').classList.add('active');
+  const igNote=igSkipped>0?` · ${igSkipped} IG skipped (over 2,200 chars)`:'';
+  if(failed===0){
+    showToast(`✓ ${success} posts pushed to Buffer${igNote}`,'success');
+  } else {
+    showToast(`${success} pushed, ${failed} failed${igNote}`,'error');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
