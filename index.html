@@ -2421,7 +2421,35 @@ textarea { min-height: 80px; line-height: 1.6; }
             <input type="text" id="wix-site-id" placeholder="Found in Wix Dashboard URL" />
           </div>
           <div class="field">
-            <label class="field-label">Zapier Webhook URL <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(catches "Push to Buffer" payloads)</span></label>
+            <label class="field-label">Buffer Access Token <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(generate at publish.buffer.com/settings/api)</span></label>
+            <input type="password" id="buffer-token" placeholder="Personal API key from Buffer settings" />
+          </div>
+          <div style="background:var(--off-white);border:1px solid var(--hairline);padding:12px;margin-bottom:12px;">
+            <div style="font-family:var(--font-subhead);font-size:10px;font-weight:600;letter-spacing:var(--track-alta);text-transform:uppercase;color:var(--medium-gray);margin-bottom:10px">Buffer Channel IDs <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">(auto-fill via Fetch button)</span></div>
+            <div class="field" style="margin-bottom:8px">
+              <label class="field-label" style="font-size:9px">Eridion · LinkedIn</label>
+              <input type="text" id="ch-eridion-li" placeholder="(empty — click Fetch My Channels)" style="font-family:var(--font-mono);font-size:11px" />
+            </div>
+            <div class="field" style="margin-bottom:8px">
+              <label class="field-label" style="font-size:9px">Erika · LinkedIn</label>
+              <input type="text" id="ch-erika-li" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
+            </div>
+            <div class="field" style="margin-bottom:8px">
+              <label class="field-label" style="font-size:9px">Dion · LinkedIn</label>
+              <input type="text" id="ch-dion-li" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label class="field-label" style="font-size:9px">Eridion · Instagram</label>
+              <input type="text" id="ch-eridion-ig" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="action-btn" onclick="testBufferConnection()" style="flex:1;min-width:120px">🔌 Test Connection</button>
+              <button class="action-btn" onclick="fetchBufferChannels()" style="flex:1;min-width:120px;color:var(--navy);border-color:var(--navy)">📡 Fetch My Channels</button>
+            </div>
+            <div id="buffer-status-line" style="margin-top:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;color:var(--medium-gray);min-height:13px"></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Zapier Webhook URL <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(legacy fallback — only used if Buffer Token blank)</span></label>
             <input type="password" id="zapier-webhook" placeholder="https://hooks.zapier.com/hooks/catch/..." />
           </div>
           <div class="field">
@@ -4851,11 +4879,21 @@ function saveKeys(){
   const ws=document.getElementById('wix-site-id').value;
   const zw=document.getElementById('zapier-webhook').value;
   const ib=document.getElementById('imgbb-key')?.value;
+  const bt=document.getElementById('buffer-token')?.value;
   if(uk) localStorage.setItem('unsplash_key',uk);
   if(wk) localStorage.setItem('wix_key',wk);
   if(ws) localStorage.setItem('wix_site_id',ws);
   if(zw) localStorage.setItem('zapier_webhook',zw);
   if(ib) localStorage.setItem('imgbb_key',ib);
+  if(bt) localStorage.setItem('buffer_token',bt);
+  // Channel IDs: write whatever's in the fields (allows manual edit)
+  const channels={
+    eridion_li:document.getElementById('ch-eridion-li')?.value.trim()||'',
+    erika_li:document.getElementById('ch-erika-li')?.value.trim()||'',
+    dion_li:document.getElementById('ch-dion-li')?.value.trim()||'',
+    eridion_ig:document.getElementById('ch-eridion-ig')?.value.trim()||'',
+  };
+  if(Object.values(channels).some(v=>v)) localStorage.setItem('buffer_channels',JSON.stringify(channels));
   showToast('Keys saved','success'); updateIndicators();
 }
 function loadKeys(){
@@ -4864,11 +4902,20 @@ function loadKeys(){
   const ws=localStorage.getItem('wix_site_id');
   const zw=localStorage.getItem('zapier_webhook');
   const ib=localStorage.getItem('imgbb_key');
+  const bt=localStorage.getItem('buffer_token');
   if(uk) document.getElementById('unsplash-key').value=uk;
   if(wk) document.getElementById('wix-key').value=wk;
   if(ws) document.getElementById('wix-site-id').value=ws;
   if(zw) document.getElementById('zapier-webhook').value=zw;
   if(ib && document.getElementById('imgbb-key')) document.getElementById('imgbb-key').value=ib;
+  if(bt && document.getElementById('buffer-token')) document.getElementById('buffer-token').value=bt;
+  try{
+    const ch=JSON.parse(localStorage.getItem('buffer_channels')||'{}');
+    if(ch.eridion_li && document.getElementById('ch-eridion-li')) document.getElementById('ch-eridion-li').value=ch.eridion_li;
+    if(ch.erika_li && document.getElementById('ch-erika-li')) document.getElementById('ch-erika-li').value=ch.erika_li;
+    if(ch.dion_li && document.getElementById('ch-dion-li')) document.getElementById('ch-dion-li').value=ch.dion_li;
+    if(ch.eridion_ig && document.getElementById('ch-eridion-ig')) document.getElementById('ch-eridion-ig').value=ch.eridion_ig;
+  }catch(_){}
 }
 function updateIndicators(){
   const uk=document.getElementById('unsplash-key').value||localStorage.getItem('unsplash_key');
@@ -6320,28 +6367,206 @@ function copyWeekForBuffer(){
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ── PUSH TO BUFFER (via Zapier webhook) ──
+// ── PUSH TO BUFFER (direct GraphQL API) ──
 // All 3 voices feed their own LinkedIn channel. All 3 voices ALSO cross-post
 // to Eridion IG with the same image; Erika/Dion posts get an ig_intro prepended
 // to establish who's speaking under the brand handle.
+//
+// Architecture: studio → Buffer GraphQL endpoint directly. No Zapier middleman.
+// Why: the Zapier "Buffer Add to Queue" connector silently drops media on
+// LinkedIn. The new Buffer GraphQL API supports media as a first-class
+// `assets.images[].url` field that reliably attaches.
+//
+// Endpoint: https://api.buffer.com (POST, GraphQL body, Bearer token auth)
+// Token expires per Buffer's settings (max 1 year). User regenerates and
+// pastes a new token; everything else stays the same.
 // ═══════════════════════════════════════════════════════════════════
 
 const IG_CHAR_LIMIT = 2200;
+const BUFFER_GRAPHQL_ENDPOINT = 'https://api.buffer.com';
+
+function getBufferToken(){
+  return (document.getElementById('buffer-token')?.value || localStorage.getItem('buffer_token') || '').trim();
+}
+
+function getBufferChannels(){
+  // Read from inputs first (so unsaved edits work), fall back to storage
+  const fromUI = {
+    eridion_li: document.getElementById('ch-eridion-li')?.value.trim() || '',
+    erika_li:   document.getElementById('ch-erika-li')?.value.trim()   || '',
+    dion_li:    document.getElementById('ch-dion-li')?.value.trim()    || '',
+    eridion_ig: document.getElementById('ch-eridion-ig')?.value.trim() || '',
+  };
+  if(Object.values(fromUI).some(v=>v)) return fromUI;
+  try{ return JSON.parse(localStorage.getItem('buffer_channels')||'{}'); }
+  catch(_){ return {}; }
+}
+
+function setBufferStatusLine(msg, kind){
+  const el = document.getElementById('buffer-status-line');
+  if(!el) return;
+  el.textContent = msg || '';
+  el.style.color = kind==='ok' ? 'var(--green-deep)' : kind==='err' ? 'var(--error)' : 'var(--medium-gray)';
+}
+
+// Single GraphQL call helper. Throws on network/HTTP/GraphQL errors with
+// readable messages. CORS failures throw a TypeError with a vague message —
+// we catch that specifically and surface a helpful note about Zapier fallback.
+async function bufferGraphQL(query, variables){
+  const token = getBufferToken();
+  if(!token) throw new Error('Buffer Access Token not set — add it in API Keys');
+  let res;
+  try{
+    res = await fetch(BUFFER_GRAPHQL_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ query, variables: variables||{} }),
+    });
+  }catch(e){
+    // Fetch throws TypeError on network failures including CORS preflight
+    // failures. The browser console will have the specific CORS message;
+    // here we just surface a clear actionable hint.
+    throw new Error('CORS or network error reaching Buffer API. If this persists, the legacy Zapier webhook is still wired as a fallback — leave the Buffer Token blank to use it.');
+  }
+  if(res.status === 401 || res.status === 403){
+    throw new Error('Buffer rejected the token (401/403). Token may be expired or invalid — regenerate at publish.buffer.com/settings/api');
+  }
+  if(res.status === 429){
+    throw new Error('Buffer rate-limited the request (429). Wait a moment and retry.');
+  }
+  let body;
+  try{ body = await res.json(); }
+  catch(_){ throw new Error(`Buffer returned non-JSON (HTTP ${res.status})`); }
+  if(body.errors && body.errors.length){
+    // GraphQL-level errors (bad query, missing field, etc.)
+    const msg = body.errors.map(e=>e.message).join('; ');
+    throw new Error(`Buffer API error: ${msg}`);
+  }
+  if(!body.data) throw new Error(`Buffer returned no data (HTTP ${res.status})`);
+  return body.data;
+}
+
+// Test: fetch the account email and organizations. Confirms token works.
+async function testBufferConnection(){
+  const token = getBufferToken();
+  if(!token){ showToast('Paste your Buffer token first','error'); return; }
+  setBufferStatusLine('Testing connection...');
+  try{
+    const data = await bufferGraphQL(`query { account { id email organizations { id name } } }`);
+    const email = data.account?.email || '(unknown)';
+    const orgs = data.account?.organizations || [];
+    const orgNames = orgs.map(o=>o.name).join(', ') || '(no organizations)';
+    setBufferStatusLine(`✓ Connected as ${email} · Org: ${orgNames}`, 'ok');
+    showToast(`Buffer connected ✓ (${email})`,'success');
+    document.getElementById('buffer-dot')?.classList.add('active');
+  }catch(e){
+    setBufferStatusLine(`✗ ${e.message}`, 'err');
+    showToast('Buffer test failed: '+e.message,'error');
+  }
+}
+
+// Fetch all channels for the user's first organization, auto-match against
+// our 3 voices + 1 IG account by service+name, and populate the inputs.
+// Names are matched against substring patterns (case-insensitive) so users
+// can rename channels in Buffer without breaking this.
+async function fetchBufferChannels(){
+  const token = getBufferToken();
+  if(!token){ showToast('Paste your Buffer token first','error'); return; }
+  setBufferStatusLine('Fetching organizations...');
+  try{
+    const orgData = await bufferGraphQL(`query { account { organizations { id name } } }`);
+    const orgs = orgData.account?.organizations || [];
+    if(!orgs.length) throw new Error('No organizations found on this account');
+    // Take the first org; Eridion has a single org so this is fine.
+    const orgId = orgs[0].id;
+    setBufferStatusLine(`Found org "${orgs[0].name}", fetching channels...`);
+    const chData = await bufferGraphQL(
+      `query GetChannels($orgId: String!) {
+        channels(input: { organizationId: $orgId }) {
+          id name displayName service
+        }
+      }`,
+      { orgId }
+    );
+    const channels = chData.channels || [];
+    if(!channels.length) throw new Error('No channels connected to this Buffer account');
+
+    // Match heuristics: service tells us LI vs IG; name/displayName tells us
+    // which of our 3 voices.
+    function findChannel(service, namePatterns){
+      const sLower = service.toLowerCase();
+      for(const ch of channels){
+        if((ch.service||'').toLowerCase() !== sLower) continue;
+        const hay = `${ch.name||''} ${ch.displayName||''}`.toLowerCase();
+        if(namePatterns.some(p => hay.includes(p))) return ch;
+      }
+      return null;
+    }
+
+    const eridionLi = findChannel('linkedin', ['eridion']);
+    const erikaLi   = findChannel('linkedin', ['erika','harrison']);
+    const dionLi    = findChannel('linkedin', ['dion']);
+    const eridionIg = findChannel('instagram', ['eridion']);
+
+    const found = [];
+    const missing = [];
+    if(eridionLi){ document.getElementById('ch-eridion-li').value = eridionLi.id; found.push('Eridion·LI'); } else missing.push('Eridion·LI');
+    if(erikaLi)  { document.getElementById('ch-erika-li').value   = erikaLi.id;   found.push('Erika·LI');   } else missing.push('Erika·LI');
+    // Dion may not be connected yet; only flag missing if no LinkedIn channel for him at all
+    if(dionLi)   { document.getElementById('ch-dion-li').value    = dionLi.id;    found.push('Dion·LI');    }
+    if(eridionIg){ document.getElementById('ch-eridion-ig').value = eridionIg.id; found.push('Eridion·IG'); } else missing.push('Eridion·IG');
+
+    // Persist
+    saveKeys();
+
+    // Build a useful status report
+    if(found.length){
+      const msg = `✓ Auto-filled ${found.length} channel${found.length>1?'s':''}: ${found.join(', ')}`;
+      const warn = missing.length?`  ⚠ Could not find: ${missing.join(', ')}`:'';
+      setBufferStatusLine(msg + warn, missing.length?'err':'ok');
+      // Detailed breakdown of all channels in console for manual fallback
+      console.log('Buffer channels:', channels.map(c=>({id:c.id, service:c.service, name:c.name||c.displayName})));
+      showToast(`Channels populated ✓ (${found.length} matched${missing.length?', '+missing.length+' missing — see status':''})`, missing.length?'error':'success');
+    } else {
+      setBufferStatusLine('✗ Could not auto-match any channels — see browser console for full list, then paste IDs manually', 'err');
+      console.log('Buffer channels (unmatched, paste manually):', channels.map(c=>({id:c.id, service:c.service, name:c.name||c.displayName})));
+      showToast('No channels auto-matched — check console for IDs','error');
+    }
+  }catch(e){
+    setBufferStatusLine(`✗ ${e.message}`, 'err');
+    showToast('Channel fetch failed: '+e.message,'error');
+  }
+}
+
+// Resolve channel ID for a given voice + channel kind. Returns null if not
+// configured, with the caller deciding whether that's a hard error.
+function getChannelIdFor(voice, kind){
+  const ch = getBufferChannels();
+  if(kind === 'instagram') return ch.eridion_ig || null;
+  // LinkedIn: 1 channel per voice
+  if(voice === 'eridion') return ch.eridion_li || null;
+  if(voice === 'erika')   return ch.erika_li   || null;
+  if(voice === 'dion')    return ch.dion_li    || null;
+  return null;
+}
 
 function buildBufferPayload(item){
+  // Kept for the "Copy Week for Buffer" clipboard export and for any
+  // legacy Zapier-based flow. The direct-API path uses createBufferPost
+  // and doesn't need this shape.
   const voice=item.scheduled_account||item.voice||'eridion';
   const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[voice];
   const text=item.linkedin_text||item.blog_text||'';
   const hashtags=item.hashtags||[];
   const linkedinFull=hashtags.length?`${text}\n\n${hashtags.join(' ')}`:text;
-  // IG version: prepend ig_intro for non-Eridion voices
   const igBody=(voice!=='eridion'&&item.ig_intro)?`${item.ig_intro}\n\n${text}`:text;
   const igFull=hashtags.length?`${igBody}\n\n${hashtags.join(' ')}`:igBody;
   const igOversize=igFull.length>IG_CHAR_LIMIT;
   return {
-    post_id:item.id,
-    voice,
-    voice_label:voiceLabel,
+    post_id:item.id, voice, voice_label:voiceLabel,
     scheduled_for_iso:new Date(item.scheduled_for||Date.now()).toISOString(),
     scheduled_time:item.scheduled_time||'09:00',
     channels:{
@@ -6356,37 +6581,165 @@ function buildBufferPayload(item){
   };
 }
 
-async function pushPostToBuffer(id){
-  const webhook=document.getElementById('zapier-webhook')?.value||localStorage.getItem('zapier_webhook');
-  if(!webhook){
-    showToast('Set the Zapier webhook URL in API Keys first','error');
-    toggleKeys();
-    return;
+// Compute the per-channel text exactly the way buildBufferPayload does, but
+// returned as primitives so createBufferPost can use them directly.
+function _composeText(item, channelKind){
+  const voice = item.scheduled_account||item.voice||'eridion';
+  const text = item.linkedin_text||item.blog_text||'';
+  const hashtags = item.hashtags||[];
+  if(channelKind === 'linkedin'){
+    return hashtags.length ? `${text}\n\n${hashtags.join(' ')}` : text;
   }
-  const item=getLibraryItem(id);
+  // Instagram: prepend ig_intro for non-Eridion voices, then append hashtags
+  const igBody = (voice!=='eridion' && item.ig_intro) ? `${item.ig_intro}\n\n${text}` : text;
+  return hashtags.length ? `${igBody}\n\n${hashtags.join(' ')}` : igBody;
+}
+
+// Single createPost call: schedules a post on a specific channel at a
+// specific time, optionally with one image attached. Returns the new
+// Buffer post ID on success, throws on failure.
+async function createBufferPost({channelId, text, imageUrl, scheduledForIso}){
+  // Build the GraphQL mutation. Use variables for everything user-supplied
+  // to avoid escaping issues (especially in the post text).
+  const mutation = `
+    mutation CreatePost($input: CreatePostInput!) {
+      createPost(input: $input) {
+        ... on PostActionSuccess { post { id text } }
+        ... on MutationError { message }
+      }
+    }
+  `;
+  const input = {
+    text,
+    channelId,
+    schedulingType: 'automatic',
+    mode: 'customScheduled',
+    dueAt: scheduledForIso,
+  };
+  if(imageUrl){
+    input.assets = { images: [{ url: imageUrl }] };
+  }
+  // Try inline-literal mode first since Buffer's docs use enum literals
+  // (`automatic`, `customScheduled`) which can be tricky as variables.
+  // Fallback: build the query inline if variables fail.
+  // Using inline approach for reliability:
+  const inlineMutation = `
+    mutation {
+      createPost(input: {
+        text: ${JSON.stringify(text)},
+        channelId: ${JSON.stringify(channelId)},
+        schedulingType: automatic,
+        mode: customScheduled,
+        dueAt: ${JSON.stringify(scheduledForIso)}
+        ${imageUrl?`, assets: { images: [{ url: ${JSON.stringify(imageUrl)} }] }`:''}
+      }) {
+        ... on PostActionSuccess { post { id } }
+        ... on MutationError { message }
+      }
+    }
+  `;
+  const data = await bufferGraphQL(inlineMutation);
+  const result = data.createPost;
+  if(!result) throw new Error('Buffer returned no createPost result');
+  // Union type: success has `post`, error has `message`
+  if(result.message) throw new Error(`Buffer rejected the post: ${result.message}`);
+  if(!result.post?.id) throw new Error('Buffer success response missing post ID');
+  return result.post.id;
+}
+
+// Unified path: push a single post to LinkedIn (always) and Instagram
+// (if Eridion IG configured AND the post fits IG's char limit). Returns
+// {linkedin: bool, instagram: bool|'skipped'|'error', errors: [...]}.
+async function pushSinglePost(item){
+  const voice = item.scheduled_account||item.voice||'eridion';
+  const imageUrl = item.selectedImageUrl||item.image_url||null;
+  const scheduledForIso = new Date(item.scheduled_for||Date.now()).toISOString();
+  const result = { linkedin:false, instagram:'skipped', errors:[] };
+
+  // LinkedIn — always attempt
+  const liChannelId = getChannelIdFor(voice, 'linkedin');
+  if(!liChannelId){
+    result.errors.push(`No LinkedIn channel ID configured for "${voice}"`);
+  } else {
+    try{
+      const liText = _composeText(item, 'linkedin');
+      await createBufferPost({channelId: liChannelId, text: liText, imageUrl, scheduledForIso});
+      result.linkedin = true;
+    }catch(e){
+      result.errors.push(`LI: ${e.message}`);
+    }
+  }
+
+  // Instagram — only if configured AND text fits
+  const igChannelId = getChannelIdFor(voice, 'instagram');
+  if(igChannelId){
+    const igText = _composeText(item, 'instagram');
+    if(igText.length > IG_CHAR_LIMIT){
+      result.instagram = 'oversize';
+    } else {
+      try{
+        await createBufferPost({channelId: igChannelId, text: igText, imageUrl, scheduledForIso});
+        result.instagram = true;
+      }catch(e){
+        result.instagram = 'error';
+        result.errors.push(`IG: ${e.message}`);
+      }
+    }
+  }
+  return result;
+}
+
+async function pushPostToBuffer(id){
+  const token = getBufferToken();
+  if(!token){
+    // Legacy Zapier fallback path — kept for backward compatibility while
+    // the new direct-API mode is the recommended approach.
+    return _legacyPushPostToBufferViaZapier(id);
+  }
+  const item = getLibraryItem(id);
   if(!item){showToast('Post not found','error');return;}
   if(!item.scheduled_for){showToast('Schedule this post first','error');return;}
   if(!(item.selectedImageUrl||item.image_url)){
-    if(!confirm('This post has no image attached. Buffer requires an image on every post and will reject this. Push anyway?')){
-      // Open the attach modal so the user can add one without hunting
+    if(!confirm('This post has no image attached. Buffer requires media on every channel and will reject this. Push anyway?')){
       openImageAttachModal(id);
       return;
     }
   }
-  const payload=buildBufferPayload(item);
-  const igFlag=payload.channels.instagram_eridion.over_limit?' (IG skipped — over 2,200 chars)':'';
+  const voice = item.scheduled_account||item.voice||'eridion';
+  if(!getChannelIdFor(voice,'linkedin')){
+    showToast(`No LinkedIn channel ID set for ${voice} — open API Keys → Fetch My Channels`,'error');
+    toggleKeys();
+    return;
+  }
+
+  setStatus('Pushing to Buffer...',true);
   try{
-    setStatus('Pushing to Buffer...',true);
-    // text/plain avoids CORS preflight; Zapier parses valid JSON body regardless of declared type
-    const res=await fetch(webhook,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
-    if(!res.ok) throw new Error(`Zapier webhook returned ${res.status}`);
-    item.buffer_queued=true;
-    item.buffer_queued_at=Date.now();
-    persistLibrary();
-    renderCalendar();
-    renderLibrary();
-    showToast(`Pushed to Buffer ✓${igFlag}`,'success');
-    document.getElementById('buffer-dot').classList.add('active');
+    const r = await pushSinglePost(item);
+    if(r.linkedin || r.instagram === true){
+      item.buffer_queued = true;
+      item.buffer_queued_at = Date.now();
+      // Also stamp per-channel for future visibility
+      if(r.linkedin) item.buffer_li_queued_at = Date.now();
+      if(r.instagram === true) item.buffer_ig_queued_at = Date.now();
+      persistLibrary();
+      renderCalendar();
+      renderLibrary();
+      document.getElementById('buffer-dot').classList.add('active');
+    }
+    // Build human-readable result
+    const parts = [];
+    parts.push(r.linkedin ? '✓ LinkedIn' : '✗ LinkedIn');
+    if(r.instagram === true) parts.push('✓ Instagram');
+    else if(r.instagram === 'oversize') parts.push('⊘ IG (over 2,200)');
+    else if(r.instagram === 'error') parts.push('✗ Instagram');
+    // 'skipped' (no IG channel configured) is silent
+    const summary = parts.join(' · ');
+    if(r.errors.length){
+      console.error('Buffer push errors:', r.errors);
+      showToast(`${summary} — ${r.errors[0]}`, r.linkedin ? 'success' : 'error');
+    } else {
+      showToast(`Pushed to Buffer · ${summary}`, 'success');
+    }
   }catch(e){
     console.error('Push to Buffer failed:',e);
     showToast('Push failed: '+e.message,'error');
@@ -6396,55 +6749,133 @@ async function pushPostToBuffer(id){
 }
 
 async function pushWeekToBuffer(){
-  const webhook=document.getElementById('zapier-webhook')?.value||localStorage.getItem('zapier_webhook');
-  if(!webhook){
-    showToast('Set the Zapier webhook URL in API Keys first','error');
-    toggleKeys();
-    return;
+  const token = getBufferToken();
+  if(!token){
+    return _legacyPushWeekToBufferViaZapier();
   }
   if(!calWeekStart){calThis();}
-  const weekEnd=new Date(calWeekStart); weekEnd.setDate(weekEnd.getDate()+7);
-  const weekItems=library.filter(i=>i.status==='scheduled'&&i.scheduled_for>=calWeekStart.getTime()&&i.scheduled_for<weekEnd.getTime())
+  const weekEnd = new Date(calWeekStart); weekEnd.setDate(weekEnd.getDate()+7);
+  const weekItems = library.filter(i=>i.status==='scheduled' && i.scheduled_for>=calWeekStart.getTime() && i.scheduled_for<weekEnd.getTime())
     .sort((a,b)=>a.scheduled_for-b.scheduled_for||(a.scheduled_time||'').localeCompare(b.scheduled_time||''));
   if(!weekItems.length){showToast('No scheduled posts this week','error');return;}
 
-  // Confirm — especially if some are already queued
-  const alreadyQueued=weekItems.filter(i=>i.buffer_queued).length;
-  if(alreadyQueued>0){
-    if(!confirm(`${alreadyQueued} of ${weekItems.length} posts are already queued in Buffer. Push all again? (Will create duplicates if Buffer hasn't deduped them.)`)) return;
+  // Sanity-check images upfront so we don't half-push and then warn
+  const noImage = weekItems.filter(i=>!(i.selectedImageUrl||i.image_url));
+  if(noImage.length){
+    if(!confirm(`${noImage.length} of ${weekItems.length} posts have no image attached. Buffer requires media on every channel and will reject those. Push the ones with images?`)) return;
+  }
+
+  const alreadyQueued = weekItems.filter(i=>i.buffer_queued).length;
+  if(alreadyQueued > 0){
+    if(!confirm(`${alreadyQueued} of ${weekItems.length} posts are already queued in Buffer. Push all again? (Will create duplicates.)`)) return;
   } else {
-    if(!confirm(`Push all ${weekItems.length} scheduled posts this week to Buffer via Zapier?`)) return;
+    if(!confirm(`Push ${weekItems.length} scheduled posts this week to Buffer?`)) return;
   }
 
   setStatus(`Pushing ${weekItems.length} posts to Buffer...`,true);
-  let success=0, failed=0, igSkipped=0;
-  for(const item of weekItems){
-    const payload=buildBufferPayload(item);
-    if(payload.channels.instagram_eridion.over_limit) igSkipped++;
-    try{
-      const res=await fetch(webhook,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      item.buffer_queued=true;
-      item.buffer_queued_at=Date.now();
-      success++;
-    }catch(e){
-      console.error('Push failed for',item.id,e);
-      failed++;
+  let liSuccess=0, liFail=0, igSuccess=0, igOversize=0, igFail=0;
+  const errorsAggregate = [];
+  for(let i=0; i<weekItems.length; i++){
+    const item = weekItems[i];
+    setStatus(`Pushing ${i+1}/${weekItems.length}...`,true);
+    if(!(item.selectedImageUrl||item.image_url)){
+      // Skip silently if user declined, else just count as a failure
+      liFail++;
+      errorsAggregate.push(`${item.title||item.id}: no image`);
+      continue;
     }
-    // Small gap so Zapier doesn't get hit too fast
-    await new Promise(r=>setTimeout(r,250));
+    try{
+      const r = await pushSinglePost(item);
+      if(r.linkedin) liSuccess++; else liFail++;
+      if(r.instagram === true) igSuccess++;
+      else if(r.instagram === 'oversize') igOversize++;
+      else if(r.instagram === 'error') igFail++;
+      if(r.linkedin || r.instagram === true){
+        item.buffer_queued = true;
+        item.buffer_queued_at = Date.now();
+      }
+      r.errors.forEach(err=>errorsAggregate.push(`${item.title||item.id}: ${err}`));
+    }catch(e){
+      liFail++;
+      errorsAggregate.push(`${item.title||item.id}: ${e.message}`);
+    }
+    // Pace requests so we don't trip rate limits (Buffer GraphQL has per-key limits).
+    await new Promise(r=>setTimeout(r,400));
   }
   persistLibrary();
   renderCalendar();
   renderLibrary();
   setStatus('Ready',false);
-  document.getElementById('buffer-dot').classList.add('active');
-  const igNote=igSkipped>0?` · ${igSkipped} IG skipped (over 2,200 chars)`:'';
-  if(failed===0){
-    showToast(`✓ ${success} posts pushed to Buffer${igNote}`,'success');
-  } else {
-    showToast(`${success} pushed, ${failed} failed${igNote}`,'error');
+  if(liSuccess > 0) document.getElementById('buffer-dot').classList.add('active');
+
+  if(errorsAggregate.length) console.error('Buffer week-push errors:', errorsAggregate);
+
+  const liPart = liFail===0 ? `✓ ${liSuccess} LI` : `${liSuccess} LI ✓ · ${liFail} LI ✗`;
+  const igPart = igSuccess>0 || igOversize>0 || igFail>0
+    ? ` · ${igSuccess} IG ✓${igOversize?` · ${igOversize} IG over-limit`:''}${igFail?` · ${igFail} IG ✗`:''}`
+    : '';
+  const allClean = liFail===0 && igFail===0;
+  showToast(`${liPart}${igPart}`, allClean?'success':'error');
+}
+
+// ── Legacy Zapier path (only used when Buffer Token isn't set) ──
+async function _legacyPushPostToBufferViaZapier(id){
+  const webhook=document.getElementById('zapier-webhook')?.value||localStorage.getItem('zapier_webhook');
+  if(!webhook){
+    showToast('Set the Buffer Access Token in API Keys (or a Zapier webhook for legacy mode)','error');
+    toggleKeys();
+    return;
   }
+  const item=getLibraryItem(id);
+  if(!item){showToast('Post not found','error');return;}
+  if(!item.scheduled_for){showToast('Schedule this post first','error');return;}
+  if(!(item.selectedImageUrl||item.image_url)){
+    if(!confirm('No image attached — Buffer will reject. Push anyway?')){
+      openImageAttachModal(id);
+      return;
+    }
+  }
+  const payload=buildBufferPayload(item);
+  try{
+    setStatus('Pushing to Buffer (Zapier legacy)...',true);
+    const res=await fetch(webhook,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
+    if(!res.ok) throw new Error(`Zapier webhook returned ${res.status}`);
+    item.buffer_queued=true; item.buffer_queued_at=Date.now();
+    persistLibrary(); renderCalendar(); renderLibrary();
+    showToast('Pushed to Buffer (legacy mode) ✓','success');
+    document.getElementById('buffer-dot').classList.add('active');
+  }catch(e){
+    showToast('Push failed: '+e.message,'error');
+  }finally{
+    setStatus('Ready',false);
+  }
+}
+
+async function _legacyPushWeekToBufferViaZapier(){
+  const webhook=document.getElementById('zapier-webhook')?.value||localStorage.getItem('zapier_webhook');
+  if(!webhook){
+    showToast('Set the Buffer Access Token (or a Zapier webhook for legacy mode)','error');
+    toggleKeys(); return;
+  }
+  if(!calWeekStart){calThis();}
+  const weekEnd=new Date(calWeekStart); weekEnd.setDate(weekEnd.getDate()+7);
+  const weekItems=library.filter(i=>i.status==='scheduled'&&i.scheduled_for>=calWeekStart.getTime()&&i.scheduled_for<weekEnd.getTime())
+    .sort((a,b)=>a.scheduled_for-b.scheduled_for);
+  if(!weekItems.length){showToast('No scheduled posts this week','error');return;}
+  if(!confirm(`Push ${weekItems.length} posts via Zapier (legacy)?`)) return;
+  setStatus(`Pushing ${weekItems.length} (Zapier legacy)...`,true);
+  let success=0, failed=0;
+  for(const item of weekItems){
+    try{
+      const res=await fetch(webhook,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(buildBufferPayload(item))});
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      item.buffer_queued=true; item.buffer_queued_at=Date.now(); success++;
+    }catch(e){ failed++; }
+    await new Promise(r=>setTimeout(r,250));
+  }
+  persistLibrary(); renderCalendar(); renderLibrary(); setStatus('Ready',false);
+  document.getElementById('buffer-dot').classList.add('active');
+  showToast(`${success} pushed, ${failed} failed (Zapier legacy)`, failed?'error':'success');
 }
 
 // ═══════════════════════════════════════════════════════════════════
