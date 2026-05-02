@@ -2424,6 +2424,10 @@ textarea { min-height: 80px; line-height: 1.6; }
             <label class="field-label">Buffer Access Token <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(generate at publish.buffer.com/settings/api)</span></label>
             <input type="password" id="buffer-token" placeholder="Personal API key from Buffer settings" />
           </div>
+          <div class="field">
+            <label class="field-label">Buffer API Proxy URL <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(Cloudflare Worker — bypasses CORS)</span></label>
+            <input type="text" id="buffer-proxy-url" placeholder="https://eridion-buffer-proxy.[name].workers.dev" style="font-family:var(--font-mono);font-size:11px" />
+          </div>
           <div style="background:var(--off-white);border:1px solid var(--hairline);padding:12px;margin-bottom:12px;">
             <div style="font-family:var(--font-subhead);font-size:10px;font-weight:600;letter-spacing:var(--track-alta);text-transform:uppercase;color:var(--medium-gray);margin-bottom:10px">Buffer Channel IDs <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">(auto-fill via Fetch button)</span></div>
             <div class="field" style="margin-bottom:8px">
@@ -4880,12 +4884,14 @@ function saveKeys(){
   const zw=document.getElementById('zapier-webhook').value;
   const ib=document.getElementById('imgbb-key')?.value;
   const bt=document.getElementById('buffer-token')?.value;
+  const bp=document.getElementById('buffer-proxy-url')?.value;
   if(uk) localStorage.setItem('unsplash_key',uk);
   if(wk) localStorage.setItem('wix_key',wk);
   if(ws) localStorage.setItem('wix_site_id',ws);
   if(zw) localStorage.setItem('zapier_webhook',zw);
   if(ib) localStorage.setItem('imgbb_key',ib);
   if(bt) localStorage.setItem('buffer_token',bt);
+  if(bp) localStorage.setItem('buffer_proxy_url',bp);
   // Channel IDs: write whatever's in the fields (allows manual edit)
   const channels={
     eridion_li:document.getElementById('ch-eridion-li')?.value.trim()||'',
@@ -4903,12 +4909,14 @@ function loadKeys(){
   const zw=localStorage.getItem('zapier_webhook');
   const ib=localStorage.getItem('imgbb_key');
   const bt=localStorage.getItem('buffer_token');
+  const bp=localStorage.getItem('buffer_proxy_url');
   if(uk) document.getElementById('unsplash-key').value=uk;
   if(wk) document.getElementById('wix-key').value=wk;
   if(ws) document.getElementById('wix-site-id').value=ws;
   if(zw) document.getElementById('zapier-webhook').value=zw;
   if(ib && document.getElementById('imgbb-key')) document.getElementById('imgbb-key').value=ib;
   if(bt && document.getElementById('buffer-token')) document.getElementById('buffer-token').value=bt;
+  if(bp && document.getElementById('buffer-proxy-url')) document.getElementById('buffer-proxy-url').value=bp;
   try{
     const ch=JSON.parse(localStorage.getItem('buffer_channels')||'{}');
     if(ch.eridion_li && document.getElementById('ch-eridion-li')) document.getElementById('ch-eridion-li').value=ch.eridion_li;
@@ -6412,12 +6420,23 @@ function setBufferStatusLine(msg, kind){
 // Single GraphQL call helper. Throws on network/HTTP/GraphQL errors with
 // readable messages. CORS failures throw a TypeError with a vague message —
 // we catch that specifically and surface a helpful note about Zapier fallback.
+function getBufferProxyUrl(){
+  return (document.getElementById('buffer-proxy-url')?.value || localStorage.getItem('buffer_proxy_url') || '').trim();
+}
+
+// Single GraphQL call helper. Routes through the Cloudflare Worker proxy
+// if one is configured (recommended — bypasses Buffer's CORS restrictions);
+// otherwise tries direct, which only works if Buffer ever opens up CORS or
+// if the user is running this from a whitelisted origin. Throws on
+// network/HTTP/GraphQL errors with readable messages.
 async function bufferGraphQL(query, variables){
   const token = getBufferToken();
   if(!token) throw new Error('Buffer Access Token not set — add it in API Keys');
+  const proxyUrl = getBufferProxyUrl();
+  const endpoint = proxyUrl || BUFFER_GRAPHQL_ENDPOINT;
   let res;
   try{
-    res = await fetch(BUFFER_GRAPHQL_ENDPOINT, {
+    res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -6426,10 +6445,10 @@ async function bufferGraphQL(query, variables){
       body: JSON.stringify({ query, variables: variables||{} }),
     });
   }catch(e){
-    // Fetch throws TypeError on network failures including CORS preflight
-    // failures. The browser console will have the specific CORS message;
-    // here we just surface a clear actionable hint.
-    throw new Error('CORS or network error reaching Buffer API. If this persists, the legacy Zapier webhook is still wired as a fallback — leave the Buffer Token blank to use it.');
+    if(proxyUrl){
+      throw new Error(`Couldn't reach the Buffer API Proxy at ${proxyUrl}. Check the Worker URL is correct and the Worker is deployed.`);
+    }
+    throw new Error('CORS or network error reaching Buffer API directly. Set up a Cloudflare Worker proxy and paste its URL into the "Buffer API Proxy URL" field.');
   }
   if(res.status === 401 || res.status === 403){
     throw new Error('Buffer rejected the token (401/403). Token may be expired or invalid — regenerate at publish.buffer.com/settings/api');
