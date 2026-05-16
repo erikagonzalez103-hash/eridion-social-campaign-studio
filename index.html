@@ -6,7 +6,7 @@
 <title>Eridion | Social Campaign Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 /* ====================================================================
    Eridion Studio — Editorial rebrand
@@ -34,10 +34,18 @@
   --error:       #B5403F;
   --error-faint: rgba(181, 64, 63, 0.06);
 
+  /* Sage palette (Quinta & Co. / The Practice) */
+  --sage:       #6E8B7A;
+  --sage-deep:  #4F6B5C;
+  --sage-soft:  #DFE7E0;
+  --sage-faint: rgba(110, 139, 122, 0.08);
+  --moss:       #3D544A;
+
   /* Stream identities */
-  --eridion: var(--navy);
-  --erika:   var(--green);
-  --dion:    var(--medium-gray);
+  --eridion:  var(--navy);
+  --erika:    var(--green);
+  --dion:     var(--medium-gray);
+  --practice: var(--sage);
 
   /* Backwards-compat aliases — many old rules reference these names.
      Mapping them here keeps the JS-touched selectors happy without
@@ -120,7 +128,7 @@ header {
 
 /* ── Stream selector ────────────────────────────────── */
 .stream-selector {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;
   margin-bottom: 32px;
 }
 .stream-btn {
@@ -140,6 +148,7 @@ header {
 .stream-btn.eridion::before { background: var(--eridion); }
 .stream-btn.erika::before   { background: var(--erika); }
 .stream-btn.dion::before    { background: var(--dion); }
+.stream-btn.practice::before { background: var(--practice); }
 .stream-btn:hover { border-color: var(--hairline-strong); }
 .stream-btn.active { background: var(--white); border-color: var(--navy); }
 .stream-btn.active::before { transform: scaleX(1); }
@@ -155,6 +164,7 @@ header {
 .stream-btn.eridion .stream-label { color: var(--eridion); }
 .stream-btn.erika   .stream-label { color: var(--erika); }
 .stream-btn.dion    .stream-label { color: var(--dion); }
+.stream-btn.practice .stream-label { color: var(--sage-deep); }
 .stream-title {
   font-family: var(--font-display);
   font-size: 18px; font-weight: 500;
@@ -893,6 +903,7 @@ textarea { min-height: 80px; line-height: 1.6; }
 .day-account.eridion { background: var(--navy-faint); color: var(--eridion); border: 1px solid rgba(31,42,74,0.2); }
 .day-account.erika   { background: var(--green-faint); color: var(--green-deep); border: 1px solid rgba(67,176,71,0.25); }
 .day-account.dion    { background: rgba(124,124,124,0.08); color: var(--dion); border: 1px solid rgba(124,124,124,0.25); }
+.day-account.practice { background: var(--sage-faint); color: var(--sage-deep); border: 1px solid rgba(110,139,122,0.28); }
 .day-type { font-size: 12px; color: var(--medium-gray); margin-left: auto; }
 .day-body { padding: 16px; }
 .day-post-text {
@@ -1113,6 +1124,7 @@ textarea { min-height: 80px; line-height: 1.6; }
 .voice-badge.eridion { background: var(--navy-faint); color: var(--eridion); border: 1px solid rgba(31,42,74,0.25); }
 .voice-badge.erika   { background: var(--green-faint); color: var(--green-deep); border: 1px solid rgba(67,176,71,0.3); }
 .voice-badge.dion    { background: rgba(124,124,124,0.08); color: var(--dion); border: 1px solid rgba(124,124,124,0.25); }
+.voice-badge.practice { background: var(--sage-faint); color: var(--sage-deep); border: 1px solid rgba(110,139,122,0.3); }
 
 /* Bridge tag — marks cross-voice reposts in spin results, library, calendar */
 .bridge-tag {
@@ -1246,6 +1258,7 @@ textarea { min-height: 80px; line-height: 1.6; }
 .cal-slot-voice.eridion { background: var(--eridion); }
 .cal-slot-voice.erika   { background: var(--erika); }
 .cal-slot-voice.dion    { background: var(--dion); }
+.cal-slot-voice.practice { background: var(--practice); }
 .cal-slot-body { flex: 1; min-width: 0; cursor: pointer; }
 .cal-slot-body:hover .cal-slot-text { color: var(--navy); }
 .cal-slot-meta {
@@ -2245,6 +2258,8 @@ textarea { min-height: 80px; line-height: 1.6; }
   .stream-btn.erika   .stream-title::after  { content: 'Erika' !important; }
   .stream-btn.dion    .stream-title::before { background: var(--dion) !important; }
   .stream-btn.dion    .stream-title::after  { content: 'Dion' !important; }
+  .stream-btn.practice .stream-title::before { background: var(--practice) !important; }
+  .stream-btn.practice .stream-title::after  { content: 'Practice' !important; }
 
   /* === PANEL — TIGHTER === */
   .panel { padding: 16px !important; }
@@ -2349,6 +2364,11 @@ textarea { min-height: 80px; line-height: 1.6; }
       <div class="stream-title">Dion Harrison</div>
       <div class="stream-desc">Master glazier · Field notes · Dry Aussie humor</div>
     </button>
+    <button class="stream-btn practice" onclick="setStream('practice')">
+      <div class="stream-label">Stream 04</div>
+      <div class="stream-title">The Practice</div>
+      <div class="stream-desc">Quinta &amp; Co. campaign · AI as practice · Quiet voice</div>
+    </button>
   </div>
 
   <div class="main-grid">
@@ -2442,9 +2462,17 @@ textarea { min-height: 80px; line-height: 1.6; }
               <label class="field-label" style="font-size:9px">Dion · LinkedIn</label>
               <input type="text" id="ch-dion-li" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
             </div>
-            <div class="field" style="margin-bottom:10px">
+            <div class="field" style="margin-bottom:8px">
+              <label class="field-label" style="font-size:9px">The Practice · LinkedIn</label>
+              <input type="text" id="ch-practice-li" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
+            </div>
+            <div class="field" style="margin-bottom:8px">
               <label class="field-label" style="font-size:9px">Eridion · Instagram</label>
               <input type="text" id="ch-eridion-ig" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label class="field-label" style="font-size:9px">The Practice · Instagram</label>
+              <input type="text" id="ch-practice-ig" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               <button class="action-btn" onclick="testBufferConnection()" style="flex:1;min-width:120px">🔌 Test Connection</button>
@@ -2789,6 +2817,7 @@ textarea { min-height: 80px; line-height: 1.6; }
             <button class="lib-chip" data-filter="voice" data-val="eridion" onclick="setLibFilter('voice','eridion')">Eridion</button>
             <button class="lib-chip" data-filter="voice" data-val="erika" onclick="setLibFilter('voice','erika')">Erika</button>
             <button class="lib-chip" data-filter="voice" data-val="dion" onclick="setLibFilter('voice','dion')">Dion</button>
+            <button class="lib-chip" data-filter="voice" data-val="practice" onclick="setLibFilter('voice','practice')">Practice</button>
             <span class="lib-filter-lbl" style="margin-left:14px">Status:</span>
             <button class="lib-chip active" data-filter="status" data-val="all" onclick="setLibFilter('status','all')">All</button>
             <button class="lib-chip" data-filter="status" data-val="draft" onclick="setLibFilter('status','draft')">Draft</button>
@@ -2928,6 +2957,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                 <option value="eridion">Eridion Glass</option>
                 <option value="erika">Erika Harrison</option>
                 <option value="dion">Dion Harrison</option>
+                <option value="practice">The Practice</option>
               </select>
             </div>
             <div class="sched-field">
@@ -2954,6 +2984,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                   <option value="eridion">Eridion Glass</option>
                   <option value="erika">Erika Harrison</option>
                   <option value="dion">Dion Harrison</option>
+                  <option value="practice">The Practice</option>
                 </select>
               </div>
               <div class="field" style="margin-bottom:0">
@@ -2997,6 +3028,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                 <option value="eridion">All Eridion Glass</option>
                 <option value="erika">All Erika Harrison</option>
                 <option value="dion">All Dion Harrison</option>
+                <option value="practice">All The Practice</option>
               </select>
             </div>
             <div class="spin-form-full">
@@ -3022,6 +3054,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                 <option value="eridion">Eridion Glass</option>
                 <option value="erika">Erika Harrison</option>
                 <option value="dion">Dion Harrison</option>
+                <option value="practice">The Practice</option>
               </select>
             </div>
             <div class="sched-field">
@@ -3092,7 +3125,7 @@ textarea { min-height: 80px; line-height: 1.6; }
         <div class="ii-modal" id="image-ideas-modal">
           <div class="ii-modal-inner">
             <div class="ii-modal-title">🎨 Image Ideas</div>
-            <div class="ii-modal-sub">Turn a stat, quote, or claim from this post into downloadable visual assets. Stat cards, pull quotes, Unsplash search, designer briefs, and AI image prompts — all voice-styled for Eridion, Erika, or Dion.</div>
+            <div class="ii-modal-sub">Turn a stat, quote, or claim from this post into downloadable visual assets. Stat cards, pull quotes, Unsplash search, designer briefs, and AI image prompts — all voice-styled for Eridion, Erika, Dion, or The Practice.</div>
             <div class="ii-source-preview" id="ii-source-preview"></div>
 
             <div class="ii-tabs">
@@ -3135,6 +3168,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                   <button class="ii-chip" data-voice="eridion" onclick="iiSetVoice('eridion')">Eridion</button>
                   <button class="ii-chip" data-voice="erika" onclick="iiSetVoice('erika')">Erika</button>
                   <button class="ii-chip" data-voice="dion" onclick="iiSetVoice('dion')">Dion</button>
+                  <button class="ii-chip" data-voice="practice" onclick="iiSetVoice('practice')">Practice</button>
                 </div>
                 <div class="ii-control-grp">
                   <span class="ii-control-lbl">Ratio:</span>
@@ -3240,6 +3274,13 @@ const buckets = {
     {id:'coo_systems',icon:'⚙️',label:'COO Systems, Process, and Standards'},
     {id:'leadership_growth',icon:'🧭',label:'Lessons in Leadership and Business Growth'},
     {id:'glass_education',icon:'🪟',label:'Glass Education, Design, and Customer Guidance'},
+  ],
+  practice:[
+    {id:'morning_prompt',icon:'🌅',label:'Morning Prompt'},
+    {id:'field_notes',icon:'📓',label:'Field Notes'},
+    {id:'practitioners',icon:'👥',label:'Practitioners'},
+    {id:'twenty_sec_builds',icon:'⚡',label:'20-Second Builds'},
+    {id:'manifesto',icon:'📜',label:'Manifesto'},
   ]
 };
 
@@ -3277,7 +3318,20 @@ WRITING RULES:
 
 ERR ON THE SIDE OF INCLUDING MORE. Dion prefers to delete from a post rather than add to one. If unsure whether to include a business mention, a CTA, or a technical detail — include it. He'll trim what doesn't fit a given post's voice.
 
-AUDIENCE: Builders, project managers, tradespeople, architects, site supers, designers. People who can tell when someone actually knows the work versus someone reading a brochure.`
+AUDIENCE: Builders, project managers, tradespeople, architects, site supers, designers. People who can tell when someone actually knows the work versus someone reading a brochure.`,
+
+  practice:`You are writing content for The Practice — a campaign platform under Quinta & Co., a business education and consulting brand for women entrepreneurs founded by Erika Gonzalez Harrison. The Practice frames AI as something you do, not something you buy. Modules are practices, students are practitioners, events are open studios.
+
+BRAND VOICE: Warm, direct, plainspoken. Takes a stand. Honest about tradeoffs — never overpromises. Explains the why behind every tool choice, not just the how. Quiet, peaceful, occasionally dryly funny (Lululemon/Outdoor Voices energy). The antidote to AI hype.
+
+TAGLINE: "AI is a practice, not a purchase."
+SECONDARY: "The practical answers they don't teach you in business school."
+
+AUDIENCE: Women business owners — primarily beginners with AI and no-code tools. Solo operators, founders, small-business owners who feel behind on the AI conversation and are tired of being talked down to or upsold.
+
+NEVER: Hype, urgency, "AI will change everything" energy; bro-speak ("leverage," "10x," "unlock," "game-changer," "supercharge"); guru framing — no "I figured out the secret"; promises of transformation (sell relief, not transformation); mentioning AI tool names in marketing without showing actual practice with them.
+
+ALWAYS: Real stories over hypothetical ones (use Practitioners' actual situations); show the seams (what broke, what didn't work, what was hard); frame AI as a practice — "show up," "begin," "return to it"; The Practice owns its own world: practitioners, open studio, field notes, the practice; restraint, white space, quiet over loud.`
 };
 
 // ── POV Sets: four angles per topic category ──
@@ -3407,7 +3461,7 @@ function renderToday(){
   const posts=getTodaysPosts();
   const scheduled=posts.filter(p=>p.status==='scheduled');
   const posted=posts.filter(p=>p.status==='posted');
-  const counts={eridion:0,erika:0,dion:0};
+  const counts={eridion:0,erika:0,dion:0,practice:0};
   scheduled.forEach(p=>{const k=p.scheduled_account||p.voice; if(counts[k]!==undefined) counts[k]++;});
 
   sumEl.innerHTML=`
@@ -3416,6 +3470,7 @@ function renderToday(){
     ${counts.eridion?`<span class="today-sum-item"><strong style="color:var(--eridion)">${counts.eridion}</strong>Eridion</span>`:''}
     ${counts.erika?`<span class="today-sum-item"><strong style="color:var(--erika)">${counts.erika}</strong>Erika</span>`:''}
     ${counts.dion?`<span class="today-sum-item"><strong style="color:var(--dion)">${counts.dion}</strong>Dion</span>`:''}
+    ${counts.practice?`<span class="today-sum-item"><strong style="color:var(--sage-deep)">${counts.practice}</strong>Practice</span>`:''}
   `;
 
   if(!posts.length){
@@ -3443,7 +3498,7 @@ function renderToday(){
 }
 
 function renderTodayCard(it){
-  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[it.scheduled_account||it.voice]||it.voice;
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[it.scheduled_account||it.voice]||it.voice;
   const voiceClass=it.scheduled_account||it.voice;
   const text=(it.linkedin_text||it.blog_text||'').slice(0,400);
   const showLaunch=it.status==='scheduled';
@@ -3498,12 +3553,13 @@ function renderMorningBanner(){
 
   const titleEl=document.getElementById('mbb-title');
   const subEl=document.getElementById('mbb-sub');
-  const counts={eridion:0,erika:0,dion:0};
+  const counts={eridion:0,erika:0,dion:0,practice:0};
   scheduled.forEach(p=>{const k=p.scheduled_account||p.voice; if(counts[k]!==undefined) counts[k]++;});
   const breakdown=[];
   if(counts.eridion) breakdown.push(`${counts.eridion} Eridion`);
   if(counts.erika) breakdown.push(`${counts.erika} Erika`);
   if(counts.dion) breakdown.push(`${counts.dion} Dion`);
+  if(counts.practice) breakdown.push(`${counts.practice} Practice`);
 
   titleEl.textContent=`Good morning · ${scheduled.length} post${scheduled.length===1?'':'s'} on the schedule today`;
   subEl.textContent=breakdown.join(' · ');
@@ -3529,7 +3585,7 @@ async function generateMorningBriefAudio(){
   const dateStr=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   let script=`Good morning. Today is ${dateStr}. You have ${scheduled.length} post${scheduled.length===1?'':'s'} on the schedule. `;
   scheduled.forEach((p,i)=>{
-    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[p.scheduled_account||p.voice];
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[p.scheduled_account||p.voice];
     const time=p.scheduled_time||'9 AM';
     script+=`Post ${i+1}, scheduled for ${time}, in the voice of ${voiceLabel}, in the ${p.bucketLabel||'general'} bucket. `;
     script+=`Title: ${p.title||'untitled'}. `;
@@ -4718,7 +4774,7 @@ function handleImagePickerUrlPaste(itemId, inputId, containerId){
 function openImageAttachModal(itemId){
   const it=library.find(x=>x.id===itemId);
   if(!it){showToast('Post not found','error');return;}
-  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[it.voice]||it.voice;
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[it.voice]||it.voice;
   document.getElementById('image-attach-meta').textContent=`${voiceLabel} · ${it.title||'Untitled'}`;
   renderImagePicker('image-attach-picker', itemId);
   document.getElementById('image-attach-modal').classList.add('open');
@@ -5235,8 +5291,8 @@ function renderSpinSnippetResult(){
   const resultsEl=document.getElementById('spin-snippet-results');
   if(!spinSnippetResults.length){resultsEl.style.display='none';return;}
   const r=spinSnippetResults[0];
-  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[r.voice];
-  const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[r.bridgeFrom]:'';
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[r.voice];
+  const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',dion:'Dion',practice:'Practice'}[r.bridgeFrom]:'';
   const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
   const igBlock=r.ig_intro?`
       <div style="margin-top:10px;padding:10px 12px;background:rgba(67,176,71,0.06);border:1px solid var(--green-faint);border-radius:4px">
@@ -5480,8 +5536,8 @@ function renderSpinWeekResults(){
     </div>
   `;
   const cards=spinWeekResults.map((r,i)=>{
-    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[r.voice]||r.voice;
-    const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[r.bridgeFrom]:'';
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[r.voice]||r.voice;
+    const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',dion:'Dion',practice:'Practice'}[r.bridgeFrom]:'';
     const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
     const igBlock=r.ig_intro?`
         <div style="margin-top:10px;padding:10px 12px;background:rgba(67,176,71,0.06);border:1px solid var(--green-faint);border-radius:4px">
@@ -5988,13 +6044,13 @@ function renderLibrary(){
     return;
   }
   grid.innerHTML=items.map(it=>{
-    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[it.voice]||it.voice;
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[it.voice]||it.voice;
     const date=new Date(it.created_at);
     const dateStr=date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     const preview=(it.linkedin_text||it.blog_text||'').slice(0,240);
     const schedInfo=it.status==='scheduled'?` · ${new Date(it.scheduled_for).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})} on ${it.scheduled_account}`:'';
     const parentLabel = it.parent_id ? (library.find(x=>x.id===it.parent_id)?.title||'parent post') : null;
-    const bridgeShortName=it.cross_voice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[it.bridge_from]:null;
+    const bridgeShortName=it.cross_voice?{eridion:'Eridion',erika:'Erika',dion:'Dion',practice:'Practice'}[it.bridge_from]:null;
     const bridgeTag=bridgeShortName?`<span class="bridge-tag" title="Credits and amplifies the original ${bridgeShortName} post">↳ amplifying ${bridgeShortName}</span>`:'';
     const hasImage=!!(it.selectedImageUrl||it.image_url);
     const imgTag=hasImage
@@ -6125,7 +6181,7 @@ function openViewPostModal(id){
   const it=library.find(x=>x.id===id);
   if(!it){showToast('Post not found','error');return;}
   viewingPostId=id;
-  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[it.scheduled_account||it.voice]||it.voice;
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[it.scheduled_account||it.voice]||it.voice;
   const schedStr=it.scheduled_for?new Date(it.scheduled_for).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+(it.scheduled_time?' at '+it.scheduled_time:''):'';
   document.getElementById('view-post-title').textContent=it.title||'Scheduled Post';
   document.getElementById('view-post-meta').innerHTML=`
@@ -6298,13 +6354,14 @@ function renderCalendar(){
   });
 
   // Summary counts
-  const counts={eridion:0,erika:0,dion:0,total:weekItems.length};
+  const counts={eridion:0,erika:0,dion:0,practice:0,total:weekItems.length};
   weekItems.forEach(i=>{if(counts[i.scheduled_account]!==undefined) counts[i.scheduled_account]++;});
   summary.innerHTML=`
     <span class="cal-summary-item"><strong>${counts.total}</strong>posts this week</span>
     <span class="cal-summary-item"><strong>${counts.eridion}</strong>Eridion</span>
     <span class="cal-summary-item"><strong>${counts.erika}</strong>Erika</span>
     <span class="cal-summary-item"><strong>${counts.dion}</strong>Dion</span>
+    <span class="cal-summary-item"><strong>${counts.practice}</strong>Practice</span>
   `;
 
   // Build each day
@@ -6325,9 +6382,9 @@ function renderCalendar(){
         </div>
         <div class="cal-day-body">
           ${dayItems.length?dayItems.map(i=>{
-            const voiceLabel={eridion:'Eridion',erika:'Erika',dion:'Dion'}[i.scheduled_account]||i.scheduled_account;
+            const voiceLabel={eridion:'Eridion',erika:'Erika',dion:'Dion',practice:'Practice'}[i.scheduled_account]||i.scheduled_account;
             const textPreview=(i.linkedin_text||i.blog_text||i.title||'').slice(0,80);
-            const bridgeShortName=i.cross_voice?{eridion:'Eridion',erika:'Erika',dion:'Dion'}[i.bridge_from]:null;
+            const bridgeShortName=i.cross_voice?{eridion:'Eridion',erika:'Erika',dion:'Dion',practice:'Practice'}[i.bridge_from]:null;
             const bridgeMeta=bridgeShortName?` · <span style="color:var(--green-deep);font-weight:600">↳ amplifying ${bridgeShortName}</span>`:'';
             const queuedBadge=i.buffer_queued?`<span class="cal-slot-buffer-badge" title="Pushed to Buffer at ${new Date(i.buffer_queued_at||0).toLocaleString()}">queued ✓</span>`:'';
             return `
@@ -6358,7 +6415,7 @@ function copyWeekForBuffer(){
   lines.push(`=== ERIDION STUDIO · WEEK OF ${calWeekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} ===\n`);
   weekItems.forEach((i,idx)=>{
     const d=new Date(i.scheduled_for);
-    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[i.scheduled_account];
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[i.scheduled_account];
     lines.push(`--- POST ${idx+1} ---`);
     lines.push(`DAY:     ${d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}`);
     lines.push(`TIME:    ${i.scheduled_time||'09:00'}`);
@@ -6577,7 +6634,7 @@ function buildBufferPayload(item){
   // legacy Zapier-based flow. The direct-API path uses createBufferPost
   // and doesn't need this shape.
   const voice=item.scheduled_account||item.voice||'eridion';
-  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison'}[voice];
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[voice];
   const text=item.linkedin_text||item.blog_text||'';
   const hashtags=item.hashtags||[];
   const linkedinFull=hashtags.length?`${text}\n\n${hashtags.join(' ')}`:text;
@@ -6951,6 +7008,22 @@ const VOICE_STYLES = {
     dividerColor: '#5FAD8A',
     decorPattern: 'green-bar',    // thick green bar on left
     vibe: 'plainspoken, utilitarian, honest',
+  },
+  practice: {
+    // Quiet editorial. Warm cream bg with sage accent. Fraunces italic for soul. Maximum restraint.
+    bg: '#FAFAF6',
+    bgGradient: 'linear-gradient(135deg,#FAFAF6 0%,#F5F2EA 100%)',
+    accent: '#4F6B5C',       // sage-deep
+    accentBright: '#6E8B7A',  // sage
+    text: '#20231F',
+    textDim: '#5A5E55',
+    numFont: "'Fraunces', serif",
+    numWeight: '300',
+    labelFont: "'Cinzel', serif",   // small caps tracked, matches brand wordmark
+    bodyFont: "'Fraunces', serif",
+    dividerColor: '#6E8B7A',
+    decorPattern: 'sage-rule',     // thin sage hairline
+    vibe: 'quiet, editorial, restrained, peaceful',
   }
 };
 
@@ -7010,6 +7083,10 @@ function renderStatCard(voice, number, label, ratio='square'){
   } else if(style.decorPattern==='green-bar'){
     // Green bar on the left, top to bottom
     decor = `<rect x="0" y="0" width="14" height="${h}" fill="${style.accent}"/>`;
+  } else if(style.decorPattern==='sage-rule'){
+    // Hairline sage rule above the block — quiet, editorial
+    const lineY = blockTop - (ratio==='landscape' ? 36 : 56);
+    decor = `<line x1="${cx-40}" y1="${lineY}" x2="${cx+40}" y2="${lineY}" stroke="${style.accent}" stroke-width="0.5" opacity="0.8"/>`;
   }
 
   const labelSvg = labelLines.map((ln,i)=>
@@ -7071,6 +7148,8 @@ function renderQuoteCard(voice, quote, attribution='', ratio='square'){
     decor = `<line x1="${cx-80}" y1="${quoteTop + totalHeight + 40}" x2="${cx+80}" y2="${quoteTop + totalHeight + 40}" stroke="${style.accent}" stroke-width="1"/>`;
   } else if(style.decorPattern==='rose-accent'){
     decor = `<line x1="${cx-120}" y1="${quoteTop + totalHeight + 40}" x2="${cx+120}" y2="${quoteTop + totalHeight + 40}" stroke="${style.accent}" stroke-width="2" opacity="0.7"/>`;
+  } else if(style.decorPattern==='sage-rule'){
+    decor = `<line x1="${cx-40}" y1="${quoteTop + totalHeight + 40}" x2="${cx+40}" y2="${quoteTop + totalHeight + 40}" stroke="${style.accent}" stroke-width="0.5" opacity="0.8"/>`;
   }
 
   const quoteSvg = quoteLines.map((ln,i)=>
@@ -7489,7 +7568,7 @@ async function loadConceptsAsync(voice, extract, type, ratio){
 
   // Kick off all 3 in parallel
   const [unsplashResult, briefResult, aiResult] = await Promise.allSettled([
-    genUnsplashTerms(text),
+    genUnsplashTerms(text, voice),
     genDesignBrief(voice, voiceVibeLine, text, type, ratio),
     genAIPrompt(voice, voiceVibeLine, text, type),
   ]);
@@ -7526,10 +7605,19 @@ async function loadConceptsAsync(voice, extract, type, ratio){
   }
 }
 
-async function genUnsplashTerms(text){
+// ── Image generation brand contexts (voice-aware) ──
+const IMAGE_CONTEXTS = {
+  eridion: 'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
+  erika:   'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
+  dion:    'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
+  practice:'The Practice is the campaign platform of Quinta & Co., a business education brand for women entrepreneurs. The visual should feel quiet, editorial, and human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
+};
+
+async function genUnsplashTerms(text, voice){
+  const brandContext = IMAGE_CONTEXTS[voice] || IMAGE_CONTEXTS.eridion;
   const prompt=`Generate 3 Unsplash search queries to find a stock photo that supports this social-post stat/quote. Queries should be 2-4 words each, concrete and visual (not abstract concepts).
 
-Context: Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).
+Context: ${brandContext}
 
 STAT OR QUOTE: ${text}
 
@@ -7577,13 +7665,14 @@ Return the brief as plain text, no markdown fences.`;
 }
 
 async function genAIPrompt(voice, voiceVibe, text, type){
+  const brandContext = IMAGE_CONTEXTS[voice] || IMAGE_CONTEXTS.eridion;
   const prompt=`Write a polished AI image generation prompt (for DALL-E 3 / Midjourney / Adobe Firefly) to create a visual that supports this social-post ${type==='stat'?'stat':'quote'}:
 
 "${text}"
 
 Target voice: ${voiceVibe}
 
-Context: Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders ($1M+ homes). The image should feel premium and purposeful — NOT corny stock imagery, NOT obvious "infographic" styling, NOT human figures in the frame.
+Context: ${brandContext} The image should feel purposeful — NOT corny stock imagery, NOT obvious "infographic" styling, NOT human figures in the frame unless the brand context above explicitly invites them.
 
 Write a single paragraph (80-150 words) that includes: subject matter, composition, lighting, materials/textures, mood, stylistic references, and aspect ratio note. The prompt should be ready to paste straight into any AI image tool.
 
