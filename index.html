@@ -3443,7 +3443,7 @@ const BUCKET_TO_POV_SET = {
 // ── Init ──
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  loadKeys(); loadKB(); renderBuckets(); updateIndicators();
+  loadKeys(); wireAutoSaveKeys(); loadKB(); renderBuckets(); updateIndicators();
   loadLibrary(); renderLibrary();
   calWeekStart = getWeekStart(new Date()); renderCalendar();
 });
@@ -4988,11 +4988,14 @@ function loadKB(){
 function getKB(){
   return document.getElementById('kb-input').value.trim()||KB_DEFAULT;
 }
-function saveKeys(){
-  const uk=document.getElementById('unsplash-key').value;
-  const wk=document.getElementById('wix-key').value;
-  const ws=document.getElementById('wix-site-id').value;
-  const zw=document.getElementById('zapier-webhook').value;
+// Quiet persistence: write current field values to localStorage with no UI
+// side effects. Called by both the Save Keys button (via saveKeys) and the
+// auto-save oninput handlers wired in wireAutoSaveKeys().
+function _persistKeys(){
+  const uk=document.getElementById('unsplash-key')?.value;
+  const wk=document.getElementById('wix-key')?.value;
+  const ws=document.getElementById('wix-site-id')?.value;
+  const zw=document.getElementById('zapier-webhook')?.value;
   const ib=document.getElementById('imgbb-key')?.value;
   const bt=document.getElementById('buffer-token')?.value;
   const bp=document.getElementById('buffer-proxy-url')?.value;
@@ -5011,7 +5014,23 @@ function saveKeys(){
     eridion_ig:document.getElementById('ch-eridion-ig')?.value.trim()||'',
   };
   if(Object.values(channels).some(v=>v)) localStorage.setItem('buffer_channels',JSON.stringify(channels));
+}
+function saveKeys(){
+  _persistKeys();
   showToast('Keys saved','success'); updateIndicators();
+}
+// Wire all key/ID inputs to auto-persist on every keystroke. Idempotent —
+// safe to call multiple times. Called once after loadKeys() at DOM ready.
+function wireAutoSaveKeys(){
+  const ids = ['unsplash-key','wix-key','wix-site-id','zapier-webhook','imgbb-key',
+               'buffer-token','buffer-proxy-url',
+               'ch-eridion-li','ch-erika-li','ch-dion-li','ch-eridion-ig'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(!el || el.dataset.autosaveWired) return;
+    el.dataset.autosaveWired = '1';
+    el.addEventListener('input', _persistKeys);
+  });
 }
 function loadKeys(){
   const uk=localStorage.getItem('unsplash_key');
@@ -6584,6 +6603,8 @@ async function bufferGraphQL(query, variables){
 async function testBufferConnection(){
   const token = getBufferToken();
   if(!token){ showToast('Paste your Buffer token first','error'); return; }
+  // Persist whatever's in the fields so a refresh won't lose it
+  saveKeys();
   setBufferStatusLine('Testing connection...');
   try{
     const data = await bufferGraphQL(`query { account { id email organizations { id name } } }`);
@@ -6606,6 +6627,8 @@ async function testBufferConnection(){
 async function fetchBufferChannels(){
   const token = getBufferToken();
   if(!token){ showToast('Paste your Buffer token first','error'); return; }
+  // Persist whatever's in the fields so a refresh won't lose it
+  saveKeys();
   setBufferStatusLine('Fetching organizations...');
   try{
     const orgData = await bufferGraphQL(`query { account { organizations { id name } } }`);
@@ -6615,7 +6638,7 @@ async function fetchBufferChannels(){
     const orgId = orgs[0].id;
     setBufferStatusLine(`Found org "${orgs[0].name}", fetching channels...`);
     const chData = await bufferGraphQL(
-      `query GetChannels($orgId: String!) {
+      `query GetChannels($orgId: OrganizationId!) {
         channels(input: { organizationId: $orgId }) {
           id name displayName service
         }
