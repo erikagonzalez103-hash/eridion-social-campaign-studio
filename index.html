@@ -8178,4 +8178,70 @@ function renderDistribute() {
         '<div style="font-size:14px;font-weight:600;color:#1F2937;">' + ch.icon + ' ' + escapeDistrib(ch.label) + '</div>' +
         '<div style="font-size:10px;font-family:monospace;color:' + (overLimit ? '#DC2626' : '#6B7280') + ';">' + charCount + '/' + ch.maxChars + '</div>' +
       '</div>' +
-      '<button id="btn-gen-' + ch.id + '" onclick="generateChannelDraft(\'' + ch.id + '\')" style="background:#1F2937;color:white;border:none;border-rad
+      '<button id="btn-gen-' + ch.id + '" onclick="generateChannelDraft(\'' + ch.id + '\')" style="background:#1F2937;color:white;border:none;border-radius:6px;padding:7px 12px;font-size:12px;cursor:pointer;width:100%;">Generate for ' + escapeDistrib(ch.label) + '</button>' +
+      '<textarea id="text-' + ch.id + '" oninput="setChannelDraft(\'' + ch.id + '\', { text: this.value }); renderDistribCharCount(\'' + ch.id + '\')" placeholder="Generated draft will appear here. Edit freely." style="width:100%;min-height:140px;padding:10px;border:1px solid #E5E7EB;border-radius:6px;font-family:inherit;font-size:13px;resize:vertical;outline:none;background:#F9FAFB;">' + escapeDistrib(d.text || '') + '</textarea>' +
+      '<div style="display:flex;gap:6px;align-items:center;">' +
+        '<select onchange="applyPackToChannel(\'' + ch.id + '\', this.value); this.value=\'\'" style="flex:1;padding:6px;border:1px solid #E5E7EB;border-radius:6px;font-size:12px;background:white;">' + packsOpts + '</select>' +
+        '<button id="btn-ai-tags-' + ch.id + '" onclick="generateAIHashtags(\'' + ch.id + '\')" title="Generate hashtags with AI" style="background:transparent;border:1px solid #E5E7EB;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;color:#4B5563;">AI ✨</button>' +
+      '</div>' +
+      '<textarea id="tags-' + ch.id + '" oninput="setChannelDraft(\'' + ch.id + '\', { hashtags: this.value })" placeholder="#hashtags #here" style="width:100%;min-height:50px;padding:8px;border:1px solid #E5E7EB;border-radius:6px;font-family:monospace;font-size:11px;resize:vertical;outline:none;background:#F9FAFB;color:#2563EB;">' + escapeDistrib(d.hashtags || '') + '</textarea>' +
+      '<button id="btn-copy-' + ch.id + '" onclick="copyAndOpenChannel(\'' + ch.id + '\')" style="background:#2563EB;color:white;border:none;border-radius:6px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;width:100%;">📋 Copy + Open ' + escapeDistrib(ch.label.split(' — ')[0]) + '</button>' +
+    '</div>';
+  }).join('');
+
+  // Render packs list
+  var packsList = document.getElementById('distrib-packs-list');
+  if (packsList) {
+    if (!hashtagPacks.length) {
+      packsList.innerHTML = '<div style="font-size:12px;color:#6B7280;padding:8px;">No packs yet. Click + Add Pack.</div>';
+    } else {
+      packsList.innerHTML = hashtagPacks.map(function(p) {
+        return '<div style="display:flex;justify-content:space-between;align-items:center;background:white;border:1px solid #E5E7EB;border-radius:6px;padding:8px 12px;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:12px;font-weight:600;color:#1F2937;">' + escapeDistrib(p.name) + '</div>' +
+            '<div style="font-size:11px;color:#2563EB;font-family:monospace;margin-top:2px;overflow:hidden;text-overflow:ellipsis;">' + escapeDistrib(p.tags) + '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:4px;flex-shrink:0;">' +
+            '<button onclick="editHashtagPack(\'' + p.id + '\')" style="background:transparent;border:1px solid #E5E7EB;border-radius:4px;padding:4px 8px;font-size:10px;cursor:pointer;color:#4B5563;">Edit</button>' +
+            '<button onclick="deleteHashtagPack(\'' + p.id + '\')" style="background:transparent;border:1px solid #E5E7EB;border-radius:4px;padding:4px 8px;font-size:10px;cursor:pointer;color:#DC2626;">Delete</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+  }
+
+  // Settings — LinkedIn company URL
+  var liUrlInput = document.getElementById('distrib-li-company-url');
+  if (liUrlInput && !liUrlInput.value) liUrlInput.value = distribSettings.linkedin_company_url || '';
+
+  // Source content default — pre-fill from generatedLinkedIn if empty
+  var srcEl = document.getElementById('distrib-source');
+  if (srcEl && !srcEl.value && (typeof generatedLinkedIn !== 'undefined') && generatedLinkedIn) {
+    srcEl.value = generatedLinkedIn;
+  }
+}
+
+function renderDistribCharCount(chId) {
+  var d = getChannelDraft(chId);
+  var channel = DISTRIB_CHANNELS.find(function(c) { return c.id === chId; });
+  if (!channel) return;
+  var el = document.querySelector('#btn-gen-' + chId).parentElement.querySelector('div div:last-child');
+  if (!el) return;
+  var len = (document.getElementById('text-' + chId) || {}).value ? document.getElementById('text-' + chId).value.length : 0;
+  el.textContent = len + '/' + channel.maxChars;
+  el.style.color = len > channel.maxChars ? '#DC2626' : '#6B7280';
+}
+
+function escapeDistrib(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+function pullSourceFromMain() {
+  var srcEl = document.getElementById('distrib-source');
+  if (!srcEl) return;
+  if (typeof generatedLinkedIn !== 'undefined' && generatedLinkedIn) srcEl.value = generatedLinkedIn;
+  else if (typeof generatedBlog !== 'undefined' && generatedBlog) srcEl.value = generatedBlog;
+  else alert('No content on the main tab yet — generate a LinkedIn post or blog first.');
+}
+
+</script>
+</body>
+</html>
