@@ -325,6 +325,42 @@ textarea { min-height: 80px; line-height: 1.6; }
 .output-panel { min-height: 500px; }
 
 /* ── Tabs ───────────────────────────────────────────── */
+.tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--hairline);
+}
+.tabs-bar-lbl {
+  font-family: var(--font-subhead);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: var(--track-alta);
+  text-transform: uppercase;
+  color: var(--medium-gray);
+}
+.tabs-bar-select {
+  flex: 0 1 320px;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--navy);
+  background: var(--white);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='%23223355' d='M2 4l4 4 4-4z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+.tabs-bar-select:hover { border-color: var(--navy); }
+.tabs-bar-select:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(34,51,85,0.1); }
 .tabs {
   display: flex;
   gap: 0; margin-bottom: 0;
@@ -1081,7 +1117,7 @@ textarea { min-height: 80px; line-height: 1.6; }
   color: var(--navy);
   letter-spacing: -0.015em;
 }
-.lib-filters { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.lib-filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
 .lib-filter-lbl {
   font-family: var(--font-subhead);
   font-size: 10px; font-weight: 600;
@@ -1090,6 +1126,24 @@ textarea { min-height: 80px; line-height: 1.6; }
   color: var(--medium-gray);
   margin-right: 2px;
 }
+.lib-select {
+  padding: 7px 28px 7px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--navy);
+  background: var(--white);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 5px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'><path fill='%23223355' d='M2 4l4 4 4-4z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.lib-select:hover { border-color: var(--navy); }
+.lib-select:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(34,51,85,0.1); }
 .lib-chip {
   padding: 6px 12px;
   font-family: var(--font-subhead);
@@ -2497,16 +2551,19 @@ textarea { min-height: 80px; line-height: 1.6; }
 
     <div>
       <div class="panel output-panel">
-        <div class="tabs">
-          <div class="tab active" onclick="switchTab('today')">☀️ Today</div>
-          <div class="tab" onclick="switchTab('research')">🔬 Research</div>
-          <div class="tab" onclick="switchTab('linkedin')">LinkedIn</div>
-          <div class="tab" onclick="switchTab('blog')">Blog Post</div>
-          <div class="tab" onclick="switchTab('library')">📚 Library</div>
-          <div class="tab" onclick="switchTab('calendar')">📆 Calendar</div>
-          <div class="tab" onclick="switchTab('image')">Image</div>
-          <div class="tab" onclick="switchTab('briefing')">🎙 Briefing</div>
-          <div class="tab" onclick="switchTab('distribute')">📤 Distribute</div>
+        <div class="tabs-bar">
+          <label class="tabs-bar-lbl" for="main-tab-select">View:</label>
+          <select id="main-tab-select" class="tabs-bar-select" onchange="switchTab(this.value)">
+            <option value="today">☀️ Today</option>
+            <option value="research">🔬 Research</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="blog">Blog Post</option>
+            <option value="library">📚 Library</option>
+            <option value="calendar">📆 Calendar</option>
+            <option value="image">Image</option>
+            <option value="briefing">🎙 Briefing</option>
+            <option value="distribute">📤 Distribute</option>
+          </select>
         </div>
 
         <!-- Morning Brief Banner (shows on every tab when posts due today) -->
@@ -2805,7 +2862,7 @@ textarea { min-height: 80px; line-height: 1.6; }
               <div class="lib-title">Content Library</div>
               <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Everything you've generated — persisted across sessions</div>
             </div>
-            <div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
               <button class="action-btn" onclick="saveCurrentToLibrary()">+ Save Current Draft</button>
               <button class="action-btn primary" onclick="openLogPostModal()">📝 Log Past Post</button>
               <button class="action-btn" onclick="triggerImportLibrary()">Import JSON</button>
@@ -2813,17 +2870,21 @@ textarea { min-height: 80px; line-height: 1.6; }
             </div>
           </div>
           <div class="lib-filters">
-            <span class="lib-filter-lbl">Voice:</span>
-            <button class="lib-chip active" data-filter="voice" data-val="all" onclick="setLibFilter('voice','all')">All</button>
-            <button class="lib-chip" data-filter="voice" data-val="eridion" onclick="setLibFilter('voice','eridion')">Eridion</button>
-            <button class="lib-chip" data-filter="voice" data-val="erika" onclick="setLibFilter('voice','erika')">Erika</button>
-            <button class="lib-chip" data-filter="voice" data-val="dion" onclick="setLibFilter('voice','dion')">Dion</button>
-            <button class="lib-chip" data-filter="voice" data-val="practice" onclick="setLibFilter('voice','practice')">Practice</button>
-            <span class="lib-filter-lbl" style="margin-left:14px">Status:</span>
-            <button class="lib-chip active" data-filter="status" data-val="all" onclick="setLibFilter('status','all')">All</button>
-            <button class="lib-chip" data-filter="status" data-val="draft" onclick="setLibFilter('status','draft')">Draft</button>
-            <button class="lib-chip" data-filter="status" data-val="scheduled" onclick="setLibFilter('status','scheduled')">Scheduled</button>
-            <button class="lib-chip" data-filter="status" data-val="posted" onclick="setLibFilter('status','posted')">Posted</button>
+            <label class="lib-filter-lbl" for="lib-voice-select">Voice:</label>
+            <select id="lib-voice-select" class="lib-select" onchange="setLibFilter('voice', this.value)">
+              <option value="all">All</option>
+              <option value="eridion">Eridion</option>
+              <option value="erika">Erika</option>
+              <option value="dion">Dion</option>
+              <option value="practice">Practice</option>
+            </select>
+            <label class="lib-filter-lbl" for="lib-status-select" style="margin-left:14px">Status:</label>
+            <select id="lib-status-select" class="lib-select" onchange="setLibFilter('status', this.value)">
+              <option value="all">All</option>
+              <option value="draft">Draft</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="posted">Posted</option>
+            </select>
           </div>
           <div class="lib-grid" id="lib-grid"></div>
         </div>
@@ -3474,8 +3535,10 @@ const toneMap={market:'authoritative',didyouknow:'educational',labor:'authoritat
 }
 
 function switchTab(tab) {
-  const names=['today','research','linkedin','blog','library','calendar','image','briefing','distribute'];
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===tab));
+  // Sync the dropdown (no-op if user already chose via dropdown; required
+  // for code paths like "Open Calendar" links that call switchTab directly).
+  const sel = document.getElementById('main-tab-select');
+  if(sel && sel.value !== tab) sel.value = tab;
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');
   if(tab==='today') renderToday();
@@ -6100,7 +6163,11 @@ function saveCurrentToLibrary(){
 
 function setLibFilter(kind,val){
   libFilters[kind]=val;
-  document.querySelectorAll(`.lib-chip[data-filter="${kind}"]`).forEach(el=>el.classList.toggle('active',el.dataset.val===val));
+  // Sync the dropdown value (handles programmatic calls; harmless if user
+  // already chose via the dropdown's onchange).
+  const selId = kind === 'voice' ? 'lib-voice-select' : 'lib-status-select';
+  const sel = document.getElementById(selId);
+  if(sel && sel.value !== val) sel.value = val;
   renderLibrary();
 }
 
