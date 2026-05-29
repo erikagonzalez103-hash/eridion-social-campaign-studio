@@ -341,9 +341,24 @@ textarea { min-height: 80px; line-height: 1.6; }
   text-transform: uppercase;
   color: var(--medium-gray);
 }
+/* Wrapper that overlays a guaranteed-visible chevron on top of a native select.
+   Wrapping is the most reliable way — inline-SVG backgrounds on selects don't
+   render in every browser. */
+.select-wrap { position: relative; display: inline-block; }
+.select-wrap::after {
+  content: '▾';
+  position: absolute;
+  right: 12px; top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--navy);
+  font-size: 12px;
+  line-height: 1;
+}
+.tabs-bar-wrap { flex: 0 1 320px; }
+.tabs-bar-wrap select { width: 100%; }
 .tabs-bar-select {
-  flex: 0 1 320px;
-  padding: 10px 14px;
+  padding: 10px 36px 10px 14px;
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 500;
@@ -353,11 +368,9 @@ textarea { min-height: 80px; line-height: 1.6; }
   border-radius: 6px;
   cursor: pointer;
   outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='%23223355' d='M2 4l4 4 4-4z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
 }
 .tabs-bar-select:hover { border-color: var(--navy); }
 .tabs-bar-select:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(34,51,85,0.1); }
@@ -1137,10 +1150,9 @@ textarea { min-height: 80px; line-height: 1.6; }
   border-radius: 5px;
   cursor: pointer;
   outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'><path fill='%23223355' d='M2 4l4 4 4-4z'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
 }
 .lib-select:hover { border-color: var(--navy); }
 .lib-select:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(34,51,85,0.1); }
@@ -1243,31 +1255,73 @@ textarea { min-height: 80px; line-height: 1.6; }
 .lib-card-snippet.expanded { max-height: none; }
 .lib-card-actions {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 6px;
-}
-.lib-card-action-group {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: var(--off-white);
-  border-radius: 6px;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
 }
-.lib-card-action-lbl {
+.lib-menu { position: relative; }
+.lib-menu-spacer { flex: 0; }
+.lib-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
   font-family: var(--font-subhead);
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: var(--track-alta);
   text-transform: uppercase;
-  color: var(--medium-gray);
-  min-width: 64px;
+  color: var(--navy);
+  background: var(--white);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 130px;
+  justify-content: space-between;
 }
+.lib-menu-btn:hover { border-color: var(--navy); background: var(--off-white); }
+.lib-menu-btn.primary {
+  background: var(--green);
+  color: var(--white);
+  border-color: var(--green);
+}
+.lib-menu-btn.primary:hover { background: var(--green-deep); border-color: var(--green-deep); }
+.lib-menu-caret { font-size: 10px; opacity: 0.7; }
+.lib-menu-items {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 200px;
+  background: var(--white);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  padding: 6px;
+  z-index: 100;
+}
+.lib-menu.open .lib-menu-items { display: block; }
+.lib-menu-item {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--navy);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.lib-menu-item:hover { background: var(--off-white); }
 .lib-card-delete {
   color: var(--medium-gray) !important;
   border-color: var(--hairline-strong) !important;
+  padding: 9px 16px !important;
 }
 .lib-card-delete:hover {
   color: #DC2626 !important;
@@ -2584,17 +2638,19 @@ textarea { min-height: 80px; line-height: 1.6; }
       <div class="panel output-panel">
         <div class="tabs-bar">
           <label class="tabs-bar-lbl" for="main-tab-select">View:</label>
-          <select id="main-tab-select" class="tabs-bar-select" onchange="switchTab(this.value)">
-            <option value="today">☀️ Today</option>
-            <option value="research">🔬 Research</option>
-            <option value="linkedin">LinkedIn</option>
-            <option value="blog">Blog Post</option>
-            <option value="library">📚 Library</option>
-            <option value="calendar">📆 Calendar</option>
-            <option value="image">Image</option>
-            <option value="briefing">🎙 Briefing</option>
-            <option value="distribute">📤 Distribute</option>
-          </select>
+          <div class="select-wrap tabs-bar-wrap">
+            <select id="main-tab-select" class="tabs-bar-select" onchange="switchTab(this.value)">
+              <option value="today">☀️ Today</option>
+              <option value="research">🔬 Research</option>
+              <option value="linkedin">💼 LinkedIn</option>
+              <option value="blog">📝 Blog Post</option>
+              <option value="library">📚 Library</option>
+              <option value="calendar">📆 Calendar</option>
+              <option value="image">🖼 Image</option>
+              <option value="briefing">🎙 Briefing</option>
+              <option value="distribute">📤 Distribute</option>
+            </select>
+          </div>
         </div>
 
         <!-- Morning Brief Banner (shows on every tab when posts due today) -->
@@ -2902,20 +2958,24 @@ textarea { min-height: 80px; line-height: 1.6; }
           </div>
           <div class="lib-filters">
             <label class="lib-filter-lbl" for="lib-voice-select">Voice:</label>
-            <select id="lib-voice-select" class="lib-select" onchange="setLibFilter('voice', this.value)">
-              <option value="all">All</option>
-              <option value="eridion">Eridion</option>
-              <option value="erika">Erika</option>
-              <option value="dion">Dion</option>
-              <option value="practice">Practice</option>
-            </select>
+            <div class="select-wrap">
+              <select id="lib-voice-select" class="lib-select" onchange="setLibFilter('voice', this.value)">
+                <option value="all">All</option>
+                <option value="eridion">Eridion</option>
+                <option value="erika">Erika</option>
+                <option value="dion">Dion</option>
+                <option value="practice">Practice</option>
+              </select>
+            </div>
             <label class="lib-filter-lbl" for="lib-status-select" style="margin-left:14px">Status:</label>
-            <select id="lib-status-select" class="lib-select" onchange="setLibFilter('status', this.value)">
-              <option value="all">All</option>
-              <option value="draft">Draft</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="posted">Posted</option>
-            </select>
+            <div class="select-wrap">
+              <select id="lib-status-select" class="lib-select" onchange="setLibFilter('status', this.value)">
+                <option value="all">All</option>
+                <option value="draft">Draft</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="posted">Posted</option>
+              </select>
+            </div>
           </div>
           <div class="lib-grid" id="lib-grid"></div>
         </div>
@@ -6202,6 +6262,25 @@ function setLibFilter(kind,val){
   renderLibrary();
 }
 
+// Library card action dropdowns. toggleLibMenu opens the menu attached to
+// the clicked button, closing any other open menu first. closeLibMenus
+// closes everything. A document-level click handler closes menus when the
+// user clicks anywhere outside an open one.
+function toggleLibMenu(evt, btn){
+  evt.stopPropagation();
+  const menu = btn.closest('.lib-menu');
+  if(!menu) return;
+  const wasOpen = menu.classList.contains('open');
+  closeLibMenus();
+  if(!wasOpen) menu.classList.add('open');
+}
+function closeLibMenus(){
+  document.querySelectorAll('.lib-menu.open').forEach(m => m.classList.remove('open'));
+}
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('.lib-menu')) closeLibMenus();
+});
+
 function renderLibrary(){
   // Side-effect: keep Today view and morning banner in sync with library state
   if(typeof renderToday==='function') renderToday();
@@ -6246,28 +6325,34 @@ function renderLibrary(){
         <div class="lib-card-title">${escapeHTML(it.title||'Untitled')}</div>
         <div class="lib-card-snippet">${escapeHTML(preview)}${preview.length>=240?'…':''}</div>
         <div class="lib-card-actions">
-          <div class="lib-card-action-group">
-            <span class="lib-card-action-lbl">Edit</span>
-            <button class="action-btn" onclick="loadFromLibrary('${it.id}')">Load</button>
-            <button class="action-btn" onclick="copyFromLibrary('${it.id}')">Copy Text</button>
-            <button class="action-btn" onclick="openImageAttachModal('${it.id}')" style="${hasImage?'color:var(--green-deep);border-color:var(--green)':'color:var(--navy);border-color:var(--navy-soft)'}">🖼 ${hasImage?'Edit Image':'Add Image'}</button>
+          <div class="lib-menu">
+            <button class="lib-menu-btn" onclick="toggleLibMenu(event,this)">Edit <span class="lib-menu-caret">▾</span></button>
+            <div class="lib-menu-items">
+              <button class="lib-menu-item" onclick="loadFromLibrary('${it.id}');closeLibMenus()">Load</button>
+              <button class="lib-menu-item" onclick="copyFromLibrary('${it.id}');closeLibMenus()">Copy Text</button>
+              <button class="lib-menu-item" onclick="openImageAttachModal('${it.id}');closeLibMenus()">🖼 ${hasImage?'Edit Image':'Add Image'}</button>
+            </div>
           </div>
           ${((it.blog_text&&it.blog_text.length>200)||(it.linkedin_text&&it.linkedin_text.length>200))?`
-          <div class="lib-card-action-group">
-            <span class="lib-card-action-lbl">Transform</span>
-            <button class="action-btn" onclick="openSpinSnippetModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Snippet</button>
-            <button class="action-btn" onclick="openSpinWeekModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Week</button>
-            <button class="action-btn" onclick="openImageIdeasModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">🎨 Image Ideas</button>
-          </div>`:''}
-          <div class="lib-card-action-group">
-            <span class="lib-card-action-lbl">Publish</span>
-            <button class="action-btn" onclick="pushPostToBuffer('${it.id}')" style="color:var(--green-deep);border-color:var(--green)">🚀 Push to Buffer</button>
-            <button class="action-btn primary" onclick="openSchedModal('${it.id}')">${it.status==='scheduled'?'Reschedule':'Schedule'}</button>
-            ${it.status==='scheduled'?`<button class="action-btn" onclick="unschedule('${it.id}')">Unschedule</button>`:''}
-            <button class="action-btn" onclick="markPosted('${it.id}')">Mark Posted</button>
-            <span style="flex:1"></span>
-            <button class="action-btn lib-card-delete" onclick="deleteFromLibrary('${it.id}')">Delete</button>
+          <div class="lib-menu">
+            <button class="lib-menu-btn" onclick="toggleLibMenu(event,this)">Transform <span class="lib-menu-caret">▾</span></button>
+            <div class="lib-menu-items">
+              <button class="lib-menu-item" onclick="openSpinSnippetModal('${it.id}');closeLibMenus()">✦ Spin Snippet</button>
+              <button class="lib-menu-item" onclick="openSpinWeekModal('${it.id}');closeLibMenus()">✦ Spin Week</button>
+              <button class="lib-menu-item" onclick="openImageIdeasModal('${it.id}');closeLibMenus()">🎨 Image Ideas</button>
+            </div>
+          </div>`:'<div class="lib-menu-spacer"></div>'}
+          <div class="lib-menu">
+            <button class="lib-menu-btn primary" onclick="toggleLibMenu(event,this)">Publish <span class="lib-menu-caret">▾</span></button>
+            <div class="lib-menu-items">
+              <button class="lib-menu-item" onclick="pushPostToBuffer('${it.id}');closeLibMenus()" style="color:var(--green-deep)">🚀 Push to Buffer</button>
+              <button class="lib-menu-item" onclick="openSchedModal('${it.id}');closeLibMenus()">📆 ${it.status==='scheduled'?'Reschedule':'Schedule'}</button>
+              ${it.status==='scheduled'?`<button class="lib-menu-item" onclick="unschedule('${it.id}');closeLibMenus()">Unschedule</button>`:''}
+              <button class="lib-menu-item" onclick="markPosted('${it.id}');closeLibMenus()">✓ Mark Posted</button>
+            </div>
           </div>
+          <span style="flex:1"></span>
+          <button class="action-btn lib-card-delete" onclick="deleteFromLibrary('${it.id}')">Delete</button>
         </div>
       </div>
     `;
