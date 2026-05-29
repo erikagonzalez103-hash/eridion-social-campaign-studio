@@ -1158,11 +1158,11 @@ textarea { min-height: 80px; line-height: 1.6; }
 }
 .lib-chip:hover { color: var(--navy); border-color: var(--navy); }
 .lib-chip.active { color: var(--white); border-color: var(--navy); background: var(--navy); }
-.lib-grid { display: flex; flex-direction: column; gap: 10px; }
+.lib-grid { display: flex; flex-direction: column; gap: 16px; }
 .lib-card {
   background: var(--white);
   border: 1px solid var(--hairline);
-  padding: 16px 18px;
+  padding: 22px 24px;
   transition: border-color 0.15s;
 }
 .lib-card:hover { border-color: var(--hairline-strong); }
@@ -1241,7 +1241,38 @@ textarea { min-height: 80px; line-height: 1.6; }
   margin-bottom: 10px;
 }
 .lib-card-snippet.expanded { max-height: none; }
-.lib-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.lib-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+.lib-card-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--off-white);
+  border-radius: 6px;
+}
+.lib-card-action-lbl {
+  font-family: var(--font-subhead);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: var(--track-alta);
+  text-transform: uppercase;
+  color: var(--medium-gray);
+  min-width: 64px;
+}
+.lib-card-delete {
+  color: var(--medium-gray) !important;
+  border-color: var(--hairline-strong) !important;
+}
+.lib-card-delete:hover {
+  color: #DC2626 !important;
+  border-color: #DC2626 !important;
+}
 .lib-empty {
   padding: 48px 24px;
   text-align: center;
@@ -6215,14 +6246,28 @@ function renderLibrary(){
         <div class="lib-card-title">${escapeHTML(it.title||'Untitled')}</div>
         <div class="lib-card-snippet">${escapeHTML(preview)}${preview.length>=240?'…':''}</div>
         <div class="lib-card-actions">
-          <button class="action-btn" onclick="loadFromLibrary('${it.id}')">Load</button>
-          <button class="action-btn" onclick="copyFromLibrary('${it.id}')">Copy Text</button>
-          <button class="action-btn" onclick="openImageAttachModal('${it.id}')" style="${hasImage?'color:var(--green-deep);border-color:var(--green)':'color:var(--navy);border-color:var(--navy-soft)'}">🖼 ${hasImage?'Edit Image':'Add Image'}</button>
-          ${((it.blog_text&&it.blog_text.length>200)||(it.linkedin_text&&it.linkedin_text.length>200))?`<button class="action-btn" onclick="openSpinSnippetModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Snippet</button><button class="action-btn" onclick="openSpinWeekModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Week</button><button class="action-btn" onclick="openImageIdeasModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">🎨 Image Ideas</button>`:''}
-          <button class="action-btn primary" onclick="openSchedModal('${it.id}')">${it.status==='scheduled'?'Reschedule':'Schedule'}</button>
-          ${it.status==='scheduled'?`<button class="action-btn" onclick="unschedule('${it.id}')">Unschedule</button>`:''}
-          <button class="action-btn" onclick="markPosted('${it.id}')">Mark Posted</button>
-          <button class="action-btn" onclick="deleteFromLibrary('${it.id}')">Delete</button>
+          <div class="lib-card-action-group">
+            <span class="lib-card-action-lbl">Edit</span>
+            <button class="action-btn" onclick="loadFromLibrary('${it.id}')">Load</button>
+            <button class="action-btn" onclick="copyFromLibrary('${it.id}')">Copy Text</button>
+            <button class="action-btn" onclick="openImageAttachModal('${it.id}')" style="${hasImage?'color:var(--green-deep);border-color:var(--green)':'color:var(--navy);border-color:var(--navy-soft)'}">🖼 ${hasImage?'Edit Image':'Add Image'}</button>
+          </div>
+          ${((it.blog_text&&it.blog_text.length>200)||(it.linkedin_text&&it.linkedin_text.length>200))?`
+          <div class="lib-card-action-group">
+            <span class="lib-card-action-lbl">Transform</span>
+            <button class="action-btn" onclick="openSpinSnippetModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Snippet</button>
+            <button class="action-btn" onclick="openSpinWeekModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Week</button>
+            <button class="action-btn" onclick="openImageIdeasModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">🎨 Image Ideas</button>
+          </div>`:''}
+          <div class="lib-card-action-group">
+            <span class="lib-card-action-lbl">Publish</span>
+            <button class="action-btn" onclick="pushPostToBuffer('${it.id}')" style="color:var(--green-deep);border-color:var(--green)">🚀 Push to Buffer</button>
+            <button class="action-btn primary" onclick="openSchedModal('${it.id}')">${it.status==='scheduled'?'Reschedule':'Schedule'}</button>
+            ${it.status==='scheduled'?`<button class="action-btn" onclick="unschedule('${it.id}')">Unschedule</button>`:''}
+            <button class="action-btn" onclick="markPosted('${it.id}')">Mark Posted</button>
+            <span style="flex:1"></span>
+            <button class="action-btn lib-card-delete" onclick="deleteFromLibrary('${it.id}')">Delete</button>
+          </div>
         </div>
       </div>
     `;
