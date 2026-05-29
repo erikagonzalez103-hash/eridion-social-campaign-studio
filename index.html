@@ -6901,7 +6901,7 @@ function _composeText(item, channelKind){
 // Single createPost call: schedules a post on a specific channel at a
 // specific time, optionally with one image attached. Returns the new
 // Buffer post ID on success, throws on failure.
-async function createBufferPost({channelId, text, imageUrl, scheduledForIso}){
+async function createBufferPost({channelId, text, imageUrl, scheduledForIso, channelKind}){
   // Build the GraphQL mutation. Use variables for everything user-supplied
   // to avoid escaping issues (especially in the post text).
   const mutation = `
@@ -6925,6 +6925,11 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso}){
     // See migration guide: developers.buffer.com/guides/assets-input-migration.html
     input.assets = [{ image: { url: imageUrl } }];
   }
+  // Instagram requires an explicit type field (post / story / reel). We
+  // default to "post" — standard feed post — for any IG channel push.
+  if(channelKind === 'instagram'){
+    input.type = 'post';
+  }
   // Try inline-literal mode first since Buffer's docs use enum literals
   // (`automatic`, `customScheduled`) which can be tricky as variables.
   // Fallback: build the query inline if variables fail.
@@ -6937,6 +6942,7 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso}){
         schedulingType: automatic,
         mode: customScheduled,
         dueAt: ${JSON.stringify(scheduledForIso)}
+        ${channelKind==='instagram'?`, type: post`:''}
         ${imageUrl?`, assets: [{ image: { url: ${JSON.stringify(imageUrl)} } }]`:''}
       }) {
         ... on PostActionSuccess { post { id } }
@@ -6969,7 +6975,7 @@ async function pushSinglePost(item){
   } else {
     try{
       const liText = _composeText(item, 'linkedin');
-      await createBufferPost({channelId: liChannelId, text: liText, imageUrl, scheduledForIso});
+      await createBufferPost({channelId: liChannelId, text: liText, imageUrl, scheduledForIso, channelKind: 'linkedin'});
       result.linkedin = true;
     }catch(e){
       result.errors.push(`LI: ${e.message}`);
@@ -6984,7 +6990,7 @@ async function pushSinglePost(item){
       result.instagram = 'oversize';
     } else {
       try{
-        await createBufferPost({channelId: igChannelId, text: igText, imageUrl, scheduledForIso});
+        await createBufferPost({channelId: igChannelId, text: igText, imageUrl, scheduledForIso, channelKind: 'instagram'});
         result.instagram = true;
       }catch(e){
         result.instagram = 'error';
