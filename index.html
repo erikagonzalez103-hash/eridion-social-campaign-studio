@@ -6514,7 +6514,8 @@ function copyWeekForBuffer(){
 // Architecture: studio → Buffer GraphQL endpoint directly. No Zapier middleman.
 // Why: the Zapier "Buffer Add to Queue" connector silently drops media on
 // LinkedIn. The new Buffer GraphQL API supports media as a first-class
-// `assets.images[].url` field that reliably attaches.
+// `assets[].image.url` field that reliably attaches (new shape, post
+// May 25, 2026 breaking change).
 //
 // Endpoint: https://api.buffer.com (POST, GraphQL body, Bearer token auth)
 // Token expires per Buffer's settings (max 1 year). User regenerates and
@@ -6649,20 +6650,30 @@ async function fetchBufferChannels(){
     if(!channels.length) throw new Error('No channels connected to this Buffer account');
 
     // Match heuristics: service tells us LI vs IG; name/displayName tells us
-    // which of our 3 voices.
+    // which of our 3 voices. Patterns must be unique per voice — e.g. don't
+    // include 'harrison' for Erika because Dion's channel also matches it.
+    // Once a channel is claimed by one voice, it's removed from the pool so
+    // it can't be assigned to another.
+    const claimed = new Set();
     function findChannel(service, namePatterns){
       const sLower = service.toLowerCase();
       for(const ch of channels){
+        if(claimed.has(ch.id)) continue;
         if((ch.service||'').toLowerCase() !== sLower) continue;
         const hay = `${ch.name||''} ${ch.displayName||''}`.toLowerCase();
-        if(namePatterns.some(p => hay.includes(p))) return ch;
+        if(namePatterns.some(p => hay.includes(p))){
+          claimed.add(ch.id);
+          return ch;
+        }
       }
       return null;
     }
 
+    // Match most-specific patterns first so a generic pattern can't steal
+    // a channel that a more specific one would have claimed.
     const eridionLi = findChannel('linkedin', ['eridion']);
-    const erikaLi   = findChannel('linkedin', ['erika','harrison']);
     const dionLi    = findChannel('linkedin', ['dion']);
+    const erikaLi   = findChannel('linkedin', ['erika']);
     const eridionIg = findChannel('instagram', ['eridion']);
 
     const found = [];
@@ -6771,7 +6782,10 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso}){
     dueAt: scheduledForIso,
   };
   if(imageUrl){
-    input.assets = { images: [{ url: imageUrl }] };
+    // Buffer API breaking change effective May 25, 2026: assets changed
+    // from { images: [{ url }] } to an ordered array [{ image: { url } }].
+    // See migration guide: developers.buffer.com/guides/assets-input-migration.html
+    input.assets = [{ image: { url: imageUrl } }];
   }
   // Try inline-literal mode first since Buffer's docs use enum literals
   // (`automatic`, `customScheduled`) which can be tricky as variables.
@@ -6785,7 +6799,7 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso}){
         schedulingType: automatic,
         mode: customScheduled,
         dueAt: ${JSON.stringify(scheduledForIso)}
-        ${imageUrl?`, assets: { images: [{ url: ${JSON.stringify(imageUrl)} }] }`:''}
+        ${imageUrl?`, assets: [{ image: { url: ${JSON.stringify(imageUrl)} } }]`:''}
       }) {
         ... on PostActionSuccess { post { id } }
         ... on MutationError { message }
