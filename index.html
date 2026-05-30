@@ -1461,6 +1461,106 @@ textarea { min-height: 80px; line-height: 1.6; }
   overflow-y: auto;
   box-shadow: 0 24px 60px rgba(31, 42, 74, 0.18);
 }
+/* Buffer Preview modal — per-channel preview cards */
+.bp-card {
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: var(--white);
+  transition: opacity 0.15s, border-color 0.15s;
+}
+.bp-card.disabled { opacity: 0.45; }
+.bp-card.disabled .bp-card-body { filter: grayscale(40%); }
+.bp-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.bp-card-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navy);
+  cursor: pointer;
+  user-select: none;
+}
+.bp-card-toggle input { cursor: pointer; }
+.bp-card-channel {
+  font-family: var(--font-subhead);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--track-alta);
+  text-transform: uppercase;
+  color: var(--navy);
+}
+.bp-card-spacer { flex: 1; }
+.bp-card-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.bp-card-type select {
+  padding: 4px 22px 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--navy);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.bp-card-body {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.bp-card-img {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--off-white);
+  border: 1px solid var(--hairline);
+}
+.bp-card-img.missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--text-muted);
+}
+.bp-card-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.bp-card-meta {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.bp-card-meta .over { color: #DC2626; font-weight: 600; }
+.bp-card.disabled .bp-card-body,
+.bp-card.disabled .bp-card-meta { pointer-events: none; }
 .sched-modal-title {
   font-family: var(--font-display);
   font-size: 24px;
@@ -3086,6 +3186,21 @@ textarea { min-height: 80px; line-height: 1.6; }
               <button class="launch-btn buffer" onclick="pushPostToBuffer(viewingPostId)" style="background:var(--green);border-color:var(--green);color:var(--white)">🚀 Push to Buffer</button>
               <button class="action-btn" onclick="viewPostGoToLibrary()">↩ Return to Editor</button>
               <button class="action-btn" onclick="closeViewPostModal()" style="margin-left:auto">Close</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buffer Preview Modal — shows per-channel previews and lets the
+             user toggle channels + pick IG type before the actual push. -->
+        <div class="sched-modal" id="buffer-preview-modal">
+          <div class="sched-modal-inner" style="max-width:720px">
+            <div class="sched-modal-title">Preview & Push to Buffer</div>
+            <div id="buffer-preview-when" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:14px"></div>
+            <div id="buffer-preview-channels" style="display:flex;flex-direction:column;gap:14px;margin-bottom:18px"></div>
+            <div id="buffer-preview-warning" style="display:none;background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;padding:10px 14px;border-radius:6px;font-size:12px;margin-bottom:14px"></div>
+            <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end">
+              <button class="action-btn" onclick="closeBufferPreviewModal()">Cancel</button>
+              <button class="action-btn" id="buffer-preview-confirm" onclick="confirmBufferPush()" style="background:var(--green);border-color:var(--green);color:var(--white);font-weight:600;padding:10px 20px">🚀 Confirm & Push</button>
             </div>
           </div>
         </div>
@@ -6901,7 +7016,7 @@ function _composeText(item, channelKind){
 // Single createPost call: schedules a post on a specific channel at a
 // specific time, optionally with one image attached. Returns the new
 // Buffer post ID on success, throws on failure.
-async function createBufferPost({channelId, text, imageUrl, scheduledForIso, channelKind}){
+async function createBufferPost({channelId, text, imageUrl, scheduledForIso, channelKind, igType}){
   // Build the GraphQL mutation. Use variables for everything user-supplied
   // to avoid escaping issues (especially in the post text).
   const mutation = `
@@ -6925,10 +7040,11 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso, cha
     // See migration guide: developers.buffer.com/guides/assets-input-migration.html
     input.assets = [{ image: { url: imageUrl } }];
   }
-  // Instagram requires an explicit type field (post / story / reel). We
-  // default to "post" — standard feed post — for any IG channel push.
-  if(channelKind === 'instagram'){
-    input.type = 'post';
+  // Instagram requires an explicit type field (post / story / reel). The
+  // value comes from the Preview & Push modal; defaults to "post".
+  const igTypeValue = (channelKind === 'instagram') ? (igType || 'post') : null;
+  if(igTypeValue){
+    input.type = igTypeValue;
   }
   // Try inline-literal mode first since Buffer's docs use enum literals
   // (`automatic`, `customScheduled`) which can be tricky as variables.
@@ -6942,7 +7058,7 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso, cha
         schedulingType: automatic,
         mode: customScheduled,
         dueAt: ${JSON.stringify(scheduledForIso)}
-        ${channelKind==='instagram'?`, type: post`:''}
+        ${igTypeValue?`, type: ${igTypeValue}`:''}
         ${imageUrl?`, assets: [{ image: { url: ${JSON.stringify(imageUrl)} } }]`:''}
       }) {
         ... on PostActionSuccess { post { id } }
@@ -6962,50 +7078,61 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso, cha
 // Unified path: push a single post to LinkedIn (always) and Instagram
 // (if Eridion IG configured AND the post fits IG's char limit). Returns
 // {linkedin: bool, instagram: bool|'skipped'|'error', errors: [...]}.
-async function pushSinglePost(item){
+async function pushSinglePost(item, opts){
+  // Preview-modal options: which channels to push, and IG type. Defaults
+  // preserve the pre-modal behavior so any other callers still work.
+  const includeLinkedin  = !opts || opts.includeLinkedin !== false;
+  const includeInstagram = !opts || opts.includeInstagram !== false;
+  const igType = (opts && opts.igType) || 'post';
   const voice = item.scheduled_account||item.voice||'eridion';
   const imageUrl = item.selectedImageUrl||item.image_url||null;
   const scheduledForIso = new Date(item.scheduled_for||Date.now()).toISOString();
   const result = { linkedin:false, instagram:'skipped', errors:[] };
 
-  // LinkedIn — always attempt
-  const liChannelId = getChannelIdFor(voice, 'linkedin');
-  if(!liChannelId){
-    result.errors.push(`No LinkedIn channel ID configured for "${voice}"`);
-  } else {
-    try{
-      const liText = _composeText(item, 'linkedin');
-      await createBufferPost({channelId: liChannelId, text: liText, imageUrl, scheduledForIso, channelKind: 'linkedin'});
-      result.linkedin = true;
-    }catch(e){
-      result.errors.push(`LI: ${e.message}`);
+  // LinkedIn
+  if(includeLinkedin){
+    const liChannelId = getChannelIdFor(voice, 'linkedin');
+    if(!liChannelId){
+      result.errors.push(`No LinkedIn channel ID configured for "${voice}"`);
+    } else {
+      try{
+        const liText = _composeText(item, 'linkedin');
+        await createBufferPost({channelId: liChannelId, text: liText, imageUrl, scheduledForIso, channelKind: 'linkedin'});
+        result.linkedin = true;
+      }catch(e){
+        result.errors.push(`LI: ${e.message}`);
+      }
     }
   }
 
-  // Instagram — only if configured AND text fits
-  const igChannelId = getChannelIdFor(voice, 'instagram');
-  if(igChannelId){
-    const igText = _composeText(item, 'instagram');
-    if(igText.length > IG_CHAR_LIMIT){
-      result.instagram = 'oversize';
-    } else {
-      try{
-        await createBufferPost({channelId: igChannelId, text: igText, imageUrl, scheduledForIso, channelKind: 'instagram'});
-        result.instagram = true;
-      }catch(e){
-        result.instagram = 'error';
-        result.errors.push(`IG: ${e.message}`);
+  // Instagram — only if configured, included, AND text fits
+  if(includeInstagram){
+    const igChannelId = getChannelIdFor(voice, 'instagram');
+    if(igChannelId){
+      const igText = _composeText(item, 'instagram');
+      if(igText.length > IG_CHAR_LIMIT){
+        result.instagram = 'oversize';
+      } else {
+        try{
+          await createBufferPost({channelId: igChannelId, text: igText, imageUrl, scheduledForIso, channelKind: 'instagram', igType});
+          result.instagram = true;
+        }catch(e){
+          result.instagram = 'error';
+          result.errors.push(`IG: ${e.message}`);
+        }
       }
     }
   }
   return result;
 }
 
+// Entry point for "Push to Buffer" from anywhere (Library card, View modal,
+// etc.). Validates prerequisites, then opens the Preview & Push modal where
+// the user toggles channels, picks IG type (Post/Story/Reel), and confirms.
+// The actual push happens in _executeBufferPush, called by confirmBufferPush.
 async function pushPostToBuffer(id){
   const token = getBufferToken();
   if(!token){
-    // Legacy Zapier fallback path — kept for backward compatibility while
-    // the new direct-API mode is the recommended approach.
     return _legacyPushPostToBufferViaZapier(id);
   }
   const item = getLibraryItem(id);
@@ -7023,10 +7150,135 @@ async function pushPostToBuffer(id){
     toggleKeys();
     return;
   }
+  // Hand off to the preview modal. User confirms there.
+  openBufferPreviewModal(id);
+}
 
+// Opens the preview modal for a library item. Builds per-channel cards
+// (LinkedIn + Instagram if configured) with text, image, char counts,
+// include/exclude toggles, and IG type selector. Last-used IG type is
+// restored from localStorage.
+const BUFFER_PREVIEW_LAST_IG_TYPE_KEY = 'eridion_buffer_last_ig_type';
+let _bufferPreviewItemId = null;
+function openBufferPreviewModal(id){
+  const item = getLibraryItem(id);
+  if(!item){showToast('Post not found','error');return;}
+  _bufferPreviewItemId = id;
+  const voice = item.scheduled_account||item.voice||'eridion';
+  const imageUrl = item.selectedImageUrl||item.image_url||null;
+  const liChannelId = getChannelIdFor(voice,'linkedin');
+  const igChannelId = getChannelIdFor(voice,'instagram');
+  const lastIgType = localStorage.getItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY) || 'post';
+  // Schedule line
+  const when = new Date(item.scheduled_for||Date.now());
+  document.getElementById('buffer-preview-when').textContent =
+    `Scheduled for ${when.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})} · ${item.scheduled_time||when.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`;
+  // Build channel cards
+  const cards = [];
+  const voiceLabel = {eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[voice] || voice;
+  if(liChannelId){
+    const liText = _composeText(item,'linkedin');
+    const liLimit = 3000;
+    const over = liText.length > liLimit;
+    cards.push(`
+      <div class="bp-card" data-channel="linkedin">
+        <div class="bp-card-head">
+          <label class="bp-card-toggle"><input type="checkbox" id="bp-include-li" checked onchange="onBufferPreviewToggle(this,'linkedin')"> Include</label>
+          <span class="bp-card-channel">💼 LinkedIn · ${escapeHTML(voiceLabel)}</span>
+        </div>
+        <div class="bp-card-body">
+          ${imageUrl ? `<img class="bp-card-img" src="${escapeHTML(imageUrl)}" alt="">` : `<div class="bp-card-img missing">🖼</div>`}
+          <div class="bp-card-text">${escapeHTML(liText)}</div>
+        </div>
+        <div class="bp-card-meta">
+          <span class="${over?'over':''}">${liText.length} / ${liLimit} chars${over?' — over limit':''}</span>
+          ${imageUrl?'<span>📎 image attached</span>':'<span style="color:#DC2626">⚠ no image</span>'}
+        </div>
+      </div>
+    `);
+  }
+  if(igChannelId){
+    const igText = _composeText(item,'instagram');
+    const igLimit = (typeof IG_CHAR_LIMIT==='number'?IG_CHAR_LIMIT:2200);
+    const over = igText.length > igLimit;
+    cards.push(`
+      <div class="bp-card" data-channel="instagram">
+        <div class="bp-card-head">
+          <label class="bp-card-toggle"><input type="checkbox" id="bp-include-ig" ${over?'':'checked'} onchange="onBufferPreviewToggle(this,'instagram')"> Include</label>
+          <span class="bp-card-channel">📷 Instagram · ${escapeHTML(voiceLabel)}</span>
+          <div class="bp-card-spacer"></div>
+          <div class="bp-card-type">Type:
+            <select id="bp-ig-type" class="select-wrap">
+              <option value="post" ${lastIgType==='post'?'selected':''}>Post</option>
+              <option value="story" ${lastIgType==='story'?'selected':''}>Story</option>
+              <option value="reel" ${lastIgType==='reel'?'selected':''}>Reel</option>
+            </select>
+          </div>
+        </div>
+        <div class="bp-card-body">
+          ${imageUrl ? `<img class="bp-card-img" src="${escapeHTML(imageUrl)}" alt="">` : `<div class="bp-card-img missing">🖼</div>`}
+          <div class="bp-card-text">${escapeHTML(igText)}</div>
+        </div>
+        <div class="bp-card-meta">
+          <span class="${over?'over':''}">${igText.length} / ${igLimit} chars${over?' — over limit, auto-excluded':''}</span>
+          ${imageUrl?'<span>📎 image attached</span>':'<span style="color:#DC2626">⚠ image required for IG</span>'}
+        </div>
+      </div>
+    `);
+  }
+  document.getElementById('buffer-preview-channels').innerHTML = cards.join('') || '<div style="color:var(--text-muted)">No channels configured for this voice — open API Keys → Fetch My Channels.</div>';
+  // Initialize disabled visual state for any pre-unchecked toggle
+  ['linkedin','instagram'].forEach(k=>{
+    const inputId = k==='linkedin'?'bp-include-li':'bp-include-ig';
+    const cb = document.getElementById(inputId);
+    if(cb) onBufferPreviewToggle(cb,k);
+  });
+  // Show warning if no image
+  const warn = document.getElementById('buffer-preview-warning');
+  if(!imageUrl){
+    warn.style.display = 'block';
+    warn.textContent = '⚠ No image attached. Buffer requires media on every channel — push will likely fail. Attach an image first for best results.';
+  } else {
+    warn.style.display = 'none';
+  }
+  document.getElementById('buffer-preview-modal').classList.add('active');
+}
+function closeBufferPreviewModal(){
+  document.getElementById('buffer-preview-modal').classList.remove('active');
+  _bufferPreviewItemId = null;
+}
+// Visual dim for unchecked cards
+function onBufferPreviewToggle(input, kind){
+  const card = input.closest('.bp-card');
+  if(card) card.classList.toggle('disabled', !input.checked);
+}
+// User confirmed — gather options and run the actual push.
+async function confirmBufferPush(){
+  if(!_bufferPreviewItemId) return;
+  const id = _bufferPreviewItemId;
+  const liCb = document.getElementById('bp-include-li');
+  const igCb = document.getElementById('bp-include-ig');
+  const igTypeSel = document.getElementById('bp-ig-type');
+  const includeLinkedin = liCb ? liCb.checked : true;
+  const includeInstagram = igCb ? igCb.checked : false;
+  const igType = igTypeSel ? igTypeSel.value : 'post';
+  // Remember last IG type
+  if(igTypeSel) localStorage.setItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY, igType);
+  if(!includeLinkedin && !includeInstagram){
+    showToast('Pick at least one channel to push','error');
+    return;
+  }
+  closeBufferPreviewModal();
+  await _executeBufferPush(id, { includeLinkedin, includeInstagram, igType });
+}
+// The actual push logic — extracted from the old pushPostToBuffer so the
+// preview modal can call it with explicit options.
+async function _executeBufferPush(id, opts){
+  const item = getLibraryItem(id);
+  if(!item) return;
   setStatus('Pushing to Buffer...',true);
   try{
-    const r = await pushSinglePost(item);
+    const r = await pushSinglePost(item, opts);
     if(r.linkedin || r.instagram === true){
       item.buffer_queued = true;
       item.buffer_queued_at = Date.now();
