@@ -7054,11 +7054,12 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso, cha
     // See migration guide: developers.buffer.com/guides/assets-input-migration.html
     input.assets = [{ image: { url: imageUrl } }];
   }
-  // Instagram requires an explicit type field (post / story / reel). The
-  // value comes from the Preview & Push modal; defaults to "post".
+  // Instagram requires metadata.instagram.{type, shouldShareToFeed}. The
+  // type enum is post / story / reel (lowercase). shouldShareToFeed is a
+  // required Boolean. See: developers.buffer.com/types/InstagramPostMetadataInput.html
   const igTypeValue = (channelKind === 'instagram') ? (igType || 'post') : null;
   if(igTypeValue){
-    input.type = igTypeValue;
+    input.metadata = { instagram: { type: igTypeValue, shouldShareToFeed: true } };
   }
   // Try inline-literal mode first since Buffer's docs use enum literals
   // (`automatic`, `customScheduled`) which can be tricky as variables.
@@ -7072,7 +7073,7 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso, cha
         schedulingType: automatic,
         mode: customScheduled,
         dueAt: ${JSON.stringify(scheduledForIso)}
-        ${igTypeValue?`, type: ${igTypeValue}`:''}
+        ${igTypeValue?`, metadata: { instagram: { type: ${igTypeValue}, shouldShareToFeed: true } }`:''}
         ${imageUrl?`, assets: [{ image: { url: ${JSON.stringify(imageUrl)} } }]`:''}
       }) {
         ... on PostActionSuccess { post { id } }
@@ -7100,7 +7101,13 @@ async function pushSinglePost(item, opts){
   const igType = (opts && opts.igType) || 'post';
   const voice = item.scheduled_account||item.voice||'eridion';
   const imageUrl = item.selectedImageUrl||item.image_url||null;
-  const scheduledForIso = new Date(item.scheduled_for||Date.now()).toISOString();
+  // Buffer requires dueAt strictly in the future. If the item's scheduled
+  // time has already passed (common with auto-schedule on the same day),
+  // bump it to 5 minutes from now so Buffer accepts the post.
+  let scheduledForIso = new Date(item.scheduled_for||Date.now()).toISOString();
+  if(new Date(scheduledForIso).getTime() <= Date.now() + 60*1000){
+    scheduledForIso = new Date(Date.now() + 5*60*1000).toISOString();
+  }
   const result = { linkedin:false, instagram:'skipped', errors:[] };
 
   // LinkedIn
