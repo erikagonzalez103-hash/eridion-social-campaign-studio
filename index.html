@@ -3159,10 +3159,8 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div class="cal-actions">
             <button class="action-btn primary" onclick="openAutoSchedModal()">⚡ Auto-Schedule Week</button>
             <button class="action-btn primary" onclick="pushWeekToBuffer()" style="background:var(--green);border-color:var(--green);color:var(--white)">🚀 Push Week to Buffer</button>
-            <button class="action-btn" onclick="copyWeekForBuffer()">📋 Copy Week for Buffer</button>
             <button class="action-btn" onclick="publishToWix()">Publish Latest to Wix Blog</button>
-            <button class="action-btn" onclick="publishToWix(true)">Save to Wix as Draft</button>
-            <button class="action-btn" onclick="openLinkedIn()">Open LinkedIn</button>
+            <button class="action-btn" onclick="saveToSubstack()">Save to Substack</button>
           </div>
           <div id="wix-status" style="margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);"></div>
         </div>
@@ -5066,6 +5064,12 @@ function closeImageAttachModal(){
 }
 
 // ── Publish ──
+// Substack save — placeholder. Wiring up the actual Substack post creation
+// is a future session's work; for now we just show a friendly message.
+function saveToSubstack(){
+  showToast('Substack integration coming soon — wire it up next session','info');
+}
+
 async function publishToWix(draft=false){
   const apiKey=document.getElementById('wix-key').value||localStorage.getItem('wix_key');
   const siteId=document.getElementById('wix-site-id').value||localStorage.getItem('wix_site_id');
