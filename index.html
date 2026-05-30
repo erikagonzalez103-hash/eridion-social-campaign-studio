@@ -3778,15 +3778,29 @@ function renderTodayCard(it){
       </div>
       <div class="today-card-title">${escapeHTML(it.title||'Untitled')}</div>
       <div class="today-card-text" onclick="this.classList.toggle('expanded')">${escapeHTML(text)}${(it.linkedin_text||it.blog_text||'').length>400?'…':''}</div>
-      <div class="today-card-actions">
-        ${showLaunch?`<button class="launch-btn linkedin" onclick="launchToLinkedIn('${it.id}')">💼 Open LinkedIn</button>`:''}
-        ${showLaunch?`<button class="launch-btn substack" onclick="launchToSubstack('${it.id}')">📮 Open Substack</button>`:''}
-        ${showLaunch?`<button class="launch-btn posted" onclick="markPostedFromToday('${it.id}')">✓ Mark Posted</button>`:''}
-        ${canSpin?`<button class="action-btn" onclick="openSpinSnippetModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Snippet</button>`:''}
-        ${canSpin?`<button class="action-btn" onclick="openSpinWeekModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">✦ Spin Week</button>`:''}
-        ${canSpin?`<button class="action-btn" onclick="openImageIdeasModal('${it.id}')" style="color:var(--gold);border-color:var(--gold-dim)">🎨 Image Ideas</button>`:''}
-        <button class="action-btn" onclick="copyFromLibrary('${it.id}')">Copy</button>
-        <button class="action-btn" onclick="loadFromLibrary('${it.id}')">Open in Editor</button>
+      <div class="lib-card-actions">
+        <div class="lib-menu">
+          <button class="lib-menu-btn" onclick="toggleLibMenu(event,this)">Edit <span class="lib-menu-caret">▾</span></button>
+          <div class="lib-menu-items">
+            <button class="lib-menu-item" onclick="loadFromLibrary('${it.id}');closeLibMenus()">Open in Editor</button>
+            <button class="lib-menu-item" onclick="copyFromLibrary('${it.id}');closeLibMenus()">Copy Text</button>
+          </div>
+        </div>
+        ${canSpin?`
+        <div class="lib-menu">
+          <button class="lib-menu-btn" onclick="toggleLibMenu(event,this)">Transform <span class="lib-menu-caret">▾</span></button>
+          <div class="lib-menu-items">
+            <button class="lib-menu-item" onclick="openSpinSnippetModal('${it.id}');closeLibMenus()" style="color:var(--gold)">✦ Spin Snippet</button>
+            <button class="lib-menu-item" onclick="openSpinWeekModal('${it.id}');closeLibMenus()" style="color:var(--gold)">✦ Spin Week</button>
+          </div>
+        </div>`:'<div class="lib-menu-spacer"></div>'}
+        <div class="lib-menu">
+          <button class="lib-menu-btn primary" onclick="toggleLibMenu(event,this)">Publish <span class="lib-menu-caret">▾</span></button>
+          <div class="lib-menu-items">
+            <button class="lib-menu-item" onclick="pushPostToBuffer('${it.id}');closeLibMenus()" style="color:var(--green-deep)">🚀 Push to Buffer</button>
+            ${showLaunch?`<button class="lib-menu-item" onclick="markPostedFromToday('${it.id}');closeLibMenus()">✓ Mark Posted</button>`:''}
+          </div>
+        </div>
       </div>
     </div>
   `;
