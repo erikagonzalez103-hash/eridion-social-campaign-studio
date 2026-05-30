@@ -7241,10 +7241,10 @@ function openBufferPreviewModal(id){
   } else {
     warn.style.display = 'none';
   }
-  document.getElementById('buffer-preview-modal').classList.add('active');
+  document.getElementById('buffer-preview-modal').classList.add('open');
 }
 function closeBufferPreviewModal(){
-  document.getElementById('buffer-preview-modal').classList.remove('active');
+  document.getElementById('buffer-preview-modal').classList.remove('open');
   _bufferPreviewItemId = null;
 }
 // Visual dim for unchecked cards
