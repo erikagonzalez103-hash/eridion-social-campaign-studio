@@ -44,7 +44,7 @@
   /* Stream identities */
   --eridion:  var(--navy);
   --erika:    var(--green);
-  --dion:     var(--medium-gray);
+  --quinta:     var(--medium-gray);
   --practice: var(--sage);
 
   /* Backwards-compat aliases — many old rules reference these names.
@@ -147,7 +147,7 @@ header {
 }
 .stream-btn.eridion::before { background: var(--eridion); }
 .stream-btn.erika::before   { background: var(--erika); }
-.stream-btn.dion::before    { background: var(--dion); }
+.stream-btn.quinta::before    { background: var(--quinta); }
 .stream-btn.practice::before { background: var(--practice); }
 .stream-btn:hover { border-color: var(--hairline-strong); }
 .stream-btn.active { background: var(--white); border-color: var(--navy); }
@@ -163,7 +163,7 @@ header {
 }
 .stream-btn.eridion .stream-label { color: var(--eridion); }
 .stream-btn.erika   .stream-label { color: var(--erika); }
-.stream-btn.dion    .stream-label { color: var(--dion); }
+.stream-btn.quinta    .stream-label { color: var(--quinta); }
 .stream-btn.practice .stream-label { color: var(--sage-deep); }
 .stream-title {
   font-family: var(--font-display);
@@ -951,7 +951,7 @@ textarea { min-height: 80px; line-height: 1.6; }
 }
 .day-account.eridion { background: var(--navy-faint); color: var(--eridion); border: 1px solid rgba(31,42,74,0.2); }
 .day-account.erika   { background: var(--green-faint); color: var(--green-deep); border: 1px solid rgba(67,176,71,0.25); }
-.day-account.dion    { background: rgba(124,124,124,0.08); color: var(--dion); border: 1px solid rgba(124,124,124,0.25); }
+.day-account.quinta    { background: rgba(124,124,124,0.08); color: var(--quinta); border: 1px solid rgba(124,124,124,0.25); }
 .day-account.practice { background: var(--sage-faint); color: var(--sage-deep); border: 1px solid rgba(110,139,122,0.28); }
 .day-type { font-size: 12px; color: var(--medium-gray); margin-left: auto; }
 .day-body { padding: 16px; }
@@ -1189,7 +1189,7 @@ textarea { min-height: 80px; line-height: 1.6; }
 }
 .voice-badge.eridion { background: var(--navy-faint); color: var(--eridion); border: 1px solid rgba(31,42,74,0.25); }
 .voice-badge.erika   { background: var(--green-faint); color: var(--green-deep); border: 1px solid rgba(67,176,71,0.3); }
-.voice-badge.dion    { background: rgba(124,124,124,0.08); color: var(--dion); border: 1px solid rgba(124,124,124,0.25); }
+.voice-badge.quinta    { background: rgba(124,124,124,0.08); color: var(--quinta); border: 1px solid rgba(124,124,124,0.25); }
 .voice-badge.practice { background: var(--sage-faint); color: var(--sage-deep); border: 1px solid rgba(110,139,122,0.3); }
 
 /* Bridge tag — marks cross-voice reposts in spin results, library, calendar */
@@ -1396,7 +1396,7 @@ textarea { min-height: 80px; line-height: 1.6; }
 .cal-slot-voice { width: 3px; flex-shrink: 0; border-radius: 2px; }
 .cal-slot-voice.eridion { background: var(--eridion); }
 .cal-slot-voice.erika   { background: var(--erika); }
-.cal-slot-voice.dion    { background: var(--dion); }
+.cal-slot-voice.quinta    { background: var(--quinta); }
 .cal-slot-voice.practice { background: var(--practice); }
 .cal-slot-body { flex: 1; min-width: 0; cursor: pointer; }
 .cal-slot-body:hover .cal-slot-text { color: var(--navy); }
@@ -2005,7 +2005,7 @@ textarea { min-height: 80px; line-height: 1.6; }
 }
 .ii-extract-kind.STAT  { color: var(--eridion); border: 1px solid rgba(31,42,74,0.3); }
 .ii-extract-kind.QUOTE { color: var(--green-deep); border: 1px solid rgba(67,176,71,0.3); }
-.ii-extract-kind.CLAIM { color: var(--dion); border: 1px solid rgba(124,124,124,0.3); }
+.ii-extract-kind.CLAIM { color: var(--quinta); border: 1px solid rgba(124,124,124,0.3); }
 .ii-extract-rank {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -2495,8 +2495,8 @@ textarea { min-height: 80px; line-height: 1.6; }
   .stream-btn.eridion .stream-title::after  { content: 'Eridion' !important; }
   .stream-btn.erika   .stream-title::before { background: var(--erika) !important; }
   .stream-btn.erika   .stream-title::after  { content: 'Erika' !important; }
-  .stream-btn.dion    .stream-title::before { background: var(--dion) !important; }
-  .stream-btn.dion    .stream-title::after  { content: 'Dion' !important; }
+  .stream-btn.quinta    .stream-title::before { background: var(--quinta) !important; }
+  .stream-btn.quinta    .stream-title::after  { content: 'Quinta & Co' !important; }
   .stream-btn.practice .stream-title::before { background: var(--practice) !important; }
   .stream-btn.practice .stream-title::after  { content: 'Practice' !important; }
 
@@ -2598,15 +2598,15 @@ textarea { min-height: 80px; line-height: 1.6; }
       <div class="stream-title">Erika Harrison</div>
       <div class="stream-desc">Female founder · Leadership · Women in construction</div>
     </button>
-    <button class="stream-btn dion" onclick="setStream('dion')">
+    <button class="stream-btn quinta" onclick="setStream('quinta')">
       <div class="stream-label">Stream 03</div>
-      <div class="stream-title">Dion Harrison</div>
+      <div class="stream-title">Quinta & Co</div>
       <div class="stream-desc">Master glazier · Field notes · Dry Aussie humor</div>
     </button>
     <button class="stream-btn practice" onclick="setStream('practice')">
       <div class="stream-label">Stream 04</div>
       <div class="stream-title">The Practice</div>
-      <div class="stream-desc">Quinta &amp; Co. campaign · AI as practice · Quiet voice</div>
+      <div class="stream-desc">Quinta & Co. campaign · AI as practice · Quiet voice</div>
     </button>
   </div>
 
@@ -2698,8 +2698,8 @@ textarea { min-height: 80px; line-height: 1.6; }
               <input type="text" id="ch-erika-li" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
             </div>
             <div class="field" style="margin-bottom:8px">
-              <label class="field-label" style="font-size:9px">Dion · LinkedIn</label>
-              <input type="text" id="ch-dion-li" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
+              <label class="field-label" style="font-size:9px">Quinta & Co · LinkedIn</label>
+              <input type="text" id="ch-quinta-li" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
             </div>
             <div class="field" style="margin-bottom:8px;display:none" data-deferred="practice-channels">
               <label class="field-label" style="font-size:9px">The Practice · LinkedIn</label>
@@ -2708,6 +2708,10 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div class="field" style="margin-bottom:8px">
               <label class="field-label" style="font-size:9px">Eridion · Instagram</label>
               <input type="text" id="ch-eridion-ig" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
+            </div>
+            <div class="field" style="margin-bottom:8px">
+              <label class="field-label" style="font-size:9px">Quinta & Co · Instagram</label>
+              <input type="text" id="ch-quinta-ig" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
             </div>
             <div class="field" style="margin-bottom:10px;display:none" data-deferred="practice-channels">
               <label class="field-label" style="font-size:9px">The Practice · Instagram</label>
@@ -3062,7 +3066,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                 <option value="all">All</option>
                 <option value="eridion">Eridion</option>
                 <option value="erika">Erika</option>
-                <option value="dion">Dion</option>
+                <option value="quinta">Quinta & Co</option>
                 <option value="practice">Practice</option>
               </select>
             </div>
@@ -3146,7 +3150,7 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div class="cal-header">
             <div>
               <div class="cal-week-label" id="cal-week-label">This Week</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Schedule items from your Library across Eridion · Erika · Dion</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Schedule items from your Library across Eridion · Erika · Quinta & Co</div>
             </div>
             <div class="cal-nav">
               <button class="cal-nav-btn" onclick="calPrev()">← Prev</button>
@@ -3217,7 +3221,7 @@ textarea { min-height: 80px; line-height: 1.6; }
               <select id="sched-account">
                 <option value="eridion">Eridion Glass</option>
                 <option value="erika">Erika Harrison</option>
-                <option value="dion">Dion Harrison</option>
+                <option value="quinta">Quinta & Co</option>
                 <option value="practice">The Practice</option>
               </select>
             </div>
@@ -3244,7 +3248,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                 <select id="spin-voice">
                   <option value="eridion">Eridion Glass</option>
                   <option value="erika">Erika Harrison</option>
-                  <option value="dion">Dion Harrison</option>
+                  <option value="quinta">Quinta & Co</option>
                   <option value="practice">The Practice</option>
                 </select>
               </div>
@@ -3283,12 +3287,12 @@ textarea { min-height: 80px; line-height: 1.6; }
               <select id="spin-week-voice-strategy">
                 <option value="parent">All 5 snippets in the parent's voice</option>
                 <option value="mix" selected>Mix all three voices across the week (auto-distribute)</option>
-                <option value="eridion_dion">Eridion + Dion alternating (skip Erika)</option>
-                <option value="eridion_erika">Eridion + Erika alternating (skip Dion)</option>
-                <option value="erika_dion">Erika + Dion alternating (skip Eridion)</option>
+                <option value="eridion_dion">Eridion + Quinta & Co alternating (skip Erika)</option>
+                <option value="eridion_erika">Eridion + Erika alternating (skip Quinta & Co)</option>
+                <option value="erika_quinta">Erika + Quinta & Co alternating (skip Eridion)</option>
                 <option value="eridion">All Eridion Glass</option>
                 <option value="erika">All Erika Harrison</option>
-                <option value="dion">All Dion Harrison</option>
+                <option value="quinta">All Quinta & Co</option>
                 <option value="practice">All The Practice</option>
               </select>
             </div>
@@ -3314,7 +3318,7 @@ textarea { min-height: 80px; line-height: 1.6; }
               <select id="log-post-voice">
                 <option value="eridion">Eridion Glass</option>
                 <option value="erika">Erika Harrison</option>
-                <option value="dion">Dion Harrison</option>
+                <option value="quinta">Quinta & Co</option>
                 <option value="practice">The Practice</option>
               </select>
             </div>
@@ -3349,7 +3353,7 @@ textarea { min-height: 80px; line-height: 1.6; }
         <div class="sched-modal" id="auto-sched-modal">
           <div class="sched-modal-inner" style="max-width:600px">
             <div class="sched-modal-title">⚡ Auto-Schedule Week</div>
-            <div style="font-size:12px;color:var(--text-dim);margin-bottom:18px;line-height:1.6">Fill empty slots in the selected week using the default cadence (Mon/Wed/Fri Eridion · Tue Erika · Thu Dion · weekends off). Pulls from your existing library drafts in matching voice — uses oldest drafts first.</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-bottom:18px;line-height:1.6">Fill empty slots in the selected week using the default cadence (Mon/Wed/Fri Eridion · Tue Erika · Thu Quinta & Co · weekends off). Pulls from your existing library drafts in matching voice — uses oldest drafts first.</div>
             <div class="sched-field">
               <label class="field-label">Week to Schedule</label>
               <select id="auto-sched-week">
@@ -3369,7 +3373,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                 <div>MON · <span style="color:var(--eridion)">Eridion Glass</span></div>
                 <div>TUE · <span style="color:var(--erika)">Erika Harrison</span></div>
                 <div>WED · <span style="color:var(--eridion)">Eridion Glass</span></div>
-                <div>THU · <span style="color:var(--dion)">Dion Harrison</span></div>
+                <div>THU · <span style="color:var(--quinta)">Quinta & Co</span></div>
                 <div>FRI · <span style="color:var(--eridion)">Eridion Glass</span></div>
                 <div style="color:var(--text-muted);margin-top:4px">SAT–SUN · skipped</div>
               </div>
@@ -3386,7 +3390,7 @@ textarea { min-height: 80px; line-height: 1.6; }
         <div class="ii-modal" id="image-ideas-modal">
           <div class="ii-modal-inner">
             <div class="ii-modal-title">🎨 Image Ideas</div>
-            <div class="ii-modal-sub">Turn a stat, quote, or claim from this post into downloadable visual assets. Stat cards, pull quotes, Unsplash search, designer briefs, and AI image prompts — all voice-styled for Eridion, Erika, Dion, or The Practice.</div>
+            <div class="ii-modal-sub">Turn a stat, quote, or claim from this post into downloadable visual assets. Stat cards, pull quotes, Unsplash search, designer briefs, and AI image prompts — all voice-styled for Eridion, Erika, Quinta & Co, or The Practice.</div>
             <div class="ii-source-preview" id="ii-source-preview"></div>
 
             <div class="ii-tabs">
@@ -3428,7 +3432,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                   <span class="ii-control-lbl">Voice:</span>
                   <button class="ii-chip" data-voice="eridion" onclick="iiSetVoice('eridion')">Eridion</button>
                   <button class="ii-chip" data-voice="erika" onclick="iiSetVoice('erika')">Erika</button>
-                  <button class="ii-chip" data-voice="dion" onclick="iiSetVoice('dion')">Dion</button>
+                  <button class="ii-chip" data-voice="quinta" onclick="iiSetVoice('quinta')">Quinta & Co</button>
                   <button class="ii-chip" data-voice="practice" onclick="iiSetVoice('practice')">Practice</button>
                 </div>
                 <div class="ii-control-grp">
@@ -3529,7 +3533,7 @@ const buckets = {
     {id:'industry',icon:'🏠',label:'Industry Observation'},
     {id:'journey',icon:'🌱',label:'Business Journey'},
   ],
-  dion:[
+  quinta:[
     {id:'owner_op',icon:'🏗️',label:'Owner/Operator Reality'},
     {id:'design_install',icon:'📐',label:'From Design to the Install'},
     {id:'coo_systems',icon:'⚙️',label:'COO Systems, Process, and Standards'},
@@ -3560,26 +3564,26 @@ PERSONAL VOICE: Thoughtfully vulnerable (not oversharing), approachable but poli
 IMPORTANT: Vulnerability stays in business/industry friction only — never personal health or anything undermining professional credibility. Frame struggles as learning moments.
 AUDIENCE: Female founders, women in construction, business leaders, DFW entrepreneurial community.`,
 
-  dion:`You are writing personal brand content for Dion Harrison, co-founder of Eridion Glass LLC — a luxury custom glass and mirror subcontractor in Dallas TX. Dion is a master glazier with 25+ years in the field, originally Australian, who personally leads installations AND helps run the business as an owner-operator. He is technical authority, jobsite boss, and co-founder — comfortable talking about craft, operations, leadership, hiring, margin, and the realities of running a construction company.
+  quinta:`You are writing content for Quinta & Co — a business education and consulting brand for women entrepreneurs founded by Erika Gonzalez Harrison. Quinta & Co frames AI as something you do, not something you buy. Modules are practices, students are practitioners, events are open studios. "The Practice" is the campaign platform under this brand.
 
-PERSONAL VOICE: Dry, plainspoken, and funny. Dion is shy in person but humor is how he connects — he'd rather make a builder laugh than lecture them. His humor is Australian: understated, self-deprecating, observational, occasionally absurdist. He notices things others miss and has strong opinions about how work should be done, but he delivers them flat — no soapbox.
+BRAND VOICE: Warm, direct, plainspoken. Takes a stand. Honest about tradeoffs — never overpromises. Explains the why behind every tool choice, not just the how. Quiet, peaceful, occasionally dryly funny (Lululemon / Outdoor Voices energy). The antidote to AI hype.
+
+TAGLINE: "AI is a practice, not a purchase."
+SECONDARY: "The practical answers they don't teach you in business school."
+
+AUDIENCE: Women business owners — primarily beginners with AI and no-code tools. Solo operators, founders, small-business owners who feel behind on the AI conversation and are tired of being talked down to or upsold.
+
+NEVER: Hype, urgency, "AI will change everything" energy; bro-speak ("leverage," "10x," "unlock," "game-changer," "supercharge"); guru framing — no "I figured out the secret"; promises of transformation (sell relief, not transformation); mentioning AI tool names in marketing without showing actual practice with them.
+
+ALWAYS: Real stories over hypothetical ones (use practitioners' actual situations); show the seams (what broke, what didn't work, what was hard); frame AI as a practice — "show up," "begin," "return to it"; Quinta & Co owns its own world: practitioners, open studio, field notes, the practice; restraint, white space, quiet over loud.
 
 WRITING RULES:
-- Lead with observation, not claim. "Saw a shower door yesterday that..." lands better than "Here's what we believe about showers..." Start on the jobsite, in the shop, or in a specific moment whenever the topic allows it.
-- Humor is the hook, substance is the payoff. A wry line earns the read, then he drops the actual insight — a technical detail, an ops lesson, a hiring mistake, whatever the bucket calls for.
-- Never try too hard. If a line feels like it's trying to be funny, flatten it. Humor should feel incidental — like he's talking to another tradesman who happens to be listening.
-- Australian touches are welcome but sparing — one "mate," understatement, or bit of dry phrasing per post. Don't overdo it or it reads as costume.
-- Short paragraphs. Line breaks where he'd pause. He'd say it like he says it to himself in the truck.
-- Zero corporate language. No "thought leadership," no "stakeholders," no "value-add," no "passionate about," no "leveraging."
-- He CAN mention Eridion directly — he co-founded it, he runs it. Talking about the business, its crews, its standards, and where it's headed is fair game. "At Eridion we..." is fine in moderation; "At Eridion we are the premier choice for..." is not. Let the business show up naturally in the story.
-- CTAs are allowed where they genuinely fit the post's arc. Keep them specific and grounded — "if you're speccing a frameless shower in the next 90 days, worth a conversation before the drawings lock" beats "contact us today." Direct mentions of the website, email, or getting on the schedule are fine. Avoid urgency and superlatives.
-- He's technical when it matters. He knows ASTM C1048, IRC R308, CPSC 16 CFR 1201, how silicone behaves on different substrates, why tempered glass spontaneously breaks, edge work, hardware load calcs. But he only gets technical when there's a reason — and always in plain language.
-- He's also an owner now. He can speak to hiring, training, crew accountability, pricing discipline, the difference between a trade and a business — from the perspective of someone who learned it the hard way on the tools before he learned it in a boardroom.
-- He respects other tradesmen. Framers, tile setters, plumbers, electricians — never punches down. Punches sideways at his own work when it goes wrong.
-
-ERR ON THE SIDE OF INCLUDING MORE. Dion prefers to delete from a post rather than add to one. If unsure whether to include a business mention, a CTA, or a technical detail — include it. He'll trim what doesn't fit a given post's voice.
-
-AUDIENCE: Builders, project managers, tradespeople, architects, site supers, designers. People who can tell when someone actually knows the work versus someone reading a brochure.`,
+- Lead with the human situation, not the tool. The reader meets a person mid-problem before they meet an answer.
+- Short paragraphs. White space. Trust the reader to slow down.
+- Plain words. If a business-school word would work, use the everyday one instead.
+- Concrete over abstract. A specific tool used for a specific task beats "AI strategy."
+- The brand is the practice, not the founder. Erika may show up as a voice, but the world is bigger than her — practitioners drive most of the stories.
+- A CTA, when it appears, is invitational, not coercive. "Come to open studio." "Try this for a week." Never "limited time."`,
 
   practice:`You are writing content for The Practice — a campaign platform under Quinta & Co., a business education and consulting brand for women entrepreneurs founded by Erika Gonzalez Harrison. The Practice frames AI as something you do, not something you buy. Modules are practices, students are practitioners, events are open studios.
 
@@ -3724,7 +3728,7 @@ function renderToday(){
   const posts=getTodaysPosts();
   const scheduled=posts.filter(p=>p.status==='scheduled');
   const posted=posts.filter(p=>p.status==='posted');
-  const counts={eridion:0,erika:0,dion:0,practice:0};
+  const counts={eridion:0,erika:0,quinta:0,practice:0};
   scheduled.forEach(p=>{const k=p.scheduled_account||p.voice; if(counts[k]!==undefined) counts[k]++;});
 
   sumEl.innerHTML=`
@@ -3732,7 +3736,7 @@ function renderToday(){
     <span class="today-sum-item"><strong>${posted.length}</strong>already posted</span>
     ${counts.eridion?`<span class="today-sum-item"><strong style="color:var(--eridion)">${counts.eridion}</strong>Eridion</span>`:''}
     ${counts.erika?`<span class="today-sum-item"><strong style="color:var(--erika)">${counts.erika}</strong>Erika</span>`:''}
-    ${counts.dion?`<span class="today-sum-item"><strong style="color:var(--dion)">${counts.dion}</strong>Dion</span>`:''}
+    ${counts.quinta?`<span class="today-sum-item"><strong style="color:var(--quinta)">${counts.quinta}</strong>Quinta & Co</span>`:''}
     ${counts.practice?`<span class="today-sum-item"><strong style="color:var(--sage-deep)">${counts.practice}</strong>Practice</span>`:''}
   `;
 
@@ -3761,7 +3765,7 @@ function renderToday(){
 }
 
 function renderTodayCard(it){
-  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[it.scheduled_account||it.voice]||it.voice;
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[it.scheduled_account||it.voice]||it.voice;
   const voiceClass=it.scheduled_account||it.voice;
   const text=(it.linkedin_text||it.blog_text||'').slice(0,400);
   const showLaunch=it.status==='scheduled';
@@ -3830,12 +3834,12 @@ function renderMorningBanner(){
 
   const titleEl=document.getElementById('mbb-title');
   const subEl=document.getElementById('mbb-sub');
-  const counts={eridion:0,erika:0,dion:0,practice:0};
+  const counts={eridion:0,erika:0,quinta:0,practice:0};
   scheduled.forEach(p=>{const k=p.scheduled_account||p.voice; if(counts[k]!==undefined) counts[k]++;});
   const breakdown=[];
   if(counts.eridion) breakdown.push(`${counts.eridion} Eridion`);
   if(counts.erika) breakdown.push(`${counts.erika} Erika`);
-  if(counts.dion) breakdown.push(`${counts.dion} Dion`);
+  if(counts.quinta) breakdown.push(`${counts.quinta} Quinta & Co`);
   if(counts.practice) breakdown.push(`${counts.practice} Practice`);
 
   titleEl.textContent=`Good morning · ${scheduled.length} post${scheduled.length===1?'':'s'} on the schedule today`;
@@ -3862,7 +3866,7 @@ async function generateMorningBriefAudio(){
   const dateStr=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   let script=`Good morning. Today is ${dateStr}. You have ${scheduled.length} post${scheduled.length===1?'':'s'} on the schedule. `;
   scheduled.forEach((p,i)=>{
-    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[p.scheduled_account||p.voice];
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[p.scheduled_account||p.voice];
     const time=p.scheduled_time||'9 AM';
     script+=`Post ${i+1}, scheduled for ${time}, in the voice of ${voiceLabel}, in the ${p.bucketLabel||'general'} bucket. `;
     script+=`Title: ${p.title||'untitled'}. `;
@@ -4017,7 +4021,7 @@ const AUTO_CADENCE = {
   1:'eridion',  // Monday
   2:'erika',    // Tuesday
   3:'eridion',  // Wednesday
-  4:'dion',     // Thursday
+  4:'quinta',     // Thursday
   5:'eridion',  // Friday
 };
 
@@ -4169,12 +4173,12 @@ async function generateContent() {
   const ctaErika=`\n\nCTA RULES:
 - Include one soft mid-content CTA (e.g. invite to connect, comment, or DM)
 - End with a clear strong CTA (e.g. "I'd love to hear how you're navigating this — drop a comment or connect with me." or "If you're building something in Dallas, let's talk.")`;
-  const ctaDion=`\n\nCTA RULES FOR DION:
+  const ctaQuinta=`\n\nCTA RULES FOR QUINTA & CO:
 - Include a CTA where it genuinely fits the post's arc. Not every post needs one — story-driven or pure observation posts can stand on their own.
 - When a CTA fits, keep it specific and grounded — e.g. "If you're speccing a frameless shower in the next 90 days, worth a conversation before the drawings lock" or "We're on the schedule through Q3 already — reach out if you want to lock Q4."
 - Direct mentions of Eridion, the website (eridionglass.com), email, and getting on the schedule are fine. Avoid urgency language, superlatives, and anything that reads like a sales page.
-- Err on the side of including the CTA — Dion would rather trim it than be missing it.`;
-  const ctaFinal = currentStream==='eridion' ? ctaEridion : (currentStream==='dion' ? ctaDion : ctaErika);
+- Err on the side of including the CTA — Quinta & Co would rather trim it than be missing it.`;
+  const ctaFinal = currentStream==='eridion' ? ctaEridion : (currentStream==='quinta' ? ctaQuinta : ctaErika);
 
   if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook that stops the scroll. One subtle mid-post CTA. Strong closing CTA. Also generate 5 relevant hashtags.${ctaFinal}`;
   else if(format==='blog+linkedin') fmtInstr=`Generate BOTH a full blog post AND a LinkedIn snippet.
@@ -4481,12 +4485,12 @@ async function draftFromResearch(){
   const ctaErika=`\n\nCTA RULES:
 - Include one soft mid-content CTA
 - End with a clear strong CTA`;
-  const ctaDion=`\n\nCTA RULES FOR DION:
+  const ctaQuinta=`\n\nCTA RULES FOR QUINTA & CO:
 - Include a CTA where it genuinely fits the post's arc. Not every post needs one — story-driven or pure observation posts can stand on their own.
 - When a CTA fits, keep it specific and grounded — e.g. "If you're speccing a frameless shower in the next 90 days, worth a conversation before the drawings lock" or "We're on the schedule through Q3 already — reach out if you want to lock Q4."
 - Direct mentions of Eridion, the website (eridionglass.com), email, and getting on the schedule are fine. Avoid urgency language, superlatives, and anything that reads like a sales page.
-- Err on the side of including the CTA — Dion would rather trim it than be missing it.`;
-  const ctaFinal=currentStream==='eridion'?ctaEridion:(currentStream==='dion'?ctaDion:ctaErika);
+- Err on the side of including the CTA — Quinta & Co would rather trim it than be missing it.`;
+  const ctaFinal=currentStream==='eridion'?ctaEridion:(currentStream==='quinta'?ctaQuinta:ctaErika);
 
   let fmtInstr='';
   if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook. One subtle mid-post CTA. Strong closing CTA. Also 5 relevant hashtags.${ctaFinal}`;
@@ -5051,7 +5055,7 @@ function handleImagePickerUrlPaste(itemId, inputId, containerId){
 function openImageAttachModal(itemId){
   const it=library.find(x=>x.id===itemId);
   if(!it){showToast('Post not found','error');return;}
-  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[it.voice]||it.voice;
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[it.voice]||it.voice;
   document.getElementById('image-attach-meta').textContent=`${voiceLabel} · ${it.title||'Untitled'}`;
   renderImagePicker('image-attach-picker', itemId);
   document.getElementById('image-attach-modal').classList.add('open');
@@ -5178,12 +5182,12 @@ We do NOT pursue: small residential, big box retail, low-margin commodity work
 
 👥 KEY PEOPLE:
 Erika Harrison — Co-founder, Managing Member, all business operations and client relationships
-Dion Harrison — Co-founder, Master Glazier, 25+ years field experience, leads all installations. Originally Australian. Dry plainspoken voice. LinkedIn: https://www.linkedin.com/in/dion-harrison-2279b021a/
+Quinta & Co — Co-founder, Master Glazier, 25+ years field experience, leads all installations. Originally Australian. Dry plainspoken voice. LinkedIn: https://www.linkedin.com/in/quinta-harrison-2279b021a/
 
 🎯 BRAND DIFFERENTIATORS:
 Complex multi-phase luxury installs are our specialty
 Relationship-first approach — we are a trusted partner, not just a vendor
-Dion's 25+ years of master glazier expertise
+Quinta & Co's 25+ years of master glazier expertise
 Capacity to handle complex architectural glass that other subs turn down
 Based in Dallas TX, serving builders who demand precision and reliability`;
 
@@ -5238,8 +5242,9 @@ function _persistKeys(){
   const channels={
     eridion_li:document.getElementById('ch-eridion-li')?.value.trim()||'',
     erika_li:document.getElementById('ch-erika-li')?.value.trim()||'',
-    dion_li:document.getElementById('ch-dion-li')?.value.trim()||'',
+    quinta_li:document.getElementById('ch-quinta-li')?.value.trim()||'',
     eridion_ig:document.getElementById('ch-eridion-ig')?.value.trim()||'',
+    quinta_ig:document.getElementById('ch-quinta-ig')?.value.trim()||'',
   };
   if(Object.values(channels).some(v=>v)) localStorage.setItem('buffer_channels',JSON.stringify(channels));
 }
@@ -5252,7 +5257,7 @@ function saveKeys(){
 function wireAutoSaveKeys(){
   const ids = ['unsplash-key','wix-key','wix-site-id','zapier-webhook','imgbb-key',
                'buffer-token','buffer-proxy-url',
-               'ch-eridion-li','ch-erika-li','ch-dion-li','ch-eridion-ig'];
+               'ch-eridion-li','ch-erika-li','ch-quinta-li','ch-eridion-ig','ch-quinta-ig'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if(!el || el.dataset.autosaveWired) return;
@@ -5279,8 +5284,9 @@ function loadKeys(){
     const ch=JSON.parse(localStorage.getItem('buffer_channels')||'{}');
     if(ch.eridion_li && document.getElementById('ch-eridion-li')) document.getElementById('ch-eridion-li').value=ch.eridion_li;
     if(ch.erika_li && document.getElementById('ch-erika-li')) document.getElementById('ch-erika-li').value=ch.erika_li;
-    if(ch.dion_li && document.getElementById('ch-dion-li')) document.getElementById('ch-dion-li').value=ch.dion_li;
+    if(ch.quinta_li && document.getElementById('ch-quinta-li')) document.getElementById('ch-quinta-li').value=ch.quinta_li;
     if(ch.eridion_ig && document.getElementById('ch-eridion-ig')) document.getElementById('ch-eridion-ig').value=ch.eridion_ig;
+    if(ch.quinta_ig && document.getElementById('ch-quinta-ig')) document.getElementById('ch-quinta-ig').value=ch.quinta_ig;
   }catch(_){}
 }
 function updateIndicators(){
@@ -5469,10 +5475,10 @@ function openSpinWeekModal(id){
   spinWeekResults=[];
   const sourceLabel=src.blog_text&&src.blog_text.length>=80?'blog post':'post';
   document.getElementById('spin-week-source-preview').innerHTML=`<strong>From ${sourceLabel}:</strong> ${escapeHTML(src.title||'Untitled')}<br><br>${escapeHTML(sourceText.slice(0,320))}…`;
-  // Smart default: if source voice is Erika, default to Eridion+Dion (skip her since she wrote it)
+  // Smart default: if source voice is Erika, default to Eridion+Quinta & Co (skip her since she wrote it)
   // For other voices, default to balanced mix
   const smartDefault = src.voice==='erika' ? 'eridion_dion'
-    : src.voice==='dion' ? 'eridion_erika'
+    : src.voice==='quinta' ? 'eridion_erika'
     : 'mix';
   document.getElementById('spin-week-voice-strategy').value=smartDefault;
   document.getElementById('spin-week-direction').value='';
@@ -5505,14 +5511,14 @@ async function runSpinSnippet(){
   resultsEl.innerHTML='<div class="spin-loading">Spinning snippet…</div>';
 
   const voicePrompt=voicePrompts[voice]||voicePrompts.eridion;
-  const ctaRule = voice==='dion'
-    ? `CTA: Include one if it genuinely fits the post's arc. Keep it specific and grounded — "if you're speccing a frameless shower in the next 90 days, worth a conversation" or a natural mention of Eridion, the website, or the schedule. Avoid urgency and superlatives. If no CTA fits, skip it — but when in doubt, include it. Dion prefers to trim rather than add.`
+  const ctaRule = voice==='quinta'
+    ? `CTA: Include one if it genuinely fits the post's arc. Keep it specific and grounded — "if you're speccing a frameless shower in the next 90 days, worth a conversation" or a natural mention of Eridion, the website, or the schedule. Avoid urgency and superlatives. If no CTA fits, skip it — but when in doubt, include it. Quinta & Co prefers to trim rather than add.`
     : voice==='erika'
       ? `CTA: One soft CTA at the end — invite to connect, comment, or DM. Not salesy.`
       : `CTA: One natural CTA — get on the schedule, visit eridionglass.com, or reach erika@eridionglass.com. Builder-focused, not pushy.`;
 
   // Voice-natural narrative bridge instructions (applied only on cross-voice reposts)
-  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',dion:'Dion (Dion Harrison, master glazier & co-founder)'};
+  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',quinta:'Quinta & Co (Quinta & Co, master glazier & co-founder)'};
   const sourceDisplay=VOICE_DISPLAY_NAMES[sourceVoice]||sourceVoice;
   const bridgeRule=crossVoice?`
 
@@ -5526,13 +5532,13 @@ The bridge is NOT a formatted credit line. NEVER use "↳", "Re:", "Reposting:",
 
 Voice-natural bridge patterns (cadence reference only — never copy verbatim):
   • Eridion → Erika: "Erika wrote something last week about [X]. From the business side, the line that matters most to builders is..."
-  • Eridion → Dion: "Dion flagged something on a jobsite Tuesday. Translated to a builder's spec sheet, here's what it means..."
+  • Eridion → Quinta & Co: "Quinta & Co flagged something on a jobsite Tuesday. Translated to a builder's spec sheet, here's what it means..."
   • Erika → Eridion: "Our team published a piece on [X] this week. The part I keep coming back to as a founder is..."
-  • Erika → Dion: "Dion came in from a job last week and said [paraphrase]. I haven't been able to stop thinking about it because..."
-  • Dion → Eridion: "The company put out a piece on [X] this week. They're right. From the field side, here's what nobody says about it..."
-  • Dion → Erika: "Erika wrote something earlier. She nailed the [X] part. The bit no one mentions on the install side is..."`:'';
+  • Erika → Quinta & Co: "Quinta & Co came in from a job last week and said [paraphrase]. I haven't been able to stop thinking about it because..."
+  • Quinta & Co → Eridion: "The company put out a piece on [X] this week. They're right. From the field side, here's what nobody says about it..."
+  • Quinta & Co → Erika: "Erika wrote something earlier. She nailed the [X] part. The bit no one mentions on the install side is..."`:'';
 
-  // IG channel intro — only for Erika/Dion voices (since their content cross-posts to @eridion handle)
+  // IG channel intro — only for Erika/Quinta & Co voices (since their content cross-posts to @eridion handle)
   const igIntroRule=(voice!=='eridion')?`
 
 ✦ INSTAGRAM CHANNEL INTRO (REQUIRED — this snippet may cross-post to the @eridion Instagram handle, where the audience does not assume your voice):
@@ -5545,10 +5551,10 @@ Voice-natural patterns (study cadence — never copy verbatim):
   ${voice==='erika'?`• "Erika here. Co-founder hat on for a moment —"
   • "From the founder's desk:"
   • "Erika checking in. As one of the people building this thing,"
-  • "Co-founder's notebook today:"`:`• "Dion here, master glazier."
-  • "G'day. Dion checking in from a job today —"
+  • "Co-founder's notebook today:"`:`• "Quinta & Co here, master glazier."
+  • "G'day. Quinta & Co checking in from a job today —"
   • "Eridion's master glazier and co-founder, back with a thing I've been chewing on:"
-  • "Field note from Dion:"`}
+  • "Field note from Quinta & Co:"`}
 
 NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The intro must read as natural opening flow, not a tag.`:'';
 
@@ -5593,8 +5599,8 @@ function renderSpinSnippetResult(){
   const resultsEl=document.getElementById('spin-snippet-results');
   if(!spinSnippetResults.length){resultsEl.style.display='none';return;}
   const r=spinSnippetResults[0];
-  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[r.voice];
-  const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',dion:'Dion',practice:'Practice'}[r.bridgeFrom]:'';
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[r.voice];
+  const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'}[r.bridgeFrom]:'';
   const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
   const igBlock=r.ig_intro?`
       <div style="margin-top:10px;padding:10px 12px;background:rgba(67,176,71,0.06);border:1px solid var(--green-faint);border-radius:4px">
@@ -5663,18 +5669,18 @@ async function runSpinWeek(){
   if(strategy==='parent'){
     days.forEach(d=>voiceByDay[d]=spinSource.voice);
   } else if(strategy==='mix'){
-    // Default balanced mix: Eridion leads, Erika mid-week personal take, Dion Thursday field note, Eridion close
+    // Default balanced mix: Eridion leads, Erika mid-week personal take, Quinta & Co Thursday field note, Eridion close
     voiceByDay.Monday='eridion';
     voiceByDay.Tuesday='erika';
     voiceByDay.Wednesday='eridion';
-    voiceByDay.Thursday='dion';
+    voiceByDay.Thursday='quinta';
     voiceByDay.Friday='eridion';
   } else if(strategy==='eridion_dion'){
-    // Eridion + Dion alternating — perfect for repurposing your own writing across the business + craft voices
+    // Eridion + Quinta & Co alternating — perfect for repurposing your own writing across the business + craft voices
     voiceByDay.Monday='eridion';
-    voiceByDay.Tuesday='dion';
+    voiceByDay.Tuesday='quinta';
     voiceByDay.Wednesday='eridion';
-    voiceByDay.Thursday='dion';
+    voiceByDay.Thursday='quinta';
     voiceByDay.Friday='eridion';
   } else if(strategy==='eridion_erika'){
     voiceByDay.Monday='eridion';
@@ -5682,11 +5688,11 @@ async function runSpinWeek(){
     voiceByDay.Wednesday='eridion';
     voiceByDay.Thursday='erika';
     voiceByDay.Friday='eridion';
-  } else if(strategy==='erika_dion'){
+  } else if(strategy==='erika_quinta'){
     voiceByDay.Monday='erika';
-    voiceByDay.Tuesday='dion';
+    voiceByDay.Tuesday='quinta';
     voiceByDay.Wednesday='erika';
-    voiceByDay.Thursday='dion';
+    voiceByDay.Thursday='quinta';
     voiceByDay.Friday='erika';
   } else {
     days.forEach(d=>voiceByDay[d]=strategy);
@@ -5713,10 +5719,10 @@ async function runSpinWeek(){
   }));
 
   // Build voice rule reference block to include once
-  const voiceRef=['eridion','erika','dion'].map(v=>`=== VOICE: ${v.toUpperCase()} ===\n${voicePrompts[v]}`).join('\n\n');
+  const voiceRef=['eridion','erika','quinta'].map(v=>`=== VOICE: ${v.toUpperCase()} ===\n${voicePrompts[v]}`).join('\n\n');
 
   // Voice-natural bridge styles for cross-voice reposts
-  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',dion:'Dion (Dion Harrison, master glazier & co-founder)'};
+  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',quinta:'Quinta & Co (Quinta & Co, master glazier & co-founder)'};
   const sourceDisplay=VOICE_DISPLAY_NAMES[sourceVoice]||sourceVoice;
 
   const bridgeStyleRules=`
@@ -5730,16 +5736,16 @@ The bridge is NOT a header or formatted credit line. It's part of the post — f
 
 Voice-natural bridge examples (study the cadence — these are PATTERNS, never copy them word-for-word):
   • Eridion picking up Erika: "Erika wrote something last week about [X]. From the business side, the line that matters most to builders is..."
-  • Eridion picking up Dion: "Dion flagged something on a jobsite Tuesday. Translated to a builder's spec sheet, here's what it means..."
+  • Eridion picking up Quinta & Co: "Quinta & Co flagged something on a jobsite Tuesday. Translated to a builder's spec sheet, here's what it means..."
   • Erika picking up Eridion: "Our team published a piece on [X] this week. The part I keep coming back to as a founder is..."
-  • Erika picking up Dion: "Dion came in from a job last week and said [paraphrase]. I haven't been able to stop thinking about it because..."
-  • Dion picking up Eridion: "The company put out a piece on [X] this week. They're right. From the field side, here's what nobody says about it..."
-  • Dion picking up Erika: "Erika wrote something earlier. She nailed the [X] part. The bit no one mentions on the install side is..."
+  • Erika picking up Quinta & Co: "Quinta & Co came in from a job last week and said [paraphrase]. I haven't been able to stop thinking about it because..."
+  • Quinta & Co picking up Eridion: "The company put out a piece on [X] this week. They're right. From the field side, here's what nobody says about it..."
+  • Quinta & Co picking up Erika: "Erika wrote something earlier. She nailed the [X] part. The bit no one mentions on the install side is..."
 
 For SAME-VOICE snippets (voice === ${sourceVoice.toUpperCase()}): NO bridge. Open directly with the angle. Treat the source as your own prior thinking — don't credit yourself.
 
-✦ INSTAGRAM CHANNEL INTRO (REQUIRED for any snippet whose voice is ERIKA or DION):
-Snippets in non-Eridion voices may cross-post to the @eridion Instagram handle, where the audience does not assume the voice. For each ERIKA or DION snippet, generate an additional short "ig_intro" — 1-2 sentences, voice-natural, that establishes who is speaking through the brand channel. The intro:
+✦ INSTAGRAM CHANNEL INTRO (REQUIRED for any snippet whose voice is ERIKA or QUINTA & CO):
+Snippets in non-Eridion voices may cross-post to the @eridion Instagram handle, where the audience does not assume the voice. For each ERIKA or QUINTA & CO snippet, generate an additional short "ig_intro" — 1-2 sentences, voice-natural, that establishes who is speaking through the brand channel. The intro:
   (a) Signals the speaker by name and relationship to Eridion
   (b) Flows naturally into the post body when prepended (do NOT modify the post text itself)
   (c) Varies cadence — sometimes direct identifier, sometimes weaving identity into the first thought
@@ -5747,7 +5753,7 @@ Snippets in non-Eridion voices may cross-post to the @eridion Instagram handle, 
 
 Voice-natural patterns (cadence reference only — never copy verbatim):
   • Erika: "Erika here. Co-founder hat on for a moment —" / "From the founder's desk:" / "Co-founder's notebook today:" / "Erika checking in. As one of the people building this thing,"
-  • Dion: "Dion here, master glazier." / "G'day. Dion checking in from a job today —" / "Eridion's master glazier and co-founder, back with a thing I've been chewing on:" / "Field note from Dion:"
+  • Quinta & Co: "Quinta & Co here, master glazier." / "G'day. Quinta & Co checking in from a job today —" / "Eridion's master glazier and co-founder, back with a thing I've been chewing on:" / "Field note from Quinta & Co:"
 
 For ERIDION-voice snippets: set ig_intro to empty string "" (the voice already matches the channel).`;
 
@@ -5776,7 +5782,7 @@ ${i+1}. ${d.day} · Voice: ${d.voice.toUpperCase()} · Angle: ${d.angleLabel} ·
 RULES FOR EVERY SNIPPET:
 - 80-200 words each (cross-voice snippets can run to 220 to accommodate the bridge)
 - Stay factually consistent with the source — no invented data
-- Match the assigned voice precisely (different voices have different CTA rules: Eridion = direct CTA, Erika = soft CTA, Dion = usually NO CTA at all)
+- Match the assigned voice precisely (different voices have different CTA rules: Eridion = direct CTA, Erika = soft CTA, Quinta & Co = usually NO CTA at all)
 - Include 4 relevant hashtags per snippet
 - Each snippet must be distinct — different hooks, different angles, different factual pulls from the source
 - For cross-voice snippets: bridge MUST be in the voice doing the reposting, not the source voice${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}
@@ -5785,7 +5791,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","cross_voice":true,"bridge_from":"erika","text":"full post text here","ig_intro":"","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}
 
 For same-voice snippets, set cross_voice:false and bridge_from:null.
-For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Dion-voice snippets, ig_intro must be a 1-2 sentence channel intro per the rules above.`;
+For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Quinta & Co-voice snippets, ig_intro must be a 1-2 sentence channel intro per the rules above.`;
 
   try{
     const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
@@ -5838,8 +5844,8 @@ function renderSpinWeekResults(){
     </div>
   `;
   const cards=spinWeekResults.map((r,i)=>{
-    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[r.voice]||r.voice;
-    const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',dion:'Dion',practice:'Practice'}[r.bridgeFrom]:'';
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[r.voice]||r.voice;
+    const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'}[r.bridgeFrom]:'';
     const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
     const igBlock=r.ig_intro?`
         <div style="margin-top:10px;padding:10px 12px;background:rgba(67,176,71,0.06);border:1px solid var(--green-faint);border-radius:4px">
@@ -6119,8 +6125,8 @@ async function generateSubstackPackage(silent=false){
   // Voice-aware author framing for the subscribe CTA
   const author = currentStream==='erika'
     ? 'Erika Harrison, co-founder of Eridion Glass in Dallas, former ad exec with 20+ years in brand and marketing, writing on leadership, female founders, and the construction industry'
-    : currentStream==='dion'
-      ? 'Dion Harrison, co-founder and master glazier at Eridion Glass in Dallas, 25+ years in the field, writing on craftsmanship and what actually happens on jobsites'
+    : currentStream==='quinta'
+      ? 'Quinta & Co, co-founder and master glazier at Eridion Glass in Dallas, 25+ years in the field, writing on craftsmanship and what actually happens on jobsites'
       : 'Eridion Glass — a Dallas-based luxury glass and mirror subcontractor, writing on the technical craft and economics of high-end residential construction';
 
   const prompt=`You are preparing a blog post for publication on Substack — the email-first publishing platform favored by independent writers, commentators, and domain experts. Unlike traditional SEO where we optimize for Google, Substack is about email open rates, subscriber conversion, and cross-Substack recommendations. Readers are already primed for essays — they subscribe because they trust the voice. The tone is editorial, thoughtful, author-forward — not keyword-stuffed.
@@ -6268,6 +6274,34 @@ function loadLibrary(){
     library=raw?JSON.parse(raw):[];
     if(!Array.isArray(library)) library=[];
   }catch(e){library=[];}
+  // ─ One-time migration: Dion → Quinta & Co ─
+  // The "dion" voice was retired and replaced by "quinta" (Quinta & Co).
+  // Re-tag existing library items so they show up under the new brand. Also
+  // migrate the Buffer channel ID slot. Runs once per browser; tracked via
+  // a flag in localStorage.
+  if(!localStorage.getItem('eridion_migrated_dion_to_quinta_v1')){
+    let migrated = 0;
+    library.forEach(it => {
+      if(it.voice === 'dion'){ it.voice = 'quinta'; migrated++; }
+      if(it.scheduled_account === 'dion'){ it.scheduled_account = 'quinta'; migrated++; }
+      if(it.bridge_from === 'dion'){ it.bridge_from = 'quinta'; }
+    });
+    if(migrated) persistLibrary();
+    // Migrate Buffer channels mapping too
+    try{
+      const chRaw = localStorage.getItem('buffer_channels');
+      if(chRaw){
+        const ch = JSON.parse(chRaw);
+        if(ch.dion_li && !ch.quinta_li){
+          ch.quinta_li = ch.dion_li;
+          delete ch.dion_li;
+          localStorage.setItem('buffer_channels', JSON.stringify(ch));
+        }
+      }
+    }catch(_){}
+    localStorage.setItem('eridion_migrated_dion_to_quinta_v1', '1');
+    if(migrated) console.log(`Migrated ${migrated} Dion references → Quinta & Co`);
+  }
 }
 
 function persistLibrary(){
@@ -6369,13 +6403,13 @@ function renderLibrary(){
     return;
   }
   grid.innerHTML=items.map(it=>{
-    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[it.voice]||it.voice;
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[it.voice]||it.voice;
     const date=new Date(it.created_at);
     const dateStr=date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     const preview=(it.linkedin_text||it.blog_text||'').slice(0,240);
     const schedInfo=it.status==='scheduled'?` · ${new Date(it.scheduled_for).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})} on ${it.scheduled_account}`:'';
     const parentLabel = it.parent_id ? (library.find(x=>x.id===it.parent_id)?.title||'parent post') : null;
-    const bridgeShortName=it.cross_voice?{eridion:'Eridion',erika:'Erika',dion:'Dion',practice:'Practice'}[it.bridge_from]:null;
+    const bridgeShortName=it.cross_voice?{eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'}[it.bridge_from]:null;
     const bridgeTag=bridgeShortName?`<span class="bridge-tag" title="Credits and amplifies the original ${bridgeShortName} post">↳ amplifying ${bridgeShortName}</span>`:'';
     const hasImage=!!(it.selectedImageUrl||it.image_url);
     const imgTag=hasImage
@@ -6526,7 +6560,7 @@ function openViewPostModal(id){
   const it=library.find(x=>x.id===id);
   if(!it){showToast('Post not found','error');return;}
   viewingPostId=id;
-  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[it.scheduled_account||it.voice]||it.voice;
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[it.scheduled_account||it.voice]||it.voice;
   const schedStr=it.scheduled_for?new Date(it.scheduled_for).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+(it.scheduled_time?' at '+it.scheduled_time:''):'';
   document.getElementById('view-post-title').textContent=it.title||'Scheduled Post';
   document.getElementById('view-post-meta').innerHTML=`
@@ -6699,13 +6733,13 @@ function renderCalendar(){
   });
 
   // Summary counts
-  const counts={eridion:0,erika:0,dion:0,practice:0,total:weekItems.length};
+  const counts={eridion:0,erika:0,quinta:0,practice:0,total:weekItems.length};
   weekItems.forEach(i=>{if(counts[i.scheduled_account]!==undefined) counts[i.scheduled_account]++;});
   summary.innerHTML=`
     <span class="cal-summary-item"><strong>${counts.total}</strong>posts this week</span>
     <span class="cal-summary-item"><strong>${counts.eridion}</strong>Eridion</span>
     <span class="cal-summary-item"><strong>${counts.erika}</strong>Erika</span>
-    <span class="cal-summary-item"><strong>${counts.dion}</strong>Dion</span>
+    <span class="cal-summary-item"><strong>${counts.quinta}</strong>Quinta & Co</span>
     <span class="cal-summary-item"><strong>${counts.practice}</strong>Practice</span>
   `;
 
@@ -6727,9 +6761,9 @@ function renderCalendar(){
         </div>
         <div class="cal-day-body">
           ${dayItems.length?dayItems.map(i=>{
-            const voiceLabel={eridion:'Eridion',erika:'Erika',dion:'Dion',practice:'Practice'}[i.scheduled_account]||i.scheduled_account;
+            const voiceLabel={eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'}[i.scheduled_account]||i.scheduled_account;
             const textPreview=(i.linkedin_text||i.blog_text||i.title||'').slice(0,80);
-            const bridgeShortName=i.cross_voice?{eridion:'Eridion',erika:'Erika',dion:'Dion',practice:'Practice'}[i.bridge_from]:null;
+            const bridgeShortName=i.cross_voice?{eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'}[i.bridge_from]:null;
             const bridgeMeta=bridgeShortName?` · <span style="color:var(--green-deep);font-weight:600">↳ amplifying ${bridgeShortName}</span>`:'';
             const queuedBadge=i.buffer_queued?`<span class="cal-slot-buffer-badge" title="Pushed to Buffer at ${new Date(i.buffer_queued_at||0).toLocaleString()}">queued ✓</span>`:'';
             return `
@@ -6760,7 +6794,7 @@ function copyWeekForBuffer(){
   lines.push(`=== ERIDION STUDIO · WEEK OF ${calWeekStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} ===\n`);
   weekItems.forEach((i,idx)=>{
     const d=new Date(i.scheduled_for);
-    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[i.scheduled_account];
+    const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[i.scheduled_account];
     lines.push(`--- POST ${idx+1} ---`);
     lines.push(`DAY:     ${d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}`);
     lines.push(`TIME:    ${i.scheduled_time||'09:00'}`);
@@ -6779,7 +6813,7 @@ function copyWeekForBuffer(){
 // ═══════════════════════════════════════════════════════════════════
 // ── PUSH TO BUFFER (direct GraphQL API) ──
 // All 3 voices feed their own LinkedIn channel. All 3 voices ALSO cross-post
-// to Eridion IG with the same image; Erika/Dion posts get an ig_intro prepended
+// to Eridion IG with the same image; Erika/Quinta & Co posts get an ig_intro prepended
 // to establish who's speaking under the brand handle.
 //
 // Architecture: studio → Buffer GraphQL endpoint directly. No Zapier middleman.
@@ -6805,8 +6839,9 @@ function getBufferChannels(){
   const fromUI = {
     eridion_li: document.getElementById('ch-eridion-li')?.value.trim() || '',
     erika_li:   document.getElementById('ch-erika-li')?.value.trim()   || '',
-    dion_li:    document.getElementById('ch-dion-li')?.value.trim()    || '',
+    quinta_li:  document.getElementById('ch-quinta-li')?.value.trim()  || '',
     eridion_ig: document.getElementById('ch-eridion-ig')?.value.trim() || '',
+    quinta_ig:  document.getElementById('ch-quinta-ig')?.value.trim()  || '',
   };
   if(Object.values(fromUI).some(v=>v)) return fromUI;
   try{ return JSON.parse(localStorage.getItem('buffer_channels')||'{}'); }
@@ -6922,7 +6957,7 @@ async function fetchBufferChannels(){
 
     // Match heuristics: service tells us LI vs IG; name/displayName tells us
     // which of our 3 voices. Patterns must be unique per voice — e.g. don't
-    // include 'harrison' for Erika because Dion's channel also matches it.
+    // include 'harrison' for Erika because Quinta & Co's channel also matches it.
     // Once a channel is claimed by one voice, it's removed from the pool so
     // it can't be assigned to another.
     const claimed = new Set();
@@ -6943,17 +6978,18 @@ async function fetchBufferChannels(){
     // Match most-specific patterns first so a generic pattern can't steal
     // a channel that a more specific one would have claimed.
     const eridionLi = findChannel('linkedin', ['eridion']);
-    const dionLi    = findChannel('linkedin', ['dion']);
+    const quintaLi  = findChannel('linkedin', ['quinta']);
     const erikaLi   = findChannel('linkedin', ['erika']);
+    const quintaIg  = findChannel('instagram', ['quinta']);
     const eridionIg = findChannel('instagram', ['eridion']);
 
     const found = [];
     const missing = [];
     if(eridionLi){ document.getElementById('ch-eridion-li').value = eridionLi.id; found.push('Eridion·LI'); } else missing.push('Eridion·LI');
     if(erikaLi)  { document.getElementById('ch-erika-li').value   = erikaLi.id;   found.push('Erika·LI');   } else missing.push('Erika·LI');
-    // Dion may not be connected yet; only flag missing if no LinkedIn channel for him at all
-    if(dionLi)   { document.getElementById('ch-dion-li').value    = dionLi.id;    found.push('Dion·LI');    }
+    if(quintaLi) { document.getElementById('ch-quinta-li').value  = quintaLi.id;  found.push('Quinta·LI');  } else missing.push('Quinta·LI');
     if(eridionIg){ document.getElementById('ch-eridion-ig').value = eridionIg.id; found.push('Eridion·IG'); } else missing.push('Eridion·IG');
+    if(quintaIg) { document.getElementById('ch-quinta-ig').value  = quintaIg.id;  found.push('Quinta·IG');  } else missing.push('Quinta·IG');
 
     // Persist
     saveKeys();
@@ -6981,11 +7017,17 @@ async function fetchBufferChannels(){
 // configured, with the caller deciding whether that's a hard error.
 function getChannelIdFor(voice, kind){
   const ch = getBufferChannels();
-  if(kind === 'instagram') return ch.eridion_ig || null;
+  if(kind === 'instagram'){
+    // Eridion + Quinta both have IG. Erika does not (personal). Default to
+    // Eridion's IG so legacy non-voice-specific callers still work.
+    if(voice === 'quinta')  return ch.quinta_ig  || null;
+    if(voice === 'eridion') return ch.eridion_ig || null;
+    return ch.eridion_ig || null;
+  }
   // LinkedIn: 1 channel per voice
   if(voice === 'eridion') return ch.eridion_li || null;
   if(voice === 'erika')   return ch.erika_li   || null;
-  if(voice === 'dion')    return ch.dion_li    || null;
+  if(voice === 'quinta')  return ch.quinta_li  || null;
   return null;
 }
 
@@ -6994,7 +7036,7 @@ function buildBufferPayload(item){
   // legacy Zapier-based flow. The direct-API path uses createBufferPost
   // and doesn't need this shape.
   const voice=item.scheduled_account||item.voice||'eridion';
-  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[voice];
+  const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[voice];
   const text=item.linkedin_text||item.blog_text||'';
   const hashtags=item.hashtags||[];
   const linkedinFull=hashtags.length?`${text}\n\n${hashtags.join(' ')}`:text;
@@ -7200,7 +7242,7 @@ function openBufferPreviewModal(id){
     `Scheduled for ${when.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})} · ${item.scheduled_time||when.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`;
   // Build channel cards
   const cards = [];
-  const voiceLabel = {eridion:'Eridion Glass',erika:'Erika Harrison',dion:'Dion Harrison',practice:'The Practice'}[voice] || voice;
+  const voiceLabel = {eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[voice] || voice;
   if(liChannelId){
     const liText = _composeText(item,'linkedin');
     const liLimit = 3000;
@@ -7511,7 +7553,7 @@ const VOICE_STYLES = {
     decorPattern: 'rose-accent', // soft rose rule underline
     vibe: 'warm editorial, magazine-soft, thoughtful',
   },
-  dion: {
+  quinta: {
     // Plainspoken, high-contrast. Charcoal with green accent bar. Workshop-direct.
     bg: '#1D2430',
     bgGradient: 'linear-gradient(135deg,#242B37 0%,#1D2430 100%)',
@@ -7558,7 +7600,7 @@ function renderStatCard(voice, number, label, ratio='square'){
   // Gradient defs
   const gradStops = voice==='erika'
     ? `<stop offset="0%" stop-color="#F5F0E8"/><stop offset="100%" stop-color="#EDE5D8"/>`
-    : voice==='dion'
+    : voice==='quinta'
       ? `<stop offset="0%" stop-color="#242B37"/><stop offset="100%" stop-color="#1D2430"/>`
       : `<stop offset="0%" stop-color="#0F1218"/><stop offset="100%" stop-color="#080A0E"/>`;
 
@@ -7631,7 +7673,7 @@ function renderQuoteCard(voice, quote, attribution='', ratio='square'){
 
   const gradStops = voice==='erika'
     ? `<stop offset="0%" stop-color="#F5F0E8"/><stop offset="100%" stop-color="#EDE5D8"/>`
-    : voice==='dion'
+    : voice==='quinta'
       ? `<stop offset="0%" stop-color="#242B37"/><stop offset="100%" stop-color="#1D2430"/>`
       : `<stop offset="0%" stop-color="#0F1218"/><stop offset="100%" stop-color="#080A0E"/>`;
 
@@ -8127,7 +8169,7 @@ async function loadConceptsAsync(voice, extract, type, ratio){
 const IMAGE_CONTEXTS = {
   eridion: 'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
   erika:   'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
-  dion:    'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
+  quinta:    'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
   practice:'The Practice is the campaign platform of Quinta & Co., a business education brand for women entrepreneurs. The visual should feel quiet, editorial, and human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
 };
 
@@ -8228,3 +8270,4 @@ function iiUseUnsplashTerm(term){
 </script>
 </body>
 </html>
+                                                                                                                                                                    
