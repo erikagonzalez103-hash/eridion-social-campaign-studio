@@ -3534,11 +3534,11 @@ const buckets = {
     {id:'journey',icon:'🌱',label:'Business Journey'},
   ],
   quinta:[
-    {id:'owner_op',icon:'🏗️',label:'Owner/Operator Reality'},
-    {id:'design_install',icon:'📐',label:'From Design to the Install'},
-    {id:'coo_systems',icon:'⚙️',label:'COO Systems, Process, and Standards'},
-    {id:'leadership_growth',icon:'🧭',label:'Lessons in Leadership and Business Growth'},
-    {id:'glass_education',icon:'🪟',label:'Glass Education, Design, and Customer Guidance'},
+    {id:'morning_prompt',icon:'🌅',label:'Morning Prompt'},
+    {id:'field_notes',icon:'📓',label:'Field Notes'},
+    {id:'practitioners',icon:'👥',label:'Practitioners'},
+    {id:'twenty_sec_builds',icon:'⚡',label:'20-Second Builds'},
+    {id:'manifesto',icon:'📜',label:'Manifesto'},
   ],
   practice:[
     {id:'morning_prompt',icon:'🌅',label:'Morning Prompt'},
@@ -4174,10 +4174,10 @@ async function generateContent() {
 - Include one soft mid-content CTA (e.g. invite to connect, comment, or DM)
 - End with a clear strong CTA (e.g. "I'd love to hear how you're navigating this — drop a comment or connect with me." or "If you're building something in Dallas, let's talk.")`;
   const ctaQuinta=`\n\nCTA RULES FOR QUINTA & CO:
-- Include a CTA where it genuinely fits the post's arc. Not every post needs one — story-driven or pure observation posts can stand on their own.
-- When a CTA fits, keep it specific and grounded — e.g. "If you're speccing a frameless shower in the next 90 days, worth a conversation before the drawings lock" or "We're on the schedule through Q3 already — reach out if you want to lock Q4."
-- Direct mentions of Eridion, the website (eridionglass.com), email, and getting on the schedule are fine. Avoid urgency language, superlatives, and anything that reads like a sales page.
-- Err on the side of including the CTA — Quinta & Co would rather trim it than be missing it.`;
+- A CTA is invitational, not coercive. Story-driven or observational posts can stand without one.
+- When a CTA fits, frame it as an invitation to practice — e.g. "Come to open studio next week," "Try this for seven days and tell me what shifts," or "If this rings true, the next module starts in two weeks."
+- Direct mentions of the brand (Quinta & Co), the campaign (The Practice), open studio, or upcoming modules are fine. Avoid urgency, superlatives, scarcity tactics, or anything that reads like a sales page.
+- Default to NO CTA. Add one only when it deepens the invitation; if the post is just a field note or a manifesto, let it breathe.`;
   const ctaFinal = currentStream==='eridion' ? ctaEridion : (currentStream==='quinta' ? ctaQuinta : ctaErika);
 
   if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook that stops the scroll. One subtle mid-post CTA. Strong closing CTA. Also generate 5 relevant hashtags.${ctaFinal}`;
@@ -4486,10 +4486,10 @@ async function draftFromResearch(){
 - Include one soft mid-content CTA
 - End with a clear strong CTA`;
   const ctaQuinta=`\n\nCTA RULES FOR QUINTA & CO:
-- Include a CTA where it genuinely fits the post's arc. Not every post needs one — story-driven or pure observation posts can stand on their own.
-- When a CTA fits, keep it specific and grounded — e.g. "If you're speccing a frameless shower in the next 90 days, worth a conversation before the drawings lock" or "We're on the schedule through Q3 already — reach out if you want to lock Q4."
-- Direct mentions of Eridion, the website (eridionglass.com), email, and getting on the schedule are fine. Avoid urgency language, superlatives, and anything that reads like a sales page.
-- Err on the side of including the CTA — Quinta & Co would rather trim it than be missing it.`;
+- A CTA is invitational, not coercive. Story-driven or observational posts can stand without one.
+- When a CTA fits, frame it as an invitation to practice — e.g. "Come to open studio next week," "Try this for seven days and tell me what shifts," or "If this rings true, the next module starts in two weeks."
+- Direct mentions of the brand (Quinta & Co), the campaign (The Practice), open studio, or upcoming modules are fine. Avoid urgency, superlatives, scarcity tactics, or anything that reads like a sales page.
+- Default to NO CTA. Add one only when it deepens the invitation; if the post is just a field note or a manifesto, let it breathe.`;
   const ctaFinal=currentStream==='eridion'?ctaEridion:(currentStream==='quinta'?ctaQuinta:ctaErika);
 
   let fmtInstr='';
@@ -5182,12 +5182,11 @@ We do NOT pursue: small residential, big box retail, low-margin commodity work
 
 👥 KEY PEOPLE:
 Erika Harrison — Co-founder, Managing Member, all business operations and client relationships
-Quinta & Co — Co-founder, Master Glazier, 25+ years field experience, leads all installations. Originally Australian. Dry plainspoken voice. LinkedIn: https://www.linkedin.com/in/quinta-harrison-2279b021a/
+Quinta & Co — Business education and consulting brand for women entrepreneurs founded by Erika Gonzalez Harrison. Frames AI as something you do, not something you buy. "The Practice" is the campaign platform under this brand. Tagline: "AI is a practice, not a purchase."
 
 🎯 BRAND DIFFERENTIATORS:
 Complex multi-phase luxury installs are our specialty
 Relationship-first approach — we are a trusted partner, not just a vendor
-Quinta & Co's 25+ years of master glazier expertise
 Capacity to handle complex architectural glass that other subs turn down
 Based in Dallas TX, serving builders who demand precision and reliability`;
 
@@ -5518,7 +5517,7 @@ async function runSpinSnippet(){
       : `CTA: One natural CTA — get on the schedule, visit eridionglass.com, or reach erika@eridionglass.com. Builder-focused, not pushy.`;
 
   // Voice-natural narrative bridge instructions (applied only on cross-voice reposts)
-  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',quinta:'Quinta & Co (Quinta & Co, master glazier & co-founder)'};
+  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',quinta:'Quinta & Co (business education brand for women entrepreneurs)'};
   const sourceDisplay=VOICE_DISPLAY_NAMES[sourceVoice]||sourceVoice;
   const bridgeRule=crossVoice?`
 
@@ -5532,11 +5531,11 @@ The bridge is NOT a formatted credit line. NEVER use "↳", "Re:", "Reposting:",
 
 Voice-natural bridge patterns (cadence reference only — never copy verbatim):
   • Eridion → Erika: "Erika wrote something last week about [X]. From the business side, the line that matters most to builders is..."
-  • Eridion → Quinta & Co: "Quinta & Co flagged something on a jobsite Tuesday. Translated to a builder's spec sheet, here's what it means..."
+  • Eridion → Quinta & Co: "Something from the Quinta & Co side this week — [paraphrase]. Translated for the builder audience, here's why it matters on a jobsite..."
   • Erika → Eridion: "Our team published a piece on [X] this week. The part I keep coming back to as a founder is..."
-  • Erika → Quinta & Co: "Quinta & Co came in from a job last week and said [paraphrase]. I haven't been able to stop thinking about it because..."
-  • Quinta & Co → Eridion: "The company put out a piece on [X] this week. They're right. From the field side, here's what nobody says about it..."
-  • Quinta & Co → Erika: "Erika wrote something earlier. She nailed the [X] part. The bit no one mentions on the install side is..."`:'';
+  • Erika → Quinta & Co: "A practitioner over at Quinta & Co wrote about [paraphrase] this week. It hit a nerve because..."
+  • Quinta & Co → Eridion: "The Eridion team put out a piece on [X] this week. Reading it as a practitioner of the same craft elsewhere, here's the parallel I keep seeing..."
+  • Quinta & Co → Erika: "Erika wrote something earlier on [X]. Sitting with it from the practice side: the part that lands is..."`:'';
 
   // IG channel intro — only for Erika/Quinta & Co voices (since their content cross-posts to @eridion handle)
   const igIntroRule=(voice!=='eridion')?`
@@ -5551,10 +5550,10 @@ Voice-natural patterns (study cadence — never copy verbatim):
   ${voice==='erika'?`• "Erika here. Co-founder hat on for a moment —"
   • "From the founder's desk:"
   • "Erika checking in. As one of the people building this thing,"
-  • "Co-founder's notebook today:"`:`• "Quinta & Co here, master glazier."
-  • "G'day. Quinta & Co checking in from a job today —"
-  • "Eridion's master glazier and co-founder, back with a thing I've been chewing on:"
-  • "Field note from Quinta & Co:"`}
+  • "Co-founder's notebook today:"`:`• "Field note from Quinta & Co —"
+  • "From the Practice today:"
+  • "Quinta & Co here. Thinking out loud on something a practitioner brought up this week:"
+  • "Open studio prompt for the day:"`}
 
 NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The intro must read as natural opening flow, not a tag.`:'';
 
@@ -5722,7 +5721,7 @@ async function runSpinWeek(){
   const voiceRef=['eridion','erika','quinta'].map(v=>`=== VOICE: ${v.toUpperCase()} ===\n${voicePrompts[v]}`).join('\n\n');
 
   // Voice-natural bridge styles for cross-voice reposts
-  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',quinta:'Quinta & Co (Quinta & Co, master glazier & co-founder)'};
+  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',quinta:'Quinta & Co (business education brand for women entrepreneurs)'};
   const sourceDisplay=VOICE_DISPLAY_NAMES[sourceVoice]||sourceVoice;
 
   const bridgeStyleRules=`
@@ -5736,11 +5735,11 @@ The bridge is NOT a header or formatted credit line. It's part of the post — f
 
 Voice-natural bridge examples (study the cadence — these are PATTERNS, never copy them word-for-word):
   • Eridion picking up Erika: "Erika wrote something last week about [X]. From the business side, the line that matters most to builders is..."
-  • Eridion picking up Quinta & Co: "Quinta & Co flagged something on a jobsite Tuesday. Translated to a builder's spec sheet, here's what it means..."
+  • Eridion picking up Quinta & Co: "Something from the Quinta & Co side this week — [paraphrase]. Translated for the builder audience, here's why it matters on a jobsite..."
   • Erika picking up Eridion: "Our team published a piece on [X] this week. The part I keep coming back to as a founder is..."
-  • Erika picking up Quinta & Co: "Quinta & Co came in from a job last week and said [paraphrase]. I haven't been able to stop thinking about it because..."
-  • Quinta & Co picking up Eridion: "The company put out a piece on [X] this week. They're right. From the field side, here's what nobody says about it..."
-  • Quinta & Co picking up Erika: "Erika wrote something earlier. She nailed the [X] part. The bit no one mentions on the install side is..."
+  • Erika picking up Quinta & Co: "A practitioner over at Quinta & Co wrote about [paraphrase] this week. It hit a nerve because..."
+  • Quinta & Co picking up Eridion: "The Eridion team put out a piece on [X] this week. Reading it as a practitioner of the same craft elsewhere, here's the parallel I keep seeing..."
+  • Quinta & Co picking up Erika: "Erika wrote something earlier on [X]. Sitting with it from the practice side: the part that lands is..."
 
 For SAME-VOICE snippets (voice === ${sourceVoice.toUpperCase()}): NO bridge. Open directly with the angle. Treat the source as your own prior thinking — don't credit yourself.
 
@@ -5753,7 +5752,7 @@ Snippets in non-Eridion voices may cross-post to the @eridion Instagram handle, 
 
 Voice-natural patterns (cadence reference only — never copy verbatim):
   • Erika: "Erika here. Co-founder hat on for a moment —" / "From the founder's desk:" / "Co-founder's notebook today:" / "Erika checking in. As one of the people building this thing,"
-  • Quinta & Co: "Quinta & Co here, master glazier." / "G'day. Quinta & Co checking in from a job today —" / "Eridion's master glazier and co-founder, back with a thing I've been chewing on:" / "Field note from Quinta & Co:"
+  • Quinta & Co: "Field note from Quinta & Co —" / "From the Practice today:" / "Open studio prompt for the day:" / "Quinta & Co here. Thinking out loud on something a practitioner brought up this week:"
 
 For ERIDION-voice snippets: set ig_intro to empty string "" (the voice already matches the channel).`;
 
@@ -6126,7 +6125,7 @@ async function generateSubstackPackage(silent=false){
   const author = currentStream==='erika'
     ? 'Erika Harrison, co-founder of Eridion Glass in Dallas, former ad exec with 20+ years in brand and marketing, writing on leadership, female founders, and the construction industry'
     : currentStream==='quinta'
-      ? 'Quinta & Co, co-founder and master glazier at Eridion Glass in Dallas, 25+ years in the field, writing on craftsmanship and what actually happens on jobsites'
+      ? 'Quinta & Co, a business education and consulting brand for women entrepreneurs founded by Erika Gonzalez Harrison, writing on AI as a practice — quiet, plainspoken, anti-hype, with a focus on real practitioners and real situations'
       : 'Eridion Glass — a Dallas-based luxury glass and mirror subcontractor, writing on the technical craft and economics of high-end residential construction';
 
   const prompt=`You are preparing a blog post for publication on Substack — the email-first publishing platform favored by independent writers, commentators, and domain experts. Unlike traditional SEO where we optimize for Google, Substack is about email open rates, subscriber conversion, and cross-Substack recommendations. Readers are already primed for essays — they subscribe because they trust the voice. The tone is editorial, thoughtful, author-forward — not keyword-stuffed.
@@ -8169,7 +8168,7 @@ async function loadConceptsAsync(voice, extract, type, ratio){
 const IMAGE_CONTEXTS = {
   eridion: 'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
   erika:   'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
-  quinta:    'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
+  quinta:  'Quinta & Co is a business education and consulting brand for women entrepreneurs. The visual should feel quiet, editorial, and human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
   practice:'The Practice is the campaign platform of Quinta & Co., a business education brand for women entrepreneurs. The visual should feel quiet, editorial, and human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
 };
 
@@ -8270,4 +8269,4 @@ function iiUseUnsplashTerm(term){
 </script>
 </body>
 </html>
-                                                                                                                                                                    
+                                                                                                                                                                   
