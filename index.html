@@ -3395,6 +3395,14 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div class="spin-modal-sub">Generate 5 snippets (Mon–Fri) from this blog post — each with a different angle, optionally mixing voices across the week.</div>
             <div class="spin-source-preview" id="spin-week-source-preview"></div>
             <div class="spin-form-full">
+              <label class="field-label">Spin Mode</label>
+              <select id="spin-week-mode">
+                <option value="angles" selected>Five different angles across the whole post</option>
+                <option value="sections">Each day covers one section of the post (Mon = §1, Tue = §2, …)</option>
+              </select>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Use "sections" when your post is structured as a numbered list (e.g. "Top 5 …") — each day will highlight one section.</div>
+            </div>
+            <div class="spin-form-full">
               <label class="field-label">Voice Strategy</label>
               <select id="spin-week-voice-strategy">
                 <option value="parent">All 5 snippets in the parent's voice</option>
@@ -5810,6 +5818,7 @@ async function runSpinWeek(){
   if(!spinSource){showToast('No source selected','error');return;}
   const strategy=document.getElementById('spin-week-voice-strategy').value;
   const direction=document.getElementById('spin-week-direction').value.trim();
+  const spinMode=document.getElementById('spin-week-mode')?.value || 'angles';
 
   // Map day → voice based on strategy
   const days=['Monday','Tuesday','Wednesday','Thursday','Friday'];
@@ -5845,10 +5854,12 @@ async function runSpinWeek(){
   } else {
     days.forEach(d=>voiceByDay[d]=strategy);
   }
-  // Default angle per day
-  const angleByDay={
-    Monday:'hook', Tuesday:'personal', Wednesday:'data', Thursday:'bold', Friday:'didyouknow'
-  };
+  // Default angle per day. In "sections" mode, every day uses the "hook"
+  // angle (open with the section's core idea) since the section itself
+  // provides the variety — different content, not different rhetorical angles.
+  const angleByDay = spinMode==='sections'
+    ? {Monday:'hook', Tuesday:'hook', Wednesday:'hook', Thursday:'hook', Friday:'hook'}
+    : {Monday:'hook', Tuesday:'personal', Wednesday:'data', Thursday:'bold', Friday:'didyouknow'};
 
   const btn=document.getElementById('spin-week-btn');
   btn.disabled=true;
@@ -5922,17 +5933,38 @@ ORIGINAL TOPIC: ${spinSource.title||''}
 SOURCE VOICE: ${sourceVoice.toUpperCase()} — ${sourceDisplay}
 ${bridgeStyleRules}
 
+${spinMode==='sections' ? `
+✦ SPIN MODE: SECTIONS
+The source post is structured as a list of distinct items / sections / standards / points (likely numbered, headered, or visually delimited).
+
+YOUR JOB: Identify exactly 5 sections in the source. Map them in order to the 5 weekdays:
+  • Monday → Section 1
+  • Tuesday → Section 2
+  • Wednesday → Section 3
+  • Thursday → Section 4
+  • Friday → Section 5
+
+Each snippet must focus ONLY on its assigned section's content — the standard / claim / takeaway from that one part of the post. Do NOT summarize the whole post in any snippet. The reader gets a different section every day, building anticipation. Reference the section's specific subject (e.g. the actual standard name, the specific claim, the specific number) so the reader knows which one they're getting today.
+
+If the source has FEWER than 5 distinct sections, distribute the available sections across the week as best you can (e.g. 4 sections → Mon/Tue/Wed/Thu cover one each, Fri summarizes or teases the series). If it has MORE than 5, pick the 5 most important.
+` : `
+✦ SPIN MODE: ANGLES
+Each snippet pulls from the whole source post but with a different rhetorical angle (hook, personal, data, bold claim, did-you-know). The whole post is fair game for every snippet.
+`}
+
 THE 5 SNIPPETS TO GENERATE:
 ${dayDefs.map((d,i)=>`
-${i+1}. ${d.day} · Voice: ${d.voice.toUpperCase()} · Angle: ${d.angleLabel} · ${d.crossVoice?`CROSS-VOICE — must open with narrative bridge crediting ${sourceDisplay}`:'SAME-VOICE — no bridge needed'}
-   Instruction: ${d.angleInstr}`).join('\n')}
+${i+1}. ${d.day} · Voice: ${d.voice.toUpperCase()} · ${spinMode==='sections'?`Focus: Section ${i+1} of the source`:`Angle: ${d.angleLabel}`} · ${d.crossVoice?`CROSS-VOICE — must open with narrative bridge crediting ${sourceDisplay}`:'SAME-VOICE — no bridge needed'}
+   Instruction: ${spinMode==='sections'?`Open by naming Section ${i+1}'s specific subject (the standard, claim, item, or theme). Build the post around that section only. Do not pull from other sections.`:d.angleInstr}`).join('\n')}
 
 RULES FOR EVERY SNIPPET:
 - 80-200 words each (cross-voice snippets can run to 220 to accommodate the bridge)
 - Stay factually consistent with the source — no invented data
 - Match the assigned voice precisely (different voices have different CTA rules: Eridion = direct CTA, Erika = soft CTA, Quinta & Co = usually NO CTA at all)
 - Include 4 relevant hashtags per snippet
-- Each snippet must be distinct — different hooks, different angles, different factual pulls from the source
+${spinMode==='sections'
+  ? '- Each snippet must focus on its assigned section ONLY — do not bleed content from other sections\n- Reference the section by its actual subject (the standard name, the claim, the item) so it feels self-contained'
+  : '- Each snippet must be distinct — different hooks, different angles, different factual pulls from the source'}
 - For cross-voice snippets: bridge MUST be in the voice doing the reposting, not the source voice${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
