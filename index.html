@@ -5262,7 +5262,33 @@ function updateCharCount(){
   el.textContent=`${n} / 3000`;
   el.style.color=n>2800?'var(--error)':n>2400?'var(--gold)':'var(--text-muted)';
 }
-document.getElementById('linkedin-output').addEventListener('input',updateCharCount);
+// Reverse of formatBlogHTML — converts the editable rendered HTML back to
+// markdown so saveCurrentToLibrary picks up the user's inline edits.
+function blogHtmlToMarkdown(html){
+  return (html||'')
+    .replace(/<h1>(.*?)<\/h1>/gi,'# $1\n\n')
+    .replace(/<h2>(.*?)<\/h2>/gi,'## $1\n\n')
+    .replace(/<h3>(.*?)<\/h3>/gi,'### $1\n\n')
+    .replace(/<strong>(.*?)<\/strong>/gi,'**$1**')
+    .replace(/<\/p>\s*<p>/gi,'\n\n')
+    .replace(/<\/?p[^>]*>/gi,'')
+    .replace(/<br\s*\/?>/gi,'\n')
+    .replace(/&nbsp;/g,' ')
+    .replace(/&amp;/g,'&')
+    .replace(/&lt;/g,'<')
+    .replace(/&gt;/g,'>')
+    .replace(/&quot;/g,'"')
+    .replace(/&#39;/g,"'")
+    .trim();
+}
+// Live-sync inline edits back to the variables that get saved.
+document.getElementById('linkedin-output').addEventListener('input',function(){
+  generatedLinkedIn=this.innerText||this.textContent||'';
+  updateCharCount();
+});
+document.getElementById('blog-output').addEventListener('input',function(){
+  generatedBlog=blogHtmlToMarkdown(this.innerHTML||'');
+});
 
 function setStatus(t,a){
   document.getElementById('status-text').textContent=t;
