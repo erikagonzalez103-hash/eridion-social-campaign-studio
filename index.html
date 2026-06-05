@@ -3221,7 +3221,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                  auto-updates to "posted" when push succeeds (handled in pushPostToBuffer). -->
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <button class="launch-btn buffer" onclick="pushPostToBuffer(viewingPostId)" style="background:var(--green);border-color:var(--green);color:var(--white)">🚀 Push to Buffer</button>
-              <button class="action-btn" onclick="closeViewPostModal();openSchedModal(viewingPostId)">📆 Reschedule</button>
+              <button class="action-btn" onclick="(function(){var _id=viewingPostId;closeViewPostModal();openSchedModal(_id);})()">📆 Reschedule</button>
               <button class="action-btn" onclick="viewPostGoToLibrary()">↩ Return to Editor</button>
               <button class="action-btn" onclick="closeViewPostModal()" style="margin-left:auto">Close</button>
             </div>
@@ -3249,8 +3249,12 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div class="sched-modal-title">Schedule Post</div>
             <div class="sched-preview" id="sched-preview"></div>
             <div class="sched-field">
-              <label class="field-label">Day</label>
-              <select id="sched-day"></select>
+              <label class="field-label">Date</label>
+              <input type="date" id="sched-date" />
+            </div>
+            <div class="sched-field">
+              <label class="field-label">Time</label>
+              <input type="time" id="sched-time" value="09:00" />
             </div>
             <div class="sched-field">
               <label class="field-label">Account</label>
@@ -3261,10 +3265,8 @@ textarea { min-height: 80px; line-height: 1.6; }
                 <option value="practice">The Practice</option>
               </select>
             </div>
-            <div class="sched-field">
-              <label class="field-label">Time (HH:MM — optional)</label>
-              <input type="text" id="sched-time" placeholder="09:00" />
-            </div>
+            <!-- Legacy day select kept hidden so any old code paths don't break -->
+            <select id="sched-day" style="display:none"></select>
             <div style="display:flex;gap:8px;margin-top:16px">
               <button class="action-btn primary" style="flex:1" onclick="confirmSchedule()">Schedule</button>
               <button class="action-btn" onclick="closeSchedModal()">Cancel</button>
@@ -6747,17 +6749,13 @@ function openSchedModal(id){
   if(!it) return;
   pendingSchedItem=it;
   document.getElementById('sched-preview').textContent=(it.linkedin_text||it.blog_text||'').slice(0,200)+'…';
-  // Populate days (current week + next week)
-  const daySel=document.getElementById('sched-day');
-  const days=[];
-  const start=calWeekStart?new Date(calWeekStart):getWeekStart(new Date());
-  for(let w=0;w<2;w++){
-    for(let d=0;d<7;d++){
-      const dt=new Date(start); dt.setDate(dt.getDate()+w*7+d);
-      days.push(dt);
-    }
-  }
-  daySel.innerHTML=days.map(d=>`<option value="${d.toISOString()}">${d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</option>`).join('');
+  // Native date input — prefill with current scheduled date if rescheduling,
+  // otherwise default to today.
+  const existing = it.scheduled_for ? new Date(it.scheduled_for) : new Date();
+  const yyyy = existing.getFullYear();
+  const mm = String(existing.getMonth()+1).padStart(2,'0');
+  const dd = String(existing.getDate()).padStart(2,'0');
+  document.getElementById('sched-date').value = `${yyyy}-${mm}-${dd}`;
   document.getElementById('sched-account').value=it.scheduled_account||it.voice;
   document.getElementById('sched-time').value=it.scheduled_time||'09:00';
   document.getElementById('sched-modal').classList.add('open');
@@ -6770,11 +6768,17 @@ function closeSchedModal(){
 
 function confirmSchedule(){
   if(!pendingSchedItem) return;
-  const day=document.getElementById('sched-day').value;
+  const dateStr=document.getElementById('sched-date').value;
+  const time=document.getElementById('sched-time').value||'09:00';
   const account=document.getElementById('sched-account').value;
-  const time=document.getElementById('sched-time').value.trim()||'09:00';
+  if(!dateStr){ showToast('Pick a date first','error'); return; }
+  // Combine date + time into a single timestamp so Buffer pushes use the right
+  // moment, not midnight UTC.
+  const [hh, mm] = time.split(':').map(n=>parseInt(n,10)||0);
+  const dt = new Date(dateStr + 'T00:00:00');
+  dt.setHours(hh, mm, 0, 0);
   pendingSchedItem.status='scheduled';
-  pendingSchedItem.scheduled_for=new Date(day).getTime();
+  pendingSchedItem.scheduled_for=dt.getTime();
   pendingSchedItem.scheduled_account=account;
   pendingSchedItem.scheduled_time=time;
   persistLibrary();
