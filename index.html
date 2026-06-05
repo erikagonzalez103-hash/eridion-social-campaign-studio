@@ -3188,6 +3188,7 @@ textarea { min-height: 80px; line-height: 1.6; }
               <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Schedule items from your Library across Eridion · Erika · Quinta & Co</div>
             </div>
             <div class="cal-nav">
+              <button class="cal-nav-btn" onclick="openQuickPostModal()" style="background:var(--navy);color:var(--white);border-color:var(--navy);font-weight:600">+ Quick Post</button>
               <button class="cal-nav-btn" onclick="calPrev()">← Prev</button>
               <button class="cal-nav-btn" onclick="calThis()">This Week</button>
               <button class="cal-nav-btn" onclick="calNext()">Next →</button>
@@ -3274,6 +3275,79 @@ textarea { min-height: 80px; line-height: 1.6; }
           </div>
         </div>
 
+        <!-- Quick Post Modal — upload image + caption, schedule, no AI generation -->
+        <div class="sched-modal" id="quick-post-modal">
+          <div class="sched-modal-inner" style="max-width:560px">
+            <div class="sched-modal-title">+ Quick Post</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px">Upload an image, write a caption, schedule it. Push to Buffer later from the Library card.</div>
+
+            <div class="sched-field">
+              <label class="field-label">Voice</label>
+              <select id="qp-voice">
+                <option value="eridion">Eridion Glass</option>
+                <option value="erika">Erika Harrison</option>
+                <option value="quinta">Quinta &amp; Co</option>
+              </select>
+            </div>
+
+            <div class="sched-field">
+              <label class="field-label">Title (optional)</label>
+              <input type="text" id="qp-title" placeholder="Short label for the Library (e.g. 'Q3 portfolio infographic')" />
+            </div>
+
+            <div class="sched-field">
+              <label class="field-label">Caption</label>
+              <textarea id="qp-caption" placeholder="The post text. Keep it short — the image carries it." style="min-height:120px;resize:vertical;width:100%;padding:10px;border:1px solid var(--hairline);border-radius:4px;font-family:inherit;font-size:13px;line-height:1.6"></textarea>
+            </div>
+
+            <div class="sched-field">
+              <label class="field-label">Hashtags</label>
+              <textarea id="qp-hashtags" placeholder="#hashtags #here #separated #by #spaces" style="min-height:50px;resize:vertical;width:100%;padding:8px 10px;border:1px solid var(--hairline);border-radius:4px;font-family:var(--font-mono);font-size:12px;color:#2563EB"></textarea>
+            </div>
+
+            <div class="sched-field">
+              <label class="field-label">Image</label>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="file" id="qp-image-file" accept="image/*" onchange="qpHandleImageUpload(event)" style="font-size:12px" />
+                <span style="color:var(--text-muted);font-size:11px">— or —</span>
+                <input type="text" id="qp-image-url" placeholder="Paste public image URL" style="flex:1;min-width:200px;font-family:var(--font-mono);font-size:11px" oninput="qpUpdateImagePreview(this.value)" />
+              </div>
+              <img id="qp-image-preview" style="display:none;max-width:100%;max-height:200px;margin-top:10px;border:1px solid var(--hairline);border-radius:4px" />
+              <div id="qp-image-status" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div>
+            </div>
+
+            <div class="sched-field">
+              <label class="field-label">Channels</label>
+              <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="qp-ch-li" checked> 💼 LinkedIn</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="qp-ch-ig"> 📷 Instagram</label>
+                <span style="font-size:11px;color:var(--text-muted)">IG type:</span>
+                <select id="qp-ig-type" style="padding:3px 8px;font-size:12px">
+                  <option value="post">Post</option>
+                  <option value="reel">Reel</option>
+                  <option value="story">Story</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="sched-field" style="display:flex;gap:12px;flex-wrap:wrap">
+              <div style="flex:1;min-width:140px">
+                <label class="field-label">Date</label>
+                <input type="date" id="qp-date" />
+              </div>
+              <div style="flex:1;min-width:140px">
+                <label class="field-label">Time</label>
+                <input type="time" id="qp-time" value="09:00" />
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:20px">
+              <button class="action-btn primary" style="flex:1" onclick="confirmQuickPost()">+ Save to Library (Scheduled)</button>
+              <button class="action-btn" onclick="closeQuickPostModal()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Spin Snippet Modal -->
         <div class="spin-modal" id="spin-snippet-modal">
           <div class="spin-modal-inner">
@@ -3333,6 +3407,11 @@ textarea { min-height: 80px; line-height: 1.6; }
                 <option value="quinta">All Quinta & Co</option>
                 <option value="practice">All The Practice</option>
               </select>
+            </div>
+            <div class="spin-form-full">
+              <label class="field-label">Schedule for week of (Monday)</label>
+              <input type="date" id="spin-week-target-monday" />
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Mon–Fri of this week become the 5 scheduled days. Pick any Monday — we'll snap to it.</div>
             </div>
             <div class="spin-form-full">
               <label class="field-label">Additional Direction (optional)</label>
@@ -5523,6 +5602,13 @@ function openSpinWeekModal(id){
     : 'mix';
   document.getElementById('spin-week-voice-strategy').value=smartDefault;
   document.getElementById('spin-week-direction').value='';
+  // Default the target week to NEXT Monday (gives the user time to refine
+  // before posts go out). They can pick any Monday — getWeekStart snaps to it.
+  const nextMon=getWeekStart(new Date()); nextMon.setDate(nextMon.getDate()+7);
+  const yyyy=nextMon.getFullYear();
+  const mm=String(nextMon.getMonth()+1).padStart(2,'0');
+  const dd=String(nextMon.getDate()).padStart(2,'0');
+  document.getElementById('spin-week-target-monday').value=`${yyyy}-${mm}-${dd}`;
   document.getElementById('spin-week-results').style.display='none';
   document.getElementById('spin-week-results').innerHTML='';
   document.getElementById('spin-week-modal').classList.add('open');
@@ -5977,28 +6063,17 @@ function saveAllSpinWeek(){
 
 function saveAndScheduleSpinWeek(){
   if(!spinSource||!spinWeekResults.length) return;
-  // Ask which week to schedule into. Default offer is the currently-viewed
-  // calendar week (or current week if calendar hasn't been opened yet).
-  const fmt = d => d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-  const defaultStart = calWeekStart||getWeekStart(new Date());
-  const defaultEnd = new Date(defaultStart); defaultEnd.setDate(defaultEnd.getDate()+6);
-  let weekStart = defaultStart;
-  const useDefault = confirm(`Schedule these 5 posts for the week of ${fmt(defaultStart)}–${fmt(defaultEnd)}?\n\nOK to use this week. Cancel to pick a different week.`);
-  if(!useDefault){
-    const next = new Date(defaultStart); next.setDate(next.getDate()+7);
-    const isoDefault = next.toISOString().slice(0,10);
-    const picked = prompt(`Enter the Monday of the target week (YYYY-MM-DD).\nLeave as-is to use next week (${fmt(next)}).`, isoDefault);
-    if(picked === null){
-      showToast('Schedule cancelled','error');
-      return;
-    }
-    const parsed = new Date(picked + 'T00:00:00');
-    if(isNaN(parsed.getTime())){
-      showToast('Invalid date — schedule cancelled','error');
-      return;
-    }
-    // Normalize to Monday of that week
-    weekStart = getWeekStart(parsed);
+  // The target week was picked up-front in the Spin Week modal. Read it
+  // here and snap to its Monday (in case the user picked a Wednesday etc).
+  // Fallback: current viewed week, or current week.
+  const dateEl=document.getElementById('spin-week-target-monday');
+  const picked=dateEl?dateEl.value:'';
+  let weekStart;
+  if(picked){
+    const parsed=new Date(picked+'T00:00:00');
+    weekStart=isNaN(parsed.getTime())?(calWeekStart||getWeekStart(new Date())):getWeekStart(parsed);
+  } else {
+    weekStart=calWeekStart||getWeekStart(new Date());
   }
   const weekStartTs = weekStart.getTime();
   const dayIndex={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4};
@@ -6764,6 +6839,111 @@ function openSchedModal(id){
 function closeSchedModal(){
   pendingSchedItem=null;
   document.getElementById('sched-modal').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── QUICK POST ──
+// Upload an image, write a caption, schedule it as a Library item.
+// Skips the AI-generation flow entirely — for infographics, reels,
+// behind-the-scenes shots, etc. Push to Buffer happens from the Library
+// card later.
+// ═══════════════════════════════════════════════════════════════════
+function openQuickPostModal(){
+  // Reset fields
+  document.getElementById('qp-voice').value = currentStream || 'eridion';
+  document.getElementById('qp-title').value = '';
+  document.getElementById('qp-caption').value = '';
+  document.getElementById('qp-hashtags').value = '';
+  document.getElementById('qp-image-file').value = '';
+  document.getElementById('qp-image-url').value = '';
+  document.getElementById('qp-image-preview').style.display = 'none';
+  document.getElementById('qp-image-preview').src = '';
+  document.getElementById('qp-image-status').textContent = '';
+  document.getElementById('qp-ch-li').checked = true;
+  document.getElementById('qp-ch-ig').checked = false;
+  document.getElementById('qp-ig-type').value = localStorage.getItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY) || 'post';
+  // Default date = today, time = 09:00
+  const now = new Date();
+  document.getElementById('qp-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  document.getElementById('qp-time').value = '09:00';
+  document.getElementById('quick-post-modal').classList.add('open');
+}
+function closeQuickPostModal(){
+  document.getElementById('quick-post-modal').classList.remove('open');
+}
+async function qpHandleImageUpload(e){
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('qp-image-status');
+  statusEl.textContent = 'Uploading…';
+  try{
+    const {url} = await uploadImageToImgBB(file);
+    document.getElementById('qp-image-url').value = url;
+    qpUpdateImagePreview(url);
+    statusEl.textContent = '✓ Uploaded';
+  }catch(err){
+    statusEl.textContent = '✗ ' + err.message;
+  }
+}
+function qpUpdateImagePreview(url){
+  const img = document.getElementById('qp-image-preview');
+  if(url && /^https?:\/\//.test(url)){
+    img.src = url;
+    img.style.display = 'block';
+  } else {
+    img.style.display = 'none';
+  }
+}
+function confirmQuickPost(){
+  const voice = document.getElementById('qp-voice').value;
+  const title = document.getElementById('qp-title').value.trim() || 'Quick post';
+  const caption = document.getElementById('qp-caption').value.trim();
+  const hashtagText = document.getElementById('qp-hashtags').value.trim();
+  const imageUrl = document.getElementById('qp-image-url').value.trim();
+  const dateStr = document.getElementById('qp-date').value;
+  const time = document.getElementById('qp-time').value || '09:00';
+  const liChecked = document.getElementById('qp-ch-li').checked;
+  const igChecked = document.getElementById('qp-ch-ig').checked;
+  const igType = document.getElementById('qp-ig-type').value;
+  if(!imageUrl){ showToast('Add an image (upload or URL)','error'); return; }
+  if(!caption && !title){ showToast('Add a caption or title','error'); return; }
+  if(!dateStr){ showToast('Pick a date','error'); return; }
+  if(!liChecked && !igChecked){ showToast('Pick at least one channel','error'); return; }
+  // Compose timestamp from date + time
+  const [hh, mm] = time.split(':').map(n=>parseInt(n,10)||0);
+  const dt = new Date(dateStr + 'T00:00:00');
+  dt.setHours(hh, mm, 0, 0);
+  // Hashtags as array
+  const hashtags = hashtagText.split(/\s+/).filter(h => h.startsWith('#'));
+  // Save IG type preference
+  if(igChecked) localStorage.setItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY, igType);
+  // Add to library as scheduled
+  const entry = addToLibrary({
+    voice,
+    bucket: 'quick_post',
+    bucketLabel: 'Quick Post',
+    format: 'linkedin',
+    topic: title,
+    title,
+    linkedin_text: caption,
+    blog_text: '',
+    hashtags,
+  });
+  entry.status = 'scheduled';
+  entry.scheduled_for = dt.getTime();
+  entry.scheduled_account = voice;
+  entry.scheduled_time = time;
+  entry.selectedImageUrl = imageUrl;
+  entry.image_url = imageUrl;
+  entry.is_quick_post = true;
+  // Channel preferences — remembered so the Preview & Push modal can prefill
+  entry.qp_channels = { linkedin: liChecked, instagram: igChecked, ig_type: igType };
+  persistLibrary();
+  renderLibrary();
+  renderCalendar();
+  closeQuickPostModal();
+  showToast('Quick post scheduled · push from the Library card when ready','success');
+  switchTab('calendar');
 }
 
 function confirmSchedule(){
@@ -8258,7 +8438,7 @@ async function loadConceptsAsync(voice, extract, type, ratio){
 const IMAGE_CONTEXTS = {
   eridion: 'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
   erika:   'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
-  quinta:  'Quinta & Co is a business education and consulting brand for women entrepreneurs. The visual should feel quiet, editorial, and human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
+  dion:    'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
   practice:'The Practice is the campaign platform of Quinta & Co., a business education brand for women entrepreneurs. The visual should feel quiet, editorial, and human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
 };
 
