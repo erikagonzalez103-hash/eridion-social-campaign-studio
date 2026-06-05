@@ -1638,6 +1638,37 @@ textarea { min-height: 80px; line-height: 1.6; }
   color: var(--navy);
 }
 .spin-result-text { font-size: 14px; line-height: 1.75; color: var(--dark-gray); white-space: pre-wrap; margin-bottom: 10px; }
+/* Editable variants of the snippet content. They look like the read-only
+   text but accept inline edits — the user can tweak before saving. */
+.spin-edit-body, .spin-edit-tags, .spin-edit-igintro {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--dark-gray);
+  background: var(--white);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  padding: 10px 12px;
+  resize: vertical;
+  outline: none;
+  white-space: pre-wrap;
+  box-sizing: border-box;
+}
+.spin-edit-body { min-height: 140px; margin-bottom: 8px; }
+.spin-edit-tags { min-height: 44px; font-family: var(--font-mono); font-size: 12px; color: #2563EB; margin-bottom: 8px; }
+.spin-edit-igintro { min-height: 60px; font-size: 13px; background: transparent; border-color: rgba(67,176,71,0.25); }
+.spin-edit-body:focus, .spin-edit-tags:focus, .spin-edit-igintro:focus { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(34,51,85,0.08); }
+.spin-edit-lbl {
+  font-family: var(--font-subhead);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: var(--track-alta);
+  text-transform: uppercase;
+  color: var(--medium-gray);
+  display: block;
+  margin-bottom: 4px;
+}
 .spin-result-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .spin-modal-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; align-items: center; }
 .spin-loading { text-align: center; padding: 32px 20px; color: var(--medium-gray); font-style: italic; font-size: 14px; }
@@ -3558,11 +3589,15 @@ AUDIENCE: Custom home builders, luxury home builders, general contractors, proje
 NEVER: Generic sales language, direct superiority claims, "backup vendor" framing.
 ALWAYS: Lead with recipient's reality, tie data to actionable insight, position Eridion as the trusted expert partner.`,
 
-  erika:`You are writing personal brand content for Erika Harrison, co-founder of Eridion Glass, LLC — a female entrepreneur in Dallas, TX with an MBA in Marketing from LSU and 20+ years in corporate advertising before entering construction.
+  erika:`You are writing personal brand content for Erika Harrison, co-founder of Eridion Glass, LLC and founder of Quinta & Co — a female entrepreneur in Dallas, TX with an MBA in Marketing from LSU and 20+ years in corporate advertising before entering construction.
 
-PERSONAL VOICE: Thoughtfully vulnerable (not oversharing), approachable but polished, motivational without preaching, honest about friction but always moving toward the insight or the win.
-IMPORTANT: Vulnerability stays in business/industry friction only — never personal health or anything undermining professional credibility. Frame struggles as learning moments.
-AUDIENCE: Female founders, women in construction, business leaders, DFW entrepreneurial community.`,
+PERSONAL VOICE: Direct. Confident. No throat-clearing. She says what she means, in fewer words than most. She blends three energies — the modern, technically-credible voice of Eridion (her construction business), the quiet elegance of Quinta & Co (her education brand for women), and her own pragmatic founder's lens. She is warm but not gushy, honest but not vulnerable for vulnerability's sake. She frames friction as data, not drama. She never apologizes for taking a position.
+
+NEVER: Cheesy openers ("Co-founder hat on for a moment," "From the founder's desk," "checking in"), throat-clearing phrases ("Just wanted to share," "Wanted to drop in," "Hope this finds you well"), corporate jargon, performative vulnerability, breathless enthusiasm, gendered self-deprecation ("Crazy mom-CEO life over here").
+
+ALWAYS: First-person, present tense, declarative. Open on the observation or the take, not the announcement. If a sentence can be cut without losing meaning, cut it. End on the line that matters — don't tag a generic CTA onto a sharp thought.
+
+AUDIENCE: Female founders, women in construction, women in business leadership, DFW entrepreneurial community.`,
 
   quinta:`You are writing content for Quinta & Co — a business education and consulting brand for women entrepreneurs founded by Erika Gonzalez Harrison. Quinta & Co frames AI as something you do, not something you buy. Modules are practices, students are practitioners, events are open studios. "The Practice" is the campaign platform under this brand.
 
@@ -5547,13 +5582,14 @@ Generate an additional short "ig_intro" — 1-2 sentences, voice-natural, that e
   (c) Vary cadence — sometimes a direct identifier, sometimes weaving identity into the first thought
 
 Voice-natural patterns (study cadence — never copy verbatim):
-  ${voice==='erika'?`• "Erika here. Co-founder hat on for a moment —"
-  • "From the founder's desk:"
-  • "Erika checking in. As one of the people building this thing,"
-  • "Co-founder's notebook today:"`:`• "Field note from Quinta & Co —"
-  • "From the Practice today:"
-  • "Quinta & Co here. Thinking out loud on something a practitioner brought up this week:"
-  • "Open studio prompt for the day:"`}
+  ${voice==='erika'?`• "Erika Harrison. One of the people building this:"
+  • "From me, not the brand —"
+  • "Erika here. Quick thought before the calls start:"
+  • "I'll keep this brief:"
+  • Or skip the intro and open straight into the first line — direct beats announcement every time`:`• "From Quinta & Co —"
+  • "A note from The Practice:"
+  • "Quinta & Co. Field note:"
+  • Or open straight into the observation with no intro at all — quiet beats announcement`}
 
 NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The intro must read as natural opening flow, not a tag.`:'';
 
@@ -5594,6 +5630,23 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
   }
 }
 
+// Update result data on inline edits. context = 'snippet' or 'week'.
+function updateSpinResult(idx, field, value, context){
+  const arr = context==='week' ? spinWeekResults : spinSnippetResults;
+  if(!arr[idx]) return;
+  if(field === 'hashtags'){
+    // Split on whitespace, keep only #-prefixed tokens
+    arr[idx].hashtags = (value||'').split(/\s+/).filter(h => h.startsWith('#'));
+  } else {
+    arr[idx][field] = value;
+  }
+  // Refresh the char count next to the edited block
+  const card = document.getElementById(`spin-card-${context}-${idx}`);
+  if(card){
+    const charEl = card.querySelector('.spin-edit-charcount');
+    if(charEl) charEl.textContent = (arr[idx].text||'').length + ' chars';
+  }
+}
 function renderSpinSnippetResult(){
   const resultsEl=document.getElementById('spin-snippet-results');
   if(!spinSnippetResults.length){resultsEl.style.display='none';return;}
@@ -5601,21 +5654,24 @@ function renderSpinSnippetResult(){
   const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[r.voice];
   const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'}[r.bridgeFrom]:'';
   const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
-  const igBlock=r.ig_intro?`
+  const igBlock=r.ig_intro!==undefined?`
       <div style="margin-top:10px;padding:10px 12px;background:rgba(67,176,71,0.06);border:1px solid var(--green-faint);border-radius:4px">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--green-deep);margin-bottom:6px">📷 IG INTRO (PREPENDED FOR @ERIDION CROSS-POST)</div>
-        <div style="font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap">${escapeHTML(r.ig_intro)}</div>
+        <span class="spin-edit-lbl" style="color:var(--green-deep)">📷 IG Intro (prepended for @eridion cross-post)</span>
+        <textarea class="spin-edit-igintro" oninput="updateSpinResult(0, 'ig_intro', this.value, 'snippet')">${escapeHTML(r.ig_intro||'')}</textarea>
       </div>`:'';
   resultsEl.style.display='block';
   resultsEl.innerHTML=`
-    <div class="spin-result-card">
+    <div class="spin-result-card" id="spin-card-snippet-0">
       <div class="spin-result-head">
         <span class="voice-badge ${r.voice}">${voiceLabel}</span>
         ${bridgeTag}
         <span class="spin-result-label">${r.angle}</span>
-        <span class="lib-card-date" style="margin-left:auto">${r.text.length} chars</span>
+        <span class="lib-card-date spin-edit-charcount" style="margin-left:auto">${r.text.length} chars</span>
       </div>
-      <div class="spin-result-text">${escapeHTML(r.text)}${r.hashtags.length?'\n\n'+r.hashtags.join(' '):''}</div>
+      <span class="spin-edit-lbl">Post body</span>
+      <textarea class="spin-edit-body" oninput="updateSpinResult(0, 'text', this.value, 'snippet')">${escapeHTML(r.text)}</textarea>
+      <span class="spin-edit-lbl">Hashtags</span>
+      <textarea class="spin-edit-tags" oninput="updateSpinResult(0, 'hashtags', this.value, 'snippet')">${escapeHTML(r.hashtags.join(' '))}</textarea>
       ${igBlock}
       <div class="spin-result-actions">
         <button class="action-btn primary" onclick="saveSpinSnippetToLibrary(0)">+ Save to Library</button>
@@ -5751,8 +5807,8 @@ Snippets in non-Eridion voices may cross-post to the @eridion Instagram handle, 
   (d) NEVER uses formatted header lines like "↳ From:" or "Posted by:". Reads as natural opening flow, not a tag.
 
 Voice-natural patterns (cadence reference only — never copy verbatim):
-  • Erika: "Erika here. Co-founder hat on for a moment —" / "From the founder's desk:" / "Co-founder's notebook today:" / "Erika checking in. As one of the people building this thing,"
-  • Quinta & Co: "Field note from Quinta & Co —" / "From the Practice today:" / "Open studio prompt for the day:" / "Quinta & Co here. Thinking out loud on something a practitioner brought up this week:"
+  • Erika: "Erika Harrison. One of the people building this:" / "From me, not the brand —" / "Erika here. Quick thought before the calls start:" / "I'll keep this brief:" / (or no intro — open straight into the first line; direct beats announcement)
+  • Quinta & Co: "From Quinta & Co —" / "A note from The Practice:" / "Quinta & Co. Field note:" / (or no intro — open straight into the observation; quiet beats announcement)
 
 For ERIDION-voice snippets: set ig_intro to empty string "" (the voice already matches the channel).`;
 
@@ -5846,21 +5902,24 @@ function renderSpinWeekResults(){
     const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[r.voice]||r.voice;
     const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'}[r.bridgeFrom]:'';
     const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
-    const igBlock=r.ig_intro?`
+    const igBlock=r.ig_intro!==undefined?`
         <div style="margin-top:10px;padding:10px 12px;background:rgba(67,176,71,0.06);border:1px solid var(--green-faint);border-radius:4px">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--green-deep);margin-bottom:6px">📷 IG INTRO (PREPENDED FOR @ERIDION CROSS-POST)</div>
-          <div style="font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap">${escapeHTML(r.ig_intro)}</div>
+          <span class="spin-edit-lbl" style="color:var(--green-deep)">📷 IG Intro (prepended for @eridion cross-post)</span>
+          <textarea class="spin-edit-igintro" oninput="updateSpinResult(${i}, 'ig_intro', this.value, 'week')">${escapeHTML(r.ig_intro||'')}</textarea>
         </div>`:'';
     return `
-      <div class="spin-result-card">
+      <div class="spin-result-card" id="spin-card-week-${i}">
         <div class="spin-result-head">
           <span class="spin-result-label">${r.day}</span>
           <span class="voice-badge ${r.voice}">${voiceLabel}</span>
           ${bridgeTag}
           <span class="lib-card-bucket">· ${escapeHTML(r.angleLabel||'')}</span>
-          <span class="lib-card-date" style="margin-left:auto">${r.text.length} chars</span>
+          <span class="lib-card-date spin-edit-charcount" style="margin-left:auto">${r.text.length} chars</span>
         </div>
-        <div class="spin-result-text">${escapeHTML(r.text)}${r.hashtags.length?'\n\n'+r.hashtags.join(' '):''}</div>
+        <span class="spin-edit-lbl">Post body</span>
+        <textarea class="spin-edit-body" oninput="updateSpinResult(${i}, 'text', this.value, 'week')">${escapeHTML(r.text)}</textarea>
+        <span class="spin-edit-lbl">Hashtags</span>
+        <textarea class="spin-edit-tags" oninput="updateSpinResult(${i}, 'hashtags', this.value, 'week')">${escapeHTML(r.hashtags.join(' '))}</textarea>
         ${igBlock}
         <div class="spin-result-actions">
           <button class="action-btn" onclick="saveOneSpinWeek(${i})">+ Save This One</button>
@@ -8269,4 +8328,3 @@ function iiUseUnsplashTerm(term){
 </script>
 </body>
 </html>
-                                                                                                                                                                   
