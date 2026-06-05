@@ -5235,13 +5235,42 @@ function copyLinkedIn(){
   navigator.clipboard.writeText(ht?`${text}\n\n${ht}`:text).then(()=>showToast('Copied!','success'));
 }
 function copyHashtags(){navigator.clipboard.writeText(generatedHashtags.join(' ')).then(()=>showToast('Hashtags copied!','success'));}
+// Strip markdown markers so the plain-text fallback doesn't show ## or **.
+function stripMarkdown(text){
+  return (text||'')
+    .replace(/^#{1,6}\s+(.+)$/gm,'$1')
+    .replace(/\*\*(.+?)\*\*/g,'$1')
+    .replace(/\*(.+?)\*/g,'$1')
+    .replace(/`(.+?)`/g,'$1')
+    .replace(/^\s*[-*+]\s+/gm,'• ')
+    .trim();
+}
+// Rich-text copy: write both HTML and cleaned plain text to the clipboard
+// so paste targets (Substack, Word, Google Docs, etc.) pick up real
+// headings + bold instead of literal ## marks. Falls back to plain text
+// if the browser doesn't support multi-format clipboard.
+function copyAsRichText(markdown, label){
+  const md = markdown || '';
+  const html = formatBlogHTML(md);
+  const plain = stripMarkdown(md);
+  if(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem){
+    navigator.clipboard.write([new ClipboardItem({
+      'text/html': new Blob([html], {type:'text/html'}),
+      'text/plain': new Blob([plain], {type:'text/plain'})
+    })])
+    .then(()=>showToast((label||'Copied')+' — formatted','success'))
+    .catch(()=>navigator.clipboard.writeText(plain).then(()=>showToast((label||'Copied')+' (plain)','success')));
+  } else {
+    navigator.clipboard.writeText(plain).then(()=>showToast((label||'Copied'),'success'));
+  }
+}
 function copyBlog(){
-  const clean = generatedBlog || document.getElementById('blog-output').innerText;
-  navigator.clipboard.writeText(clean).then(()=>showToast('Blog copied!','success'));
+  const md = generatedBlog || document.getElementById('blog-output').innerText;
+  copyAsRichText(md, 'Blog copied');
 }
 function copyBlogHTML(){
-  const clean = generatedBlog || document.getElementById('blog-output').innerText;
-  navigator.clipboard.writeText(clean).then(()=>showToast('Blog copied!','success'));
+  const md = generatedBlog || document.getElementById('blog-output').innerText;
+  copyAsRichText(md, 'Blog copied');
 }
 function copyText(id){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>showToast('Copied!','success'));}
 function openLinkedIn(){window.open('https://www.linkedin.com/post/new/','_blank');setTimeout(()=>copyLinkedIn(),300);}
@@ -6726,9 +6755,13 @@ function loadFromLibrary(id){
 function copyFromLibrary(id){
   const it=library.find(x=>x.id===id);
   if(!it) return;
-  const text=it.linkedin_text||it.blog_text||'';
-  const ht=(it.hashtags||[]).join(' ');
-  navigator.clipboard.writeText(ht?`${text}\n\n${ht}`:text).then(()=>showToast('Copied to clipboard','success'));
+  // Prefer the blog body for rich-paste contexts; fall back to LinkedIn text.
+  // Always copy as rich text + cleaned plain text so Substack / Word / Docs
+  // get real formatting instead of literal ## marks.
+  const md = it.blog_text || it.linkedin_text || '';
+  const ht = (it.hashtags||[]).join(' ');
+  const combined = ht ? `${md}\n\n${ht}` : md;
+  copyAsRichText(combined, 'Copied');
 }
 
 function deleteFromLibrary(id){
