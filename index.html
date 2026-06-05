@@ -1446,7 +1446,10 @@ textarea { min-height: 80px; line-height: 1.6; }
   background: rgba(31, 42, 74, 0.55);
   backdrop-filter: blur(2px);
   z-index: 500;
-  align-items: center; justify-content: center;
+  /* safe center keeps short modals vertically centered, but lets tall ones
+     scroll from the top instead of clipping above the viewport */
+  align-items: safe center;
+  justify-content: center;
   padding: 24px;
   overflow-y: auto;
 }
@@ -1457,8 +1460,9 @@ textarea { min-height: 80px; line-height: 1.6; }
   padding: 32px;
   max-width: 500px;
   width: 100%;
-  max-height: calc(100vh - 48px);
-  overflow-y: auto;
+  /* No max-height — the outer .sched-modal handles overflow. This lets the
+     inner grow naturally and the outer scrolls when content exceeds viewport. */
+  margin: auto 0;
   box-shadow: 0 24px 60px rgba(31, 42, 74, 0.18);
 }
 /* Buffer Preview modal — per-channel preview cards */
@@ -3213,10 +3217,11 @@ textarea { min-height: 80px; line-height: 1.6; }
             <!-- Image attachment (Buffer needs this on every post) -->
             <div id="view-post-image-picker"></div>
 
-            <!-- Streamlined modal actions: push, edit, close. Status auto-updates
-                 to "posted" when push succeeds (handled in pushPostToBuffer). -->
+            <!-- Streamlined modal actions: push, reschedule, edit, close. Status
+                 auto-updates to "posted" when push succeeds (handled in pushPostToBuffer). -->
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <button class="launch-btn buffer" onclick="pushPostToBuffer(viewingPostId)" style="background:var(--green);border-color:var(--green);color:var(--white)">🚀 Push to Buffer</button>
+              <button class="action-btn" onclick="closeViewPostModal();openSchedModal(viewingPostId)">📆 Reschedule</button>
               <button class="action-btn" onclick="viewPostGoToLibrary()">↩ Return to Editor</button>
               <button class="action-btn" onclick="closeViewPostModal()" style="margin-left:auto">Close</button>
             </div>
@@ -5970,8 +5975,30 @@ function saveAllSpinWeek(){
 
 function saveAndScheduleSpinWeek(){
   if(!spinSource||!spinWeekResults.length) return;
-  // Determine schedule week — default to current week
-  const weekStart=calWeekStart||getWeekStart(new Date());
+  // Ask which week to schedule into. Default offer is the currently-viewed
+  // calendar week (or current week if calendar hasn't been opened yet).
+  const fmt = d => d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  const defaultStart = calWeekStart||getWeekStart(new Date());
+  const defaultEnd = new Date(defaultStart); defaultEnd.setDate(defaultEnd.getDate()+6);
+  let weekStart = defaultStart;
+  const useDefault = confirm(`Schedule these 5 posts for the week of ${fmt(defaultStart)}–${fmt(defaultEnd)}?\n\nOK to use this week. Cancel to pick a different week.`);
+  if(!useDefault){
+    const next = new Date(defaultStart); next.setDate(next.getDate()+7);
+    const isoDefault = next.toISOString().slice(0,10);
+    const picked = prompt(`Enter the Monday of the target week (YYYY-MM-DD).\nLeave as-is to use next week (${fmt(next)}).`, isoDefault);
+    if(picked === null){
+      showToast('Schedule cancelled','error');
+      return;
+    }
+    const parsed = new Date(picked + 'T00:00:00');
+    if(isNaN(parsed.getTime())){
+      showToast('Invalid date — schedule cancelled','error');
+      return;
+    }
+    // Normalize to Monday of that week
+    weekStart = getWeekStart(parsed);
+  }
+  const weekStartTs = weekStart.getTime();
   const dayIndex={Monday:0,Tuesday:1,Wednesday:2,Thursday:3,Friday:4};
   const defaultTimes=['09:00','10:00','11:00','14:00','15:00']; // spread through the day
   let savedCount=0;
