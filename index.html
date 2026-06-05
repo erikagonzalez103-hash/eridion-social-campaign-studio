@@ -5113,17 +5113,62 @@ function renderImagePicker(containerId, itemId){
       <div class="img-picker-actions">
         <input type="file" id="${fileInputId}" accept="image/*" style="display:none" onchange="handleImagePickerUpload(event,'${itemId}','${containerId}')">
         <button class="img-picker-btn primary" onclick="document.getElementById('${fileInputId}').click()">${hasImg?'Replace · Upload':'📷 Upload Image'}</button>
-        <button class="img-picker-btn" onclick="toggleImagePickerUrlRow('${urlRowId}')">${hasImg?'Replace · Paste URL':'Paste URL'}</button>
+        <button class="img-picker-btn" onclick="generateImagePromptForItem('${itemId}', this)" style="border-color:var(--gold-dim);color:var(--gold)">✦ Image Prompt</button>
         ${hasImg?`<button class="img-picker-btn danger" onclick="removeImageFromLibraryItem('${itemId}')">Remove</button>`:''}
-      </div>
-      <div class="img-picker-url-row" id="${urlRowId}">
-        <input type="url" id="${urlInputId}" placeholder="https://example.com/photo.jpg" />
-        <button class="img-picker-btn" onclick="handleImagePickerUrlPaste('${itemId}','${urlInputId}','${containerId}')">Attach</button>
       </div>
       <div class="img-picker-progress" id="${progressId}"></div>
       ${!getImgBBKey()?`<div class="img-picker-hint">⚠ ImgBB key not set — upload won't work yet. <a href="#" onclick="event.preventDefault();toggleKeys();" style="color:var(--navy)">Add it in API Keys</a> (free at api.imgbb.com).</div>`:''}
     </div>
   `;
+}
+
+// Reads the post copy from the library item, asks Claude to produce a
+// polished AI image prompt (DALL·E / Midjourney / Firefly compatible),
+// copies it to clipboard. Voice-specific brand context is included so the
+// generated image actually fits Eridion vs. Erika vs. Quinta aesthetics.
+async function generateImagePromptForItem(itemId, btn){
+  const it = library.find(x => x.id === itemId);
+  if(!it){ showToast('Post not found','error'); return; }
+  const voice = it.voice || it.scheduled_account || 'eridion';
+  const text = (it.blog_text || it.linkedin_text || it.title || '').slice(0, 1500);
+  if(!text.trim()){
+    showToast('No post copy to read — add some text first','error');
+    return;
+  }
+  const brandContext = (typeof IMAGE_CONTEXTS!=='undefined' && IMAGE_CONTEXTS[voice]) || (IMAGE_CONTEXTS && IMAGE_CONTEXTS.eridion) || '';
+  const originalLabel = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = '✦ Generating…'; }
+  try{
+    const prompt = `Write a polished AI image generation prompt (for DALL·E 3 / Midjourney / Adobe Firefly) to create a visual that supports this social post:
+
+POST COPY:
+"""
+${text}
+"""
+
+VOICE / BRAND CONTEXT: ${brandContext}
+
+The image should feel purposeful and on-brand — NOT corny stock imagery, NOT obvious "infographic" styling, NOT human figures in the frame unless the brand context above explicitly invites them. The prompt should help the reader picture the post's central idea or feeling, not literally illustrate words.
+
+Write a single paragraph (80–150 words) that includes: subject matter, composition, lighting, materials/textures, mood, stylistic references, and aspect ratio note (default to 1:1 for social). The prompt should be ready to paste straight into any AI image tool.
+
+Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "Here's the prompt:" — just the prompt itself.`;
+    const response = await fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
+    });
+    const data = await response.json();
+    if(data.error) throw new Error(data.error.message || 'Unknown error');
+    const result = (data.content?.[0]?.text || '').trim();
+    if(!result) throw new Error('Empty response');
+    await navigator.clipboard.writeText(result);
+    showToast('✦ Image prompt copied — paste into ChatGPT/DALL·E','success');
+  }catch(e){
+    showToast('Image prompt failed: ' + e.message, 'error');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = originalLabel; }
+  }
 }
 
 function toggleImagePickerUrlRow(rowId){
