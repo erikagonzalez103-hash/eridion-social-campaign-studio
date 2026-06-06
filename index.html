@@ -5139,18 +5139,28 @@ async function generateImagePromptForItem(itemId, btn){
   const originalLabel = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = '✦ Generating…'; }
   try{
-    const prompt = `Write a polished AI image generation prompt (for DALL·E 3 / Midjourney / Adobe Firefly) to create a visual that supports this social post:
+    const prompt = `Write a polished AI image generation prompt (for DALL·E 3 / Midjourney / Adobe Firefly) to create a visual that supports this social post.
+
+STEP 1 — IDENTIFY THE POST'S TOPIC:
+Read the post carefully. What is it actually ABOUT?
+  • The subject matter (leadership, women in business, technical standards, a personal story, a piece of data, etc.)
+  • The emotional register (confident take, quiet observation, hard-won lesson, etc.)
+  • The reader's takeaway (the one feeling or insight they should walk away with)
 
 POST COPY:
 """
 ${text}
 """
 
-VOICE / BRAND CONTEXT: ${brandContext}
+STEP 2 — APPLY THE BRAND'S VISUAL LENS:
+The brand's aesthetic is the styling — color palette, lighting, mood, composition — NOT the subject matter. The subject must come from the post topic above. Don't force product imagery (glass, jobsites, etc.) into a post that isn't about them.
 
-The image should feel purposeful and on-brand — NOT corny stock imagery, NOT obvious "infographic" styling, NOT human figures in the frame unless the brand context above explicitly invites them. The prompt should help the reader picture the post's central idea or feeling, not literally illustrate words.
+BRAND VISUAL LENS: ${brandContext}
 
-Write a single paragraph (80–150 words) that includes: subject matter, composition, lighting, materials/textures, mood, stylistic references, and aspect ratio note (default to 1:1 for social). The prompt should be ready to paste straight into any AI image tool.
+STEP 3 — WRITE THE PROMPT:
+Compose a single paragraph (80–150 words) that includes: subject matter (driven by the post topic), composition, lighting, materials / textures, mood, stylistic references, and aspect ratio (1:1 for social by default). The prompt should help the reader feel the post's central idea — not literally illustrate the words, not lean on brand product visuals unless the post is genuinely about the product.
+
+Avoid: corny stock photography (handshakes, thumbs-up, suits in a row, people pointing at charts), AI tropes (glowing brains, neon circuits, robots), obvious infographic styling, and any image that's just "generic luxury" or "generic productivity."
 
 Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "Here's the prompt:" — just the prompt itself.`;
     const response = await fetch(WORKER, {
@@ -8572,10 +8582,10 @@ async function loadConceptsAsync(voice, extract, type, ratio){
 
 // ── Image generation brand contexts (voice-aware) ──
 const IMAGE_CONTEXTS = {
-  eridion: 'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
-  erika:   'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
-  dion:    'Eridion Glass is a luxury custom glass and mirror subcontractor in Dallas TX serving high-end builders. The visual should feel premium — luxury residential construction, glass installations, jobsites, modern architecture, etc. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
-  practice:'The Practice is the campaign platform of Quinta & Co., a business education brand for women entrepreneurs. The visual should feel quiet, editorial, and human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
+  eridion: 'Eridion Glass — luxury custom glass and mirror subcontractor in Dallas TX. Visual lens: premium residential construction, glass installations, jobsites, modern architecture. Use this lens ONLY when the post itself is about Eridion, glass, construction, or the trade. For other topics, treat the lens as styling cues (clean lines, premium light, restrained palette) not as required subject matter. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
+  erika:   'Erika Harrison — co-founder of Eridion Glass and founder of Quinta & Co. She writes about leadership, women in business, founder life, and personal evolution. Visual lens: editorial, sophisticated, human — think Harvard Business Review, Atlantic, or The Cut magazine spreads. Soft natural light, neutral palettes, women at work in unguarded moments, modern uncluttered offices, considered composition, no overt product placement. Avoid: stock business clichés (handshakes, suits in a row, charts on screens), AI tropes (glowing brains, neon circuits), overly literal interpretations, anything that screams "LinkedIn headshot."',
+  quinta:  'Quinta & Co — business education and consulting brand for women entrepreneurs ("AI is a practice, not a purchase"). Visual lens: quiet, editorial, human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
+  practice:'The Practice — campaign platform of Quinta & Co. for women entrepreneurs. Visual lens: quiet, editorial, and human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
 };
 
 async function genUnsplashTerms(text, voice){
