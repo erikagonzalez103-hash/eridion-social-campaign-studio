@@ -5129,13 +5129,22 @@ function renderImagePicker(containerId, itemId){
 async function generateImagePromptForItem(itemId, btn){
   const it = library.find(x => x.id === itemId);
   if(!it){ showToast('Post not found','error'); return; }
-  const voice = it.voice || it.scheduled_account || 'eridion';
+  const writingVoice = it.voice || it.scheduled_account || 'eridion';
+  // If this post is amplifying another voice's content (cross-voice repost),
+  // the IMAGE should follow the source voice's brand lens — not the writer's.
+  // Example: Erika amplifying Quinta & Co → Quinta's editorial-sage palette,
+  // not Erika's HBR-magazine spread style.
+  const isAmplifying = !!(it.cross_voice || it.bridge_from);
+  const visualVoice = isAmplifying ? (it.bridge_from || writingVoice) : writingVoice;
   const text = (it.blog_text || it.linkedin_text || it.title || '').slice(0, 1500);
   if(!text.trim()){
     showToast('No post copy to read — add some text first','error');
     return;
   }
-  const brandContext = (typeof IMAGE_CONTEXTS!=='undefined' && IMAGE_CONTEXTS[voice]) || (IMAGE_CONTEXTS && IMAGE_CONTEXTS.eridion) || '';
+  const brandContext = (typeof IMAGE_CONTEXTS!=='undefined' && IMAGE_CONTEXTS[visualVoice]) || (IMAGE_CONTEXTS && IMAGE_CONTEXTS.eridion) || '';
+  const voiceNote = isAmplifying
+    ? `Note: This post is written by ${writingVoice.toUpperCase()} amplifying content originally from ${visualVoice.toUpperCase()}. The image should sit in ${visualVoice.toUpperCase()}'s visual world (the brand being amplified), not the reposter's.`
+    : '';
   const originalLabel = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = '✦ Generating…'; }
   try{
@@ -5156,6 +5165,7 @@ STEP 2 — APPLY THE BRAND'S VISUAL LENS:
 The brand's aesthetic is the styling — color palette, lighting, mood, composition — NOT the subject matter. The subject must come from the post topic above. Don't force product imagery (glass, jobsites, etc.) into a post that isn't about them.
 
 BRAND VISUAL LENS: ${brandContext}
+${voiceNote}
 
 STEP 3 — WRITE THE PROMPT:
 Compose a single paragraph (80–150 words) that includes: subject matter (driven by the post topic), composition, lighting, materials / textures, mood, stylistic references, and aspect ratio (1:1 for social by default). The prompt should help the reader feel the post's central idea — not literally illustrate the words, not lean on brand product visuals unless the post is genuinely about the product.
