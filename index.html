@@ -3125,8 +3125,9 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div class="upload-icon">📷</div>
             <p>Upload your own Eridion job photo</p>
             <p style="margin-top:4px;font-size:11px">Authentic site photos outperform stock every time</p>
+            <p style="margin-top:4px;font-size:11px;color:var(--text-muted)">Select several at once for a carousel (order = selection order)</p>
           </div>
-          <input type="file" id="file-input" accept="image/*" onchange="handleUpload(event)">
+          <input type="file" id="file-input" accept="image/*" multiple onchange="handleUpload(event)">
           <div class="panel-title" style="margin-top:8px">Or Search Free Stock (Unsplash)</div>
           <div class="image-search-row">
             <input type="text" id="image-search" placeholder="e.g. luxury home glass windows Dallas" />
@@ -3308,9 +3309,9 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div class="sched-field">
               <label class="field-label">Image</label>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <input type="file" id="qp-image-file" accept="image/*" onchange="qpHandleImageUpload(event)" style="font-size:12px" />
+                <input type="file" id="qp-image-file" accept="image/*" multiple onchange="qpHandleImageUpload(event)" style="font-size:12px" />
                 <span style="color:var(--text-muted);font-size:11px">— or —</span>
-                <input type="text" id="qp-image-url" placeholder="Paste public image URL" style="flex:1;min-width:200px;font-family:var(--font-mono);font-size:11px" oninput="qpUpdateImagePreview(this.value)" />
+                <input type="text" id="qp-image-url" placeholder="Paste public image URL" style="flex:1;min-width:200px;font-family:var(--font-mono);font-size:11px" oninput="qpOnUrlInput(this.value)" />
               </div>
               <img id="qp-image-preview" style="display:none;max-width:100%;max-height:200px;margin-top:10px;border:1px solid var(--hairline);border-radius:4px" />
               <div id="qp-image-status" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div>
@@ -3629,6 +3630,7 @@ let generatedLinkedIn = '';
 let generatedBlog = '';
 let generatedHashtags = [];
 let selectedImageUrl = '';
+let selectedImageUrls = []; // carousel: ordered list; selectedImageUrl mirrors [0]
 let selectedImageCredit = '';
 let contentLog = [];
 let weekPosts = [];
@@ -4926,7 +4928,7 @@ async function searchImages(){
 }
 
 function selectImage(url,credit,el){
-  selectedImageUrl=url; selectedImageCredit=credit;
+  selectedImageUrl=url; selectedImageUrls=[url]; selectedImageCredit=credit;
   document.querySelectorAll('.image-thumb').forEach(t=>t.classList.remove('selected'));
   el.classList.add('selected');
   const prev=document.getElementById('selected-preview');
@@ -4935,26 +4937,36 @@ function selectImage(url,credit,el){
   showToast('Image selected','success');
 }
 
-function handleUpload(e){
-  // Image tab "upload" — uploads to ImgBB and stores the public URL in the
-  // global selectedImageUrl so saveCurrentToLibrary picks it up automatically.
-  const file=e.target.files[0]; if(!file) return;
-  uploadImageToImgBB(file).then(({url, displayUrl})=>{
-    selectedImageUrl=url; selectedImageCredit='Your photo (uploaded)';
-    const prev=document.getElementById('selected-preview');
-    prev.src=displayUrl||url; prev.classList.add('visible');
-    document.getElementById('image-credit').textContent='Your own photo ✓ — hosted at '+url;
-    showToast('Photo uploaded ✓','success');
-    // If a library item is currently being edited (loaded into the
-    // editor), attach the URL there too — but that flow is handled in
-    // saveCurrentToLibrary on save. No extra wiring needed here.
-  }).catch(err=>{
+async function handleUpload(e){
+  // Image tab "upload" — uploads each selected file to ImgBB and stores the
+  // public URLs in selectedImageUrls (ordered). selectedImageUrl mirrors the
+  // first so all single-image read sites keep working. Selecting several
+  // files builds a carousel.
+  const files=Array.from(e.target.files||[]); if(!files.length) return;
+  const prev=document.getElementById('selected-preview');
+  const creditEl=document.getElementById('image-credit');
+  const urls=[];
+  try{
+    for(let i=0;i<files.length;i++){
+      creditEl.textContent=files.length>1?`Uploading ${i+1} of ${files.length}…`:'Uploading…';
+      const {url, displayUrl}=await uploadImageToImgBB(files[i]);
+      urls.push(url);
+      if(i===0){ prev.src=displayUrl||url; prev.classList.add('visible'); }
+    }
+    selectedImageUrls=urls;
+    selectedImageUrl=urls[0];
+    selectedImageCredit='Your photo (uploaded)';
+    creditEl.textContent=urls.length>1
+      ? `${urls.length} photos uploaded ✓ — carousel ready (first shown)`
+      : 'Your own photo ✓ — hosted at '+urls[0];
+    showToast(urls.length>1?`${urls.length} photos uploaded ✓`:'Photo uploaded ✓','success');
+  }catch(err){
     showToast('Upload failed: '+err.message,'error');
     if(/key/i.test(err.message)) toggleKeys();
-  }).finally(()=>{
-    // Reset the file input so the same file can be re-selected if needed
+  }finally{
+    // Reset the file input so the same file(s) can be re-selected if needed
     e.target.value='';
-  });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -5026,6 +5038,7 @@ function attachImageToLibraryItem(itemId, url, source, credit){
   if(!it) return false;
   it.selectedImageUrl=url;
   it.image_url=url; // mirror, in case downstream code reads either field
+  it.imageUrls=[url]; // canonical carousel array; single attach = 1-image carousel
   it.imageSource=source||'upload';
   it.imageCredit=credit||'';
   it.imageAttachedAt=Date.now();
@@ -5043,6 +5056,7 @@ function removeImageFromLibraryItem(itemId){
   if(!it) return false;
   delete it.selectedImageUrl;
   delete it.image_url;
+  delete it.imageUrls;
   delete it.imageSource;
   delete it.imageCredit;
   delete it.imageAttachedAt;
@@ -5051,6 +5065,19 @@ function removeImageFromLibraryItem(itemId){
   if(typeof renderCalendar==='function') renderCalendar();
   refreshAllOpenImagePickers();
   return true;
+}
+
+// Returns the ordered list of public image URLs for an item, normalizing the
+// legacy single-image fields into an array. Always returns an array (possibly
+// empty). This is the single source of truth for "what images does this post
+// carry" — used by the Buffer push and the preview modal.
+function getItemImageUrls(item){
+  if(!item) return [];
+  if(Array.isArray(item.imageUrls) && item.imageUrls.length){
+    return item.imageUrls.filter(u=>typeof u==='string' && /^https?:\/\//i.test(u));
+  }
+  const single=item.selectedImageUrl||item.image_url;
+  return (single && /^https?:\/\//i.test(single)) ? [single] : [];
 }
 
 // Re-renders every img-picker that's currently in the DOM. Cheap because
@@ -6645,8 +6672,15 @@ function addToLibrary(item){
     scheduled_time:null,
   };
   // Optional image fields — only set if caller provided them.
-  if(item.selectedImageUrl) entry.selectedImageUrl=item.selectedImageUrl;
-  if(item.image_url) entry.image_url=item.image_url;
+  if(item.imageUrls && item.imageUrls.length){
+    entry.imageUrls=item.imageUrls.slice();
+    entry.selectedImageUrl=item.imageUrls[0];
+    entry.image_url=item.imageUrls[0];
+  } else {
+    if(item.selectedImageUrl) entry.selectedImageUrl=item.selectedImageUrl;
+    if(item.image_url) entry.image_url=item.image_url;
+    if(item.selectedImageUrl||item.image_url) entry.imageUrls=[item.selectedImageUrl||item.image_url];
+  }
   if(item.imageSource) entry.imageSource=item.imageSource;
   if(item.imageCredit) entry.imageCredit=item.imageCredit;
   library.unshift(entry);
@@ -6664,9 +6698,11 @@ function saveCurrentToLibrary(){
   // If the user picked an image in the Image tab, flow it onto the new
   // entry. Guard against legacy data: URLs that wouldn't work for Buffer.
   if(selectedImageUrl && /^https?:\/\//i.test(selectedImageUrl)){
-    payload.selectedImageUrl=selectedImageUrl;
-    payload.image_url=selectedImageUrl;
-    payload.imageSource=/imgbb|ibb\.co/i.test(selectedImageUrl)?'upload':(/unsplash/i.test(selectedImageUrl)?'unsplash':'url');
+    const urls=(selectedImageUrls&&selectedImageUrls.length)?selectedImageUrls.filter(u=>/^https?:\/\//i.test(u)):[selectedImageUrl];
+    payload.imageUrls=urls;
+    payload.selectedImageUrl=urls[0];
+    payload.image_url=urls[0];
+    payload.imageSource=/imgbb|ibb\.co/i.test(urls[0])?'upload':(/unsplash/i.test(urls[0])?'unsplash':'url');
     payload.imageCredit=selectedImageCredit||'';
   }
   const entry=addToLibrary(payload);
@@ -7015,6 +7051,7 @@ function openQuickPostModal(){
   document.getElementById('qp-image-preview').style.display = 'none';
   document.getElementById('qp-image-preview').src = '';
   document.getElementById('qp-image-status').textContent = '';
+  qpImageUrls = [];
   document.getElementById('qp-ch-li').checked = true;
   document.getElementById('qp-ch-ig').checked = false;
   document.getElementById('qp-ig-type').value = localStorage.getItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY) || 'post';
@@ -7027,19 +7064,35 @@ function openQuickPostModal(){
 function closeQuickPostModal(){
   document.getElementById('quick-post-modal').classList.remove('open');
 }
+// Carousel buffer for the Quick Post modal. Populated by uploads; cleared when
+// the user types a single URL by hand. confirmQuickPost reads this if non-empty.
+let qpImageUrls = [];
 async function qpHandleImageUpload(e){
-  const file = e.target.files && e.target.files[0];
-  if(!file) return;
+  const files = Array.from(e.target.files||[]);
+  if(!files.length) return;
   const statusEl = document.getElementById('qp-image-status');
-  statusEl.textContent = 'Uploading…';
+  const urls=[];
   try{
-    const {url} = await uploadImageToImgBB(file);
-    document.getElementById('qp-image-url').value = url;
-    qpUpdateImagePreview(url);
-    statusEl.textContent = '✓ Uploaded';
+    for(let i=0;i<files.length;i++){
+      statusEl.textContent = files.length>1 ? `Uploading ${i+1} of ${files.length}…` : 'Uploading…';
+      const {url} = await uploadImageToImgBB(files[i]);
+      urls.push(url);
+      if(i===0){
+        document.getElementById('qp-image-url').value = url;
+        qpUpdateImagePreview(url);
+      }
+    }
+    qpImageUrls = urls;
+    statusEl.textContent = urls.length>1 ? `✓ ${urls.length} images uploaded — carousel (first shown)` : '✓ Uploaded';
   }catch(err){
     statusEl.textContent = '✗ ' + err.message;
   }
+}
+// User typed/pasted a URL by hand — that's a single image, so drop any
+// carousel built from a prior upload and preview the typed URL.
+function qpOnUrlInput(url){
+  qpImageUrls = [];
+  qpUpdateImagePreview(url);
 }
 function qpUpdateImagePreview(url){
   const img = document.getElementById('qp-image-preview');
@@ -7089,8 +7142,10 @@ function confirmQuickPost(){
   entry.scheduled_for = dt.getTime();
   entry.scheduled_account = voice;
   entry.scheduled_time = time;
-  entry.selectedImageUrl = imageUrl;
-  entry.image_url = imageUrl;
+  const qpUrls = (qpImageUrls && qpImageUrls.length) ? qpImageUrls.slice() : [imageUrl];
+  entry.imageUrls = qpUrls;
+  entry.selectedImageUrl = qpUrls[0];
+  entry.image_url = qpUrls[0];
   entry.is_quick_post = true;
   // Channel preferences — remembered so the Preview & Push modal can prefill
   entry.qp_channels = { linkedin: liChecked, instagram: igChecked, ig_type: igType };
@@ -7477,6 +7532,7 @@ function buildBufferPayload(item){
       instagram_eridion:{enabled:!igOversize,text:igFull,char_count:igFull.length,over_limit:igOversize}
     },
     image_url:item.selectedImageUrl||item.image_url||null,
+    image_urls:getItemImageUrls(item),
     bucket:item.bucketLabel||item.bucket||'',
     cross_voice:!!item.cross_voice,
     bridge_from:item.bridge_from||null,
@@ -7501,7 +7557,7 @@ function _composeText(item, channelKind){
 // Single createPost call: schedules a post on a specific channel at a
 // specific time, optionally with one image attached. Returns the new
 // Buffer post ID on success, throws on failure.
-async function createBufferPost({channelId, text, imageUrl, scheduledForIso, channelKind, igType}){
+async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduledForIso, channelKind, igType}){
   // Build the GraphQL mutation. Use variables for everything user-supplied
   // to avoid escaping issues (especially in the post text).
   const mutation = `
@@ -7519,11 +7575,23 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso, cha
     mode: 'customScheduled',
     dueAt: scheduledForIso,
   };
-  if(imageUrl){
-    // Buffer API breaking change effective May 25, 2026: assets changed
-    // from { images: [{ url }] } to an ordered array [{ image: { url } }].
+  // Normalize to an ordered list of image URLs. Accept either a single
+  // imageUrl (back-compat) or an imageUrls array (carousel). Apply platform
+  // constraints:
+  //  • Instagram: a carousel is 2–10 images and only applies to type "post";
+  //    story and reel take a single asset, so trim to the first.
+  //  • LinkedIn: multiple images post fine as a native multi-image post.
+  let mediaUrls = (Array.isArray(imageUrls) && imageUrls.length)
+    ? imageUrls.slice()
+    : (imageUrl ? [imageUrl] : []);
+  if(channelKind==='instagram'){
+    mediaUrls = ((igType||'post')!=='post') ? mediaUrls.slice(0,1) : mediaUrls.slice(0,10);
+  }
+  if(mediaUrls.length){
+    // Buffer API breaking change effective May 25, 2026: assets is an ordered
+    // array [{ image: { url } }]. More than one entry = carousel / multi-image.
     // See migration guide: developers.buffer.com/guides/assets-input-migration.html
-    input.assets = [{ image: { url: imageUrl } }];
+    input.assets = mediaUrls.map(u=>({ image: { url: u } }));
   }
   // Instagram requires metadata.instagram.{type, shouldShareToFeed}. The
   // type enum is post / story / reel (lowercase). shouldShareToFeed is a
@@ -7545,7 +7613,7 @@ async function createBufferPost({channelId, text, imageUrl, scheduledForIso, cha
         mode: customScheduled,
         dueAt: ${JSON.stringify(scheduledForIso)}
         ${igTypeValue?`, metadata: { instagram: { type: ${igTypeValue}, shouldShareToFeed: true } }`:''}
-        ${imageUrl?`, assets: [{ image: { url: ${JSON.stringify(imageUrl)} } }]`:''}
+        ${mediaUrls.length?`, assets: [${mediaUrls.map(u=>`{ image: { url: ${JSON.stringify(u)} } }`).join(', ')}]`:''}
       }) {
         ... on PostActionSuccess { post { id } }
         ... on MutationError { message }
@@ -7571,7 +7639,8 @@ async function pushSinglePost(item, opts){
   const includeInstagram = !opts || opts.includeInstagram !== false;
   const igType = (opts && opts.igType) || 'post';
   const voice = item.scheduled_account||item.voice||'eridion';
-  const imageUrl = item.selectedImageUrl||item.image_url||null;
+  const imageUrls = getItemImageUrls(item);
+  const imageUrl = imageUrls[0]||null;
   // Buffer requires dueAt strictly in the future. If the item's scheduled
   // time has already passed (common with auto-schedule on the same day),
   // bump it to 5 minutes from now so Buffer accepts the post.
@@ -7589,7 +7658,7 @@ async function pushSinglePost(item, opts){
     } else {
       try{
         const liText = _composeText(item, 'linkedin');
-        await createBufferPost({channelId: liChannelId, text: liText, imageUrl, scheduledForIso, channelKind: 'linkedin'});
+        await createBufferPost({channelId: liChannelId, text: liText, imageUrl, imageUrls, scheduledForIso, channelKind: 'linkedin'});
         result.linkedin = true;
       }catch(e){
         result.errors.push(`LI: ${e.message}`);
@@ -7606,7 +7675,7 @@ async function pushSinglePost(item, opts){
         result.instagram = 'oversize';
       } else {
         try{
-          await createBufferPost({channelId: igChannelId, text: igText, imageUrl, scheduledForIso, channelKind: 'instagram', igType});
+          await createBufferPost({channelId: igChannelId, text: igText, imageUrl, imageUrls, scheduledForIso, channelKind: 'instagram', igType});
           result.instagram = true;
         }catch(e){
           result.instagram = 'error';
@@ -7657,7 +7726,11 @@ function openBufferPreviewModal(id){
   if(!item){showToast('Post not found','error');return;}
   _bufferPreviewItemId = id;
   const voice = item.scheduled_account||item.voice||'eridion';
-  const imageUrl = item.selectedImageUrl||item.image_url||null;
+  const imageUrls = getItemImageUrls(item);
+  const imageUrl = imageUrls[0]||null;
+  const imgCount = imageUrls.length;
+  const liImgLabel = imgCount>1 ? `📎 ${imgCount} images (carousel)` : '📎 image attached';
+  const igImgLabel = imgCount>1 ? `📎 ${imgCount} images (carousel · Post type only)` : '📎 image attached';
   const liChannelId = getChannelIdFor(voice,'linkedin');
   const igChannelId = getChannelIdFor(voice,'instagram');
   const lastIgType = localStorage.getItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY) || 'post';
@@ -7684,7 +7757,7 @@ function openBufferPreviewModal(id){
         </div>
         <div class="bp-card-meta">
           <span class="${over?'over':''}">${liText.length} / ${liLimit} chars${over?' — over limit':''}</span>
-          ${imageUrl?'<span>📎 image attached</span>':'<span style="color:#DC2626">⚠ no image</span>'}
+          ${imageUrl?`<span>${liImgLabel}</span>`:'<span style="color:#DC2626">⚠ no image</span>'}
         </div>
       </div>
     `);
@@ -7713,7 +7786,7 @@ function openBufferPreviewModal(id){
         </div>
         <div class="bp-card-meta">
           <span class="${over?'over':''}">${igText.length} / ${igLimit} chars${over?' — over limit, auto-excluded':''}</span>
-          ${imageUrl?'<span>📎 image attached</span>':'<span style="color:#DC2626">⚠ image required for IG</span>'}
+          ${imageUrl?`<span>${igImgLabel}</span>`:'<span style="color:#DC2626">⚠ image required for IG</span>'}
         </div>
       </div>
     `);
