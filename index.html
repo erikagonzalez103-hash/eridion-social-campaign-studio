@@ -4371,7 +4371,7 @@ ${ctaFinal}`;
   const maxTokens = format==='blog+linkedin' ? 2000 : 1000;
 
   try {
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.[0]?.text||'';
@@ -4485,7 +4485,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"sources":[{"id":"s1","title":"...","source":"...","snippet":"...","category":"STUDY"}]}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.[0]?.text||'';
@@ -4690,7 +4690,7 @@ ${ctaFinal}`;
   const maxTokens=format==='blog+linkedin'?2000:1200;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.[0]?.text||'';
@@ -4867,10 +4867,10 @@ Return ONLY the rewritten blog post. No preamble, no code fences.` : null;
   try {
     // Run both API calls in parallel
     const calls = [
-      fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:liPrompt}]})})
+      fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:1000,messages:[{role:'user',content:liPrompt}]})})
     ];
     if(blogPrompt) {
-      calls.push(fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:blogPrompt}]})}));
+      calls.push(fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:2000,messages:[{role:'user',content:blogPrompt}]})}));
     }
 
     const responses = await Promise.all(calls);
@@ -5302,7 +5302,7 @@ Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "He
     const response = await fetch(WORKER, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
     });
     const data = await response.json();
     if(data.error) throw new Error(data.error.message || 'Unknown error');
@@ -5708,7 +5708,7 @@ ${content}
 4 talking points for panels and networking events. One to two sentences each. Confident, specific, natural. Start each with "TP:" on its own line.`;
 
   try{
-    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const d=await r.json(); if(d.error) throw new Error(d.error.message);
     const text=d.content?.[0]?.text||'';
     const bm=text.match(/===BRIEFING===([\s\S]*?)===TALKING POINTS===/i);
@@ -5767,7 +5767,7 @@ async function askResearch(){
   const el=document.getElementById('research-answer');
   el.textContent='Researching...'; el.className='research-answer loading';
   try{
-    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Erika Harrison is co-founder of Eridion Glass, luxury glass subcontractor Dallas TX. She published:\n---\n${content}\n---\nShe asks: "${q}"\n\nAnswer in plain conversational language. Include: (1) clear 2-3 sentence explanation, (2) source/basis, (3) one sentence she could say confidently on a panel. Tight and practical.`}]})});
+    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:1000,messages:[{role:'user',content:`Erika Harrison is co-founder of Eridion Glass, luxury glass subcontractor Dallas TX. She published:\n---\n${content}\n---\nShe asks: "${q}"\n\nAnswer in plain conversational language. Include: (1) clear 2-3 sentence explanation, (2) source/basis, (3) one sentence she could say confidently on a panel. Tight and practical.`}]})});
     const d=await r.json(); if(d.error) throw new Error(d.error.message);
     const answer=d.content?.[0]?.text||'';
     el.textContent=answer; el.className='research-answer';
@@ -5947,7 +5947,7 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
   const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:900,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:900,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const rawText=(data.content?.[0]?.text||'').trim();
@@ -6221,7 +6221,7 @@ For same-voice snippets, set cross_voice:false and bridge_from:null.
 For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Quinta & Co-voice snippets, ig_intro must be a 1-2 sentence channel intro per the rules above.`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=(data.content?.[0]?.text||'').trim();
@@ -6439,7 +6439,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"focus_keyword":"...","title_tag":"...","meta_description":"...","url_slug":"...","excerpt":"...","alt_text":"...","og_title":"...","og_description":"..."}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.[0]?.text||'';
@@ -6602,7 +6602,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"headline":"...","subtitle":"...","email_preview":"...","alt_text":"...","tags":"...","subscribe_cta":"..."}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.[0]?.text||'';
@@ -8514,7 +8514,7 @@ Return ONLY valid JSON. No preamble, no markdown fences. Shape:
 ]}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const resp=(data.content?.[0]?.text||'').trim();
@@ -8781,7 +8781,7 @@ Context: ${brandContext}
 STAT OR QUOTE: ${text}
 
 Return ONLY valid JSON, no preamble: {"terms":["query one","query two","query three"]}`;
-  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:prompt}]})});
+  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:400,messages:[{role:'user',content:prompt}]})});
   const data=await response.json();
   if(data.error) throw new Error(data.error.message);
   const resp=(data.content?.[0]?.text||'').trim();
@@ -8817,7 +8817,7 @@ DO / DON'T
 [One line each on what to lean into and what to avoid]
 
 Return the brief as plain text, no markdown fences.`;
-  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
+  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:800,messages:[{role:'user',content:prompt}]})});
   const data=await response.json();
   if(data.error) throw new Error(data.error.message);
   return (data.content?.[0]?.text||'').trim();
@@ -8836,7 +8836,7 @@ Context: ${brandContext} The image should feel purposeful — NOT corny stock im
 Write a single paragraph (80-150 words) that includes: subject matter, composition, lighting, materials/textures, mood, stylistic references, and aspect ratio note. The prompt should be ready to paste straight into any AI image tool.
 
 Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "Here's the prompt:" — just the prompt itself.`;
-  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:prompt}]})});
+  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-opus-4-8',max_tokens:600,messages:[{role:'user',content:prompt}]})});
   const data=await response.json();
   if(data.error) throw new Error(data.error.message);
   return (data.content?.[0]?.text||'').trim();
