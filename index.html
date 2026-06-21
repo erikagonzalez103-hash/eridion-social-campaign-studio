@@ -4469,26 +4469,34 @@ KEY POINTS THE WRITER WANTS TO COVER:
 ${bullets||'(none specified — use best judgment based on the topic)'}
 
 YOUR TASK:
-Do NOT write an article. Curate 8-12 real research points (studies, industry data, building codes, standards, trade reports, widely-cited frameworks, historical trends, market indicators) that could support OR challenge ANY reasonable angle on this topic. The writer will pick which ones to use.
+FIRST, use the web_search tool to find current, real sources on this topic before writing anything. Run several searches if needed. Prioritize the most recent material you can find — for fast-moving topics (technology, AI, markets, economic and labor data) strongly prefer sources from the last 12-18 months, and treat anything older than ~2 years as potentially outdated unless it is foundational. Timeless references (building codes, ASTM/ANSI standards, long-established frameworks) are exempt — a current code is current regardless of its age.
+
+Do NOT write an article. Curate 8-12 real research points grounded in what you actually found via search. The writer will pick which ones to use.
 
 For each research point provide:
 - title: A clear title summarizing the finding or standard
-- source: The publishing body or document (e.g. "NAHB Cost of Doing Business Study", "ASTM C1048", "IRC R308.4", "Freddie Mac Primary Mortgage Market Survey", "Construction Dive 2024 Labor Report"). If the exact citation is uncertain, use "Industry consensus" or "Widely cited in trade publications" — do NOT invent specific statistic numbers.
+- source: The publishing body or document, cited specifically as you found it (e.g. "NAHB Cost of Doing Business Study", "ASTM C1048", "Construction Dive Labor Report"). Do NOT invent specific statistics — only report figures you actually found.
 - snippet: 2-3 sentences summarizing what this source says that matters for this topic
+- date: the publication date or year of the source as a string (e.g. "2026", "2025-11", "Mar 2026"). For timeless codes/standards, use the edition (e.g. "2021 IRC") or "standard". NEVER guess a date — use the one from the source you actually found.
 - category: one of STUDY, CODE, INDUSTRY_DATA, TREND, FRAMEWORK, CASE
+
+Favor the freshest sources available, and lead your list with the most recent ones.
 
 Be honest and grounded. Well-known codes, standards, and industry dynamics are fair game. Specific proprietary statistics you aren't sure about are NOT fair game — mark them as industry consensus if you include them.
 
 Aim for a mix of categories so the writer has range — some hard codes/standards, some market data, some trend analysis, some case/framework material.
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"sources":[{"id":"s1","title":"...","source":"...","snippet":"...","category":"STUDY"}]}`;
+{"sources":[{"id":"s1","title":"...","source":"...","snippet":"...","date":"2026","category":"STUDY"}]}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,messages:[{role:'user',content:prompt}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
-    const text=data.content?.[0]?.text||'';
+    // Web search responses contain multiple content blocks (server_tool_use,
+    // web_search_tool_result, and text). The JSON answer lives in the final
+    // text block(s) — NOT content[0] — so concatenate every text block.
+    const text=(data.content||[]).filter(b=>b&&b.type==='text').map(b=>b.text).join('\n').trim();
     if(!text) throw new Error('Empty response from worker');
 
     // Robust JSON extraction: strip markdown fences, then find balanced {...} block
@@ -4512,7 +4520,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
     const src=Array.isArray(parsed.sources)?parsed.sources:[];
     if(!src.length) throw new Error('No sources returned');
 
-    researchSources=src.map((s,i)=>({id:s.id||`s${i+1}`,title:s.title||'Untitled',source:s.source||'Unknown source',snippet:s.snippet||'',category:(s.category||'INDUSTRY_DATA').toUpperCase(),selected:true}));
+    researchSources=src.map((s,i)=>({id:s.id||`s${i+1}`,title:s.title||'Untitled',source:s.source||'Unknown source',snippet:s.snippet||'',date:s.date||'',category:(s.category||'INDUSTRY_DATA').toUpperCase(),selected:true}));
 
     // Default POV set from current bucket
     currentPOVSet=BUCKET_TO_POV_SET[currentBucket]||'industry';
@@ -4553,7 +4561,12 @@ function renderResearchBrief(){
       <span class="count">· ${selCount} of ${researchSources.length} selected</span>
     </div>
     <div class="source-list">
-      ${researchSources.map((s,i)=>`
+      ${researchSources.map((s,i)=>{
+        const ym=(s.date||'').match(/(20\d{2})/);
+        const yr=ym?parseInt(ym[1]):null;
+        const stale=yr&&s.category!=='CODE'&&yr<=(new Date().getFullYear()-2);
+        const dateChip=s.date?`<span class="source-date" style="font-family:var(--font-mono);font-size:10px;padding:1px 7px;border-radius:5px;${stale?'background:rgba(212,160,23,0.16);color:var(--gold);border:1px solid rgba(212,160,23,0.45)':'background:rgba(124,124,124,0.10);color:var(--text-muted)'}"${stale?' title="Older source — confirm it is still current before citing"':''}>${escapeHTML(s.date)}${stale?' ⚠':''}</span>`:'';
+        return `
         <div class="source-card ${s.selected?'selected':''}">
           <label class="source-check">
             <input type="checkbox" ${s.selected?'checked':''} onchange="toggleSource(${i})">
@@ -4561,13 +4574,14 @@ function renderResearchBrief(){
               <div class="source-meta">
                 <span class="source-cat cat-${s.category.toLowerCase()}">${s.category.replace('_',' ')}</span>
                 <span class="source-name">${escapeHTML(s.source)}</span>
+                ${dateChip}
               </div>
               <div class="source-title">${escapeHTML(s.title)}</div>
               <div class="source-snippet">${escapeHTML(s.snippet)}</div>
             </div>
           </label>
         </div>
-      `).join('')}
+      `;}).join('')}
     </div>
 
     <div class="brief-section-label" style="margin-top:22px">Choose Your Angle</div>
