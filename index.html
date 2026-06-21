@@ -4368,7 +4368,7 @@ ${ctaFinal}`;
   const prompt=`${voice}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment)'}\nTONE: ${tone}\n\n${fmtInstr}`;
 
   // Use higher token limit for blog format
-  const maxTokens = format==='blog+linkedin' ? 2000 : 1000;
+  const maxTokens = format==='blog+linkedin' ? 4000 : 1000;
 
   try {
     const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
@@ -4687,7 +4687,7 @@ ${ctaFinal}`;
 
   const prompt=`${voice}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\n✦ CURATED SOURCE MATERIAL (the writer has reviewed and selected these — use them):\n\n${sourcesBlock}${sourceRule}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment from sources)'}\nTONE: ${tone}${povInstruction}\n\n${fmtInstr}`;
 
-  const maxTokens=format==='blog+linkedin'?2000:1200;
+  const maxTokens=format==='blog+linkedin'?4000:1200;
 
   try{
     const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
@@ -5473,6 +5473,7 @@ function formatBlogHTML(text){
     .replace(/^## (.+)$/gm,'<h2>$1</h2>')
     .replace(/^### (.+)$/gm,'<h3>$1</h3>')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*([^*\n]+?)\*/g,'<em>$1</em>')
     .replace(/\n\n/g,'</p><p>')
     .replace(/^/,'<p>').replace(/$/,'</p>');
 }
@@ -5491,6 +5492,7 @@ function blogHtmlToMarkdown(html){
     .replace(/<h2>(.*?)<\/h2>/gi,'## $1\n\n')
     .replace(/<h3>(.*?)<\/h3>/gi,'### $1\n\n')
     .replace(/<strong>(.*?)<\/strong>/gi,'**$1**')
+    .replace(/<em>(.*?)<\/em>/gi,'*$1*')
     .replace(/<\/p>\s*<p>/gi,'\n\n')
     .replace(/<\/?p[^>]*>/gi,'')
     .replace(/<br\s*\/?>/gi,'\n')
