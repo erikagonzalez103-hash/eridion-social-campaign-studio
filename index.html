@@ -483,6 +483,23 @@ textarea { min-height: 80px; line-height: 1.6; }
   letter-spacing: 0.02em;
 }
 
+/* ── Keyword readout (LinkedIn/search surfacing) ────── */
+.keyword-readout { margin-top: 10px; font-size: 11px; line-height: 1.7; }
+.keyword-readout:empty { display: none; }
+.kw-label { font-family: var(--font-mono); color: var(--medium-gray); letter-spacing: 0.02em; margin-right: 4px; }
+.kw-label.kw-warn { color: #B45309; }
+.kw-chip {
+  display: inline-block;
+  padding: 3px 9px;
+  margin: 2px 4px 2px 0;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #1D4ED8;
+}
+
 /* ── Image search / grid / preview / upload ─────────── */
 .image-search-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .image-search-row input { flex: 1; }
@@ -1773,6 +1790,10 @@ textarea { min-height: 80px; line-height: 1.6; }
   min-height: 32px;
   word-break: break-word;
 }
+.seo-kw-check { margin-top: 6px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.02em; }
+.seo-kw-check:empty { display: none; }
+.seo-kw-check.ok { color: #15803D; }
+.seo-kw-check.warn { color: #B45309; }
 .seo-field-val.empty { color: var(--medium-gray); font-style: italic; }
 .seo-package-footer {
   display: flex;
@@ -2860,9 +2881,11 @@ textarea { min-height: 80px; line-height: 1.6; }
             <span class="content-placeholder">Your LinkedIn post will appear here.</span>
           </div>
           <div id="hashtags-container" class="hashtags"></div>
+          <div id="keyword-readout" class="keyword-readout"></div>
           <div class="action-bar">
             <button class="action-btn primary" onclick="copyLinkedIn()">Copy for LinkedIn</button>
             <button class="action-btn" onclick="copyHashtags()">Copy Hashtags</button>
+            <button class="action-btn" id="deai-btn" onclick="deAiDraft()" title="Rewrite this post to strip AI-tell phrasing, keeping your voice and facts">De-AI</button>
             <span class="char-count" id="char-count">0 / 3000</span>
           </div>
           <!-- Real World Nudge -->
@@ -2902,6 +2925,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                   <button class="seo-field-copy" onclick="copySEOField('focus_keyword')">Copy</button>
                 </div>
                 <div class="seo-field-val empty" id="seo-val-focus_keyword">—</div>
+                <div class="seo-kw-check" id="seo-kw-check"></div>
               </div>
               <div class="seo-field-wrap">
                 <div class="seo-field-head">
@@ -3244,6 +3268,23 @@ textarea { min-height: 80px; line-height: 1.6; }
 
             <!-- Image attachment (Buffer needs this on every post) -->
             <div id="view-post-image-picker"></div>
+
+            <!-- Results logger: paste post-publish metrics to test what actually works.
+                 We can't auto-pull LinkedIn/IG analytics, but logging them here turns the
+                 weekly spinner into a real A/B test — the rollup ranks by engagement rate. -->
+            <details id="view-post-results" style="margin:16px 0;border:1px solid var(--border);border-radius:6px">
+              <summary style="cursor:pointer;padding:10px 14px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;color:var(--text-muted)">📊 Log results &amp; see what's working</summary>
+              <div style="padding:4px 14px 14px">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+                  <label style="flex:1;min-width:110px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">Impressions<input type="number" min="0" id="res-impressions" style="width:100%;margin-top:4px;padding:7px 9px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text);font-family:var(--font-mono);font-size:12px"/></label>
+                  <label style="flex:1;min-width:110px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">Reactions<input type="number" min="0" id="res-reactions" style="width:100%;margin-top:4px;padding:7px 9px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text);font-family:var(--font-mono);font-size:12px"/></label>
+                  <label style="flex:1;min-width:110px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">Comments<input type="number" min="0" id="res-comments" style="width:100%;margin-top:4px;padding:7px 9px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text);font-family:var(--font-mono);font-size:12px"/></label>
+                  <label style="flex:1;min-width:110px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">Search appearances<input type="number" min="0" id="res-search" style="width:100%;margin-top:4px;padding:7px 9px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text);font-family:var(--font-mono);font-size:12px"/></label>
+                </div>
+                <button class="action-btn" onclick="saveResults()">Save results</button>
+                <div id="results-rollup" style="margin-top:14px;font-size:11px;line-height:1.6"></div>
+              </div>
+            </details>
 
             <!-- Streamlined modal actions: push, reschedule, edit, close. Status
                  auto-updates to "posted" when push succeeds (handled in pushPostToBuffer). -->
@@ -3786,6 +3827,70 @@ Instead: vary sentence length, let plain sentences be plain, cut throat-clearing
 ③ SURFACE THE SEARCH TERMS THE AUDIENCE TYPES.
 LinkedIn (and Google) ranks copy on the literal words in it. Work the natural search phrase your audience would type into the post at least once — role + location + specialty. Illustrative: Eridion → "custom home builders in Dallas," "frameless shower enclosures," "luxury glass and glazing"; Erika → "women founders in construction," "marketing-to-construction career"; Quinta/Practice → "AI for small business owners," "no-code tools for founders." Pick what fits the topic. ONE clean, natural mention beats five forced ones — never keyword-stuff.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+// ── Audience search terms ──
+// Phrases the audience actually types into LinkedIn/Google search. renderKeywordReadout()
+// flags which ones a generated post contains, so you can see at a glance whether it'll surface.
+// Serves goal #2 (LinkedIn search appearances). Edit freely as the brands evolve.
+const SEARCH_TERMS = [
+  // Location
+  'Dallas','DFW','Fort Worth','North Texas','Central Arkansas','Arkansas',
+  // Eridion — services
+  'custom glass','glazing','frameless shower','shower enclosure','glass railing',
+  'mirror','storefront glass','curtain wall','tempered glass','luxury glass','glass install',
+  // Eridion — audience
+  'custom home builder','luxury home builder','general contractor','project manager','builder',
+  // Erika / Quinta / Practice — audience
+  'women founder','women in construction','women in business','female entrepreneur',
+  'small business owner','solo operator','founder',
+  // Quinta / Practice — topic
+  'AI for small business','no-code','AI practice','marketing',
+];
+
+// Return the curated search terms a piece of copy actually contains (deduped, case-insensitive,
+// matches an optional trailing "s" so "builder" catches "builders").
+function findSearchTerms(text){
+  if(!text) return [];
+  const lc=text.toLowerCase();
+  const hits=[];
+  for(const t of SEARCH_TERMS){
+    const esc=t.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    if(new RegExp('\\b'+esc+'s?\\b').test(lc)) hits.push(t);
+  }
+  return [...new Set(hits)];
+}
+
+// Paint the readout under the hashtags: which audience search terms this post will surface for.
+function renderKeywordReadout(text){
+  const el=document.getElementById('keyword-readout');
+  if(!el) return;
+  if(!text||!text.trim()){ el.innerHTML=''; return; }
+  const hits=findSearchTerms(text);
+  if(hits.length){
+    el.innerHTML='<span class="kw-label">Will surface in search for:</span>'+hits.map(h=>`<span class="kw-chip">${h}</span>`).join('');
+  } else {
+    el.innerHTML='<span class="kw-label kw-warn">⚠ No audience search terms detected — consider naming the role, location, or service once.</span>';
+  }
+}
+
+// ── CTA rules per voice ──
+// One source of truth, injected into every generator. (Previously duplicated across two
+// functions and already drifting — the richer, example-led version wins.)
+function buildCTA(stream){
+  const eridion=`\n\nCTA RULES — APPLY TO ALL FORMATS:
+- Every post must include at least one subtle CTA mid-content, framed as a concrete next step (e.g. "If you're speccing glass for a project, send us the elevations and we'll flag anything that affects lead time." or "We're glad to walk through your specs.")
+- Every post must end with a clear, specific CTA — never manufactured urgency or scarcity (e.g. "If you want a second set of eyes on the glass package, reach us at erika@eridionglass.com or eridionglass.com." Do NOT use countdown pressure like "before Q3 fills up" or "now is the time.")
+- CTAs should read as a natural next step, never salesy or pushy — always builder-focused`;
+  const erika=`\n\nCTA RULES:
+- Include one soft mid-content CTA (e.g. invite to connect, comment, or DM)
+- End with a clear strong CTA (e.g. "I'd love to hear how you're navigating this — drop a comment or connect with me." or "If you're building something in Dallas, let's talk.")`;
+  const quinta=`\n\nCTA RULES FOR QUINTA & CO:
+- A CTA is invitational, not coercive. Story-driven or observational posts can stand without one.
+- When a CTA fits, frame it as an invitation to practice — e.g. "Come to open studio next week," "Try this for seven days and tell me what shifts," or "If this rings true, the next module starts in two weeks."
+- Direct mentions of the brand (Quinta & Co), the campaign (The Practice), open studio, or upcoming modules are fine. Avoid urgency, superlatives, scarcity tactics, or anything that reads like a sales page.
+- Default to NO CTA. Add one only when it deepens the invitation; if the post is just a field note or a manifesto, let it breathe.`;
+  return stream==='eridion' ? eridion : (stream==='quinta' ? quinta : erika);
+}
 
 // ── POV Sets: four angles per topic category ──
 const POV_SETS = {
@@ -4354,19 +4459,7 @@ async function generateContent() {
   const voice=voicePrompts[currentStream];
 
   let fmtInstr='';
-  const ctaEridion=`\n\nCTA RULES — APPLY TO ALL FORMATS:
-- Every post must include at least one subtle CTA mid-content, framed as a concrete next step (e.g. "If you're speccing glass for a project, send us the elevations and we'll flag anything that affects lead time." or "We're glad to walk through your specs.")
-- Every post must end with a clear, specific CTA — never manufactured urgency or scarcity (e.g. "If you want a second set of eyes on the glass package, reach us at erika@eridionglass.com or eridionglass.com." Do NOT use countdown pressure like "before Q3 fills up" or "now is the time.")
-- CTAs should read as a natural next step, never salesy or pushy — always builder-focused`;
-  const ctaErika=`\n\nCTA RULES:
-- Include one soft mid-content CTA (e.g. invite to connect, comment, or DM)
-- End with a clear strong CTA (e.g. "I'd love to hear how you're navigating this — drop a comment or connect with me." or "If you're building something in Dallas, let's talk.")`;
-  const ctaQuinta=`\n\nCTA RULES FOR QUINTA & CO:
-- A CTA is invitational, not coercive. Story-driven or observational posts can stand without one.
-- When a CTA fits, frame it as an invitation to practice — e.g. "Come to open studio next week," "Try this for seven days and tell me what shifts," or "If this rings true, the next module starts in two weeks."
-- Direct mentions of the brand (Quinta & Co), the campaign (The Practice), open studio, or upcoming modules are fine. Avoid urgency, superlatives, scarcity tactics, or anything that reads like a sales page.
-- Default to NO CTA. Add one only when it deepens the invitation; if the post is just a field note or a manifesto, let it breathe.`;
-  const ctaFinal = currentStream==='eridion' ? ctaEridion : (currentStream==='quinta' ? ctaQuinta : ctaErika);
+  const ctaFinal = buildCTA(currentStream);
 
   if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Open with a specific, concrete first line — the actual point or observation, not a generic "scroll-stopping" hook. One subtle mid-post CTA. Strong closing CTA. Also generate 3-5 relevant hashtags (aim for 3-4 specific ones; never more than 5).${ctaFinal}`;
   else if(format==='blog+linkedin') fmtInstr=`Generate BOTH a full blog post AND a LinkedIn snippet.
@@ -4394,7 +4487,7 @@ FORMAT EXACTLY:
 [3-5 hashtags, one per line — aim for 3-4, never more than 5]
 ${ctaFinal}`;
   else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post about a glass, glazing, or building code requirement. Start with "Did you know?" then the surprising fact, why it matters to builders, Eridion's expertise connection. End with a CTA to reach out or learn more. 100-200 words. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
-  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post. Warm, genuine, not promotional. Celebrate the subject's story and one key insight. End with a soft CTA to connect or follow. 150-250 words. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaErika}`;
+  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post. Warm, genuine, not promotional. Celebrate the subject's story and one key insight. End with a soft CTA to connect or follow. 150-250 words. Also 3-5 hashtags (aim for 3-4; never more than 5).${buildCTA('erika')}`;
 
   const prompt=`${voice}\n${HOUSE_STYLE}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment)'}\nTONE: ${tone}\n\n${fmtInstr}`;
 
@@ -4432,6 +4525,7 @@ ${ctaFinal}`;
 
     // Display hashtags
     document.getElementById('hashtags-container').innerHTML=generatedHashtags.map(h=>`<span class="hashtag">${h}</span>`).join('');
+    renderKeywordReadout(generatedLinkedIn||generatedBlog||'');
 
     // Display blog — strip any stray delimiters
     const blogOut=document.getElementById('blog-output');
@@ -4680,19 +4774,7 @@ async function draftFromResearch(){
   const sourcesBlock=selected.map((s,i)=>`[${i+1}] ${s.category} · ${s.source}\nTitle: ${s.title}\n${s.snippet}`).join('\n\n');
 
   // Reuse the existing CTA + format instructions from generateContent
-  const ctaEridion=`\n\nCTA RULES — APPLY TO ALL FORMATS:
-- Every post must include at least one subtle CTA mid-content, framed as a concrete next step
-- Every post must end with a clear, specific CTA — never manufactured urgency or scarcity (no "before Q3 fills up," no "now is the time")
-- CTAs should read as a natural next step, never salesy — always builder-focused`;
-  const ctaErika=`\n\nCTA RULES:
-- Include one soft mid-content CTA
-- End with a clear strong CTA`;
-  const ctaQuinta=`\n\nCTA RULES FOR QUINTA & CO:
-- A CTA is invitational, not coercive. Story-driven or observational posts can stand without one.
-- When a CTA fits, frame it as an invitation to practice — e.g. "Come to open studio next week," "Try this for seven days and tell me what shifts," or "If this rings true, the next module starts in two weeks."
-- Direct mentions of the brand (Quinta & Co), the campaign (The Practice), open studio, or upcoming modules are fine. Avoid urgency, superlatives, scarcity tactics, or anything that reads like a sales page.
-- Default to NO CTA. Add one only when it deepens the invitation; if the post is just a field note or a manifesto, let it breathe.`;
-  const ctaFinal=currentStream==='eridion'?ctaEridion:(currentStream==='quinta'?ctaQuinta:ctaErika);
+  const ctaFinal=buildCTA(currentStream);
 
   let fmtInstr='';
   if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook. One subtle mid-post CTA. Strong closing CTA. Also 3-5 relevant hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
@@ -4720,7 +4802,7 @@ FORMAT EXACTLY:
 [3-5 hashtags, one per line — aim for 3-4, never more than 5]
 ${ctaFinal}`;
   else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post (100-200 words). Start with "Did you know?" then the surprising fact from the sources, why it matters to builders, Eridion's angle, CTA. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
-  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post (150-250 words). Warm, genuine, not promotional. End with soft CTA. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaErika}`;
+  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post (150-250 words). Warm, genuine, not promotional. End with soft CTA. Also 3-5 hashtags (aim for 3-4; never more than 5).${buildCTA('erika')}`;
 
   const povInstruction=`\n\n✦ ANGLE / POINT OF VIEW FOR THIS PIECE — FOLLOW THIS CONSISTENTLY THROUGHOUT:\n${pov.modifier}\n\nDo not hedge against the chosen angle. Stay consistent. Every section should reinforce this lean.`;
 
@@ -4763,6 +4845,7 @@ ${ctaFinal}`;
     const liOut=document.getElementById('linkedin-output');
     liOut.innerHTML=''; liOut.textContent=generatedLinkedIn||'No LinkedIn post generated.';
     document.getElementById('hashtags-container').innerHTML=generatedHashtags.map(h=>`<span class="hashtag">${h}</span>`).join('');
+    renderKeywordReadout(generatedLinkedIn||generatedBlog||'');
     const blogOut=document.getElementById('blog-output');
     blogOut.innerHTML='';
     const cleanBlog=(generatedBlog||'').replace(/^===BLOG===\s*/i,'').trim();
@@ -5557,6 +5640,40 @@ document.getElementById('linkedin-output').addEventListener('input',function(){
 document.getElementById('blog-output').addEventListener('input',function(){
   generatedBlog=blogHtmlToMarkdown(this.innerHTML||'');
 });
+
+// ── De-AI pass ──
+// Re-run the current LinkedIn draft through an editor pass that strips AI-tell phrasing/cadence
+// while preserving the voice, every fact, and the length. For salvaging older or slipped-through copy.
+async function deAiDraft(){
+  const liOut=document.getElementById('linkedin-output');
+  const current=((liOut&&(liOut.innerText||liOut.textContent))||'').trim();
+  if(!current || current.toLowerCase().startsWith('your linkedin post will appear')){
+    showToast('Generate or load a post first','error'); return;
+  }
+  const btn=document.getElementById('deai-btn');
+  if(btn){btn.disabled=true; btn.textContent='De-AI-ing…';}
+  setStatus('Stripping AI tells…',true);
+  const voice=voicePrompts[currentStream]||'';
+  const prompt=`${voice}\n${HOUSE_STYLE}\n\nYou are editing an EXISTING post to remove AI-tell phrasing and cadence. Apply the HOUSE WRITING STANDARDS above aggressively to the draft below — this is a cleanup pass, not a rewrite of the substance.\n\nDRAFT:\n---\n${current}\n---\n\nReturn the same post with the worn phrases and AI cadence removed: keep the voice, keep every fact and number, keep roughly the same length and structure, and do not introduce new claims or a different point. If a line already sounds human, leave it alone. Return ONLY the cleaned-up post — no preamble, no commentary, no quotes around it.`;
+  try{
+    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await r.json();
+    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const text=(data.content?.[0]?.text||'').trim();
+    if(!text) throw new Error('Empty response');
+    generatedLinkedIn=text;
+    liOut.innerHTML=''; liOut.textContent=text;
+    updateCharCount();
+    renderKeywordReadout(generatedLinkedIn||generatedBlog||'');
+    document.getElementById('claude-dot')?.classList.add('active');
+    showToast('De-AI pass done — review before posting','success');
+  }catch(e){
+    showToast('De-AI failed: '+e.message,'error');
+  }finally{
+    if(btn){btn.disabled=false; btn.textContent='De-AI';}
+    setStatus('Ready',false);
+  }
+}
 
 function setStatus(t,a){
   document.getElementById('status-text').textContent=t;
@@ -6529,6 +6646,8 @@ function renderSEOPackage(){
     });
     const s=document.getElementById('seo-status');
     if(s){s.textContent='Not generated yet'; s.classList.remove('ready');}
+    const kc=document.getElementById('seo-kw-check');
+    if(kc){kc.textContent=''; kc.classList.remove('ok','warn');}
     return;
   }
   SEO_FIELDS.forEach(f=>{
@@ -6553,6 +6672,36 @@ function renderSEOPackage(){
   });
   const s=document.getElementById('seo-status');
   if(s){s.textContent='Ready · 8 fields populated'; s.classList.add('ready');}
+
+  // QC: does the focus keyword actually appear in the blog body and title? (closes the SEO loop)
+  const kc=document.getElementById('seo-kw-check');
+  if(kc){
+    const kw=(currentSEO.focus_keyword||'').trim().toLowerCase();
+    const body=(generatedBlog||'').toLowerCase();
+    if(!kw){
+      kc.textContent=''; kc.classList.remove('ok','warn');
+    } else if(!body){
+      kc.textContent='⚠ No blog body to check against';
+      kc.classList.remove('ok'); kc.classList.add('warn');
+    } else {
+      const esc=kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      const bodyCount=(body.match(new RegExp(esc,'g'))||[]).length;
+      // Title = the blog's first markdown H1 if present, else its first non-empty line.
+      const firstLine=(generatedBlog||'').split('\n').map(l=>l.trim()).find(l=>l)||'';
+      const titleText=(firstLine.replace(/^#+\s*/,'')+' '+(currentSEO.title_tag||'')).toLowerCase();
+      const inTitle=titleText.includes(kw);
+      if(bodyCount>0 && inTitle){
+        kc.textContent=`✓ Keyword in title and body (${bodyCount}×)`;
+        kc.classList.remove('warn'); kc.classList.add('ok');
+      } else if(bodyCount>0){
+        kc.textContent=`⚠ Keyword in body (${bodyCount}×) but not in the title — work it into the H1`;
+        kc.classList.remove('ok'); kc.classList.add('warn');
+      } else {
+        kc.textContent='⚠ Keyword not found in the blog body — weave it in, or pick a keyword the post actually uses';
+        kc.classList.remove('ok'); kc.classList.add('warn');
+      }
+    }
+  }
 }
 
 function toggleSEOPackage(){
@@ -6977,6 +7126,7 @@ function loadFromLibrary(id){
   const liOut=document.getElementById('linkedin-output');
   liOut.innerHTML=''; liOut.textContent=generatedLinkedIn||'(no LinkedIn text)';
   document.getElementById('hashtags-container').innerHTML=generatedHashtags.map(h=>`<span class="hashtag">${h}</span>`).join('');
+  renderKeywordReadout(generatedLinkedIn||generatedBlog||'');
   const blogOut=document.getElementById('blog-output');
   blogOut.innerHTML=generatedBlog?formatBlogHTML(generatedBlog):'<em style="color:var(--text-muted)">No blog content.</em>';
   // Restore SEO + Substack packages if present
@@ -7087,7 +7237,70 @@ function openViewPostModal(id){
   // Render the image picker — it reads from the library item, so it
   // automatically reflects whether an image is already attached.
   renderImagePicker('view-post-image-picker', id);
+  populateResultsForm(it);
   document.getElementById('view-post-modal').classList.add('open');
+}
+
+// ── Results logger ──
+// Manual metrics entry per post (no platform API needed) + a rollup that ranks what works.
+function populateResultsForm(it){
+  const r=(it&&it.results)||{};
+  const set=(id,v)=>{const el=document.getElementById(id); if(el) el.value=(v===0||v)?v:'';};
+  set('res-impressions',r.impressions);
+  set('res-reactions',r.reactions);
+  set('res-comments',r.comments);
+  set('res-search',r.search_appearances);
+  renderResultsRollup();
+}
+
+function saveResults(){
+  const it=library.find(x=>x.id===viewingPostId);
+  if(!it){showToast('No post selected','error');return;}
+  const num=id=>{const el=document.getElementById(id); const v=el?parseInt(el.value,10):NaN; return isNaN(v)?null:v;};
+  const r={
+    impressions:num('res-impressions'),
+    reactions:num('res-reactions'),
+    comments:num('res-comments'),
+    search_appearances:num('res-search'),
+    logged_at:new Date().toISOString(),
+  };
+  // Drop the record entirely if every field is blank (treat as "clear").
+  if(r.impressions===null && r.reactions===null && r.comments===null && r.search_appearances===null){
+    delete it.results;
+  } else {
+    it.results=r;
+  }
+  persistLibrary();
+  renderLibrary();
+  renderResultsRollup();
+  showToast('Results saved','success');
+}
+
+// Rank logged posts by engagement rate ((reactions+comments)/impressions) so patterns in
+// hashtags, voice, and day become visible. The weekly spinner makes this a real A/B test.
+function renderResultsRollup(){
+  const el=document.getElementById('results-rollup');
+  if(!el) return;
+  const scored=library
+    .filter(x=>x.results && x.results.impressions>0)
+    .map(x=>{
+      const r=x.results;
+      const eng=((r.reactions||0)+(r.comments||0))/r.impressions;
+      const day=x.scheduled_for?new Date(x.scheduled_for).toLocaleDateString('en-US',{weekday:'short'}):'';
+      return {voice:x.voice||x.scheduled_account||'', day, tags:(x.hashtags||[]).join(' '), eng, imp:r.impressions, search:r.search_appearances};
+    })
+    .sort((a,b)=>b.eng-a.eng);
+  if(!scored.length){
+    el.innerHTML='<span style="color:var(--text-muted)">Log impressions plus reactions/comments on a few posts to see which hashtags, voices, and days perform best.</span>';
+    return;
+  }
+  const rows=scored.slice(0,6).map(s=>`
+    <div style="padding:5px 0;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:baseline">
+      <strong style="color:var(--text)">${(s.eng*100).toFixed(1)}%</strong>
+      <span style="color:var(--text-muted)">eng · ${s.imp.toLocaleString()} impr${s.search?` · ${s.search.toLocaleString()} search`:''}${s.day?` · ${s.day}`:''} · ${escapeHTML(s.voice)}</span>
+      <span style="flex-basis:100%;color:var(--text-muted);font-family:var(--font-mono)">${escapeHTML(s.tags||'(no hashtags)')}</span>
+    </div>`).join('');
+  el.innerHTML='<div style="font-family:var(--font-mono);color:var(--text-muted);margin-bottom:4px;letter-spacing:0.04em">WHAT\'S WORKING · top by engagement rate</div>'+rows;
 }
 
 function closeViewPostModal(){
