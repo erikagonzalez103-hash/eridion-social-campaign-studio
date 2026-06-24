@@ -3650,6 +3650,14 @@ textarea { min-height: 80px; line-height: 1.6; }
 <script>
 const WORKER = 'https://frosty-base-f01e.erikagonzalez103.workers.dev/api/messages';
 
+// ── Models ──
+// Two tiers so model upgrades are a one-line change.
+// CREATIVE = the published prose (posts, blogs, snippets, edits) — where voice quality and avoiding AI-tells matter most.
+// UTILITY  = mechanical/structured tasks (SEO + Substack JSON, image queries, briefs) — speed over prose; Opus would be wasted spend.
+// If a CREATIVE (Opus) call errors, the worker may be whitelisting models — enable claude-opus-4-8 there.
+const MODEL_CREATIVE = 'claude-opus-4-8';
+const MODEL_UTILITY = 'claude-sonnet-4-6';
+
 let currentStream = 'eridion';
 let currentBucket = '';
 let generatedLinkedIn = '';
@@ -3755,6 +3763,29 @@ NEVER: Hype, urgency, "AI will change everything" energy; bro-speak ("leverage,"
 
 ALWAYS: Real stories over hypothetical ones (use Practitioners' actual situations); show the seams (what broke, what didn't work, what was hard); frame AI as a practice — "show up," "begin," "return to it"; The Practice owns its own world: practitioners, open studio, field notes, the practice; restraint, white space, quiet over loud.`
 };
+
+// ── House Writing Standards ──
+// Injected on top of every generation + edit prompt. Three jobs:
+// (1) strip AI-tell phrasing, (2) earn SEO + AI-answer-engine citation, (3) surface LinkedIn search terms.
+// Applied AFTER the voice block, so it sharpens the voice — it never overrides it.
+const HOUSE_STYLE = `
+━━━ HOUSE WRITING STANDARDS — apply on top of the voice above; never override the voice ━━━
+
+① SOUND LIKE A PERSON, NOT A CONTENT MODEL.
+Do NOT use these worn AI phrasings, or anything within spitting distance of them:
+"stopped me in my tracks," "made me stop scrolling," "let that sink in," "here's the thing," "here's the kicker," "the truth is," "let's be honest," "let's dive in," "buckle up," "spoiler," "plot twist," "game-changer," "needle-mover," "in today's fast-paced world," "in an ever-evolving landscape," "now more than ever," "it's not just X — it's Y," "this isn't about X, it's about Y," "the result?," "the best part?," "at the end of the day," "when it comes to," "navigating the world of," "unlock," "supercharge," "elevate," "delve," "tapestry," "testament to," "treasure trove," "look no further," "rest assured," "in a world where," "imagine a..."
+Also drop the AI CADENCE, not just the words: rule-of-three on every sentence; an em-dash dramatic reveal on every line; stacks of one-line "mic-drop" paragraphs; and rhetorical-question transitions ("The result? ...", "The catch? ...").
+Instead: vary sentence length, let plain sentences be plain, cut throat-clearing, and never reach for a metaphor you've already seen in a LinkedIn post. If a line sounds like it could open any post on any topic, rewrite it to be about THIS one.
+
+② EARN SEARCH + AI-ANSWER-ENGINE CITATION.
+- State the specific claim plainly and early. Assistants (ChatGPT, Google AI Overviews, Perplexity) and search engines quote self-contained factual sentences — e.g. "Tempered glass is required within 24 inches of a door under IRC R308.4." Bury the claim in a story and it won't get pulled.
+- Use the real nouns people actually search — the material, the code, the city, the role, the service — not vague stand-ins ("it," "this," "the solution," "the space").
+- Front-load the answer, then explain. Don't make the reader (or the model) wait three paragraphs for the point.
+- Favor concrete numbers, named standards, and named places over adjectives.
+
+③ SURFACE THE SEARCH TERMS THE AUDIENCE TYPES.
+LinkedIn (and Google) ranks copy on the literal words in it. Work the natural search phrase your audience would type into the post at least once — role + location + specialty. Illustrative: Eridion → "custom home builders in Dallas," "frameless shower enclosures," "luxury glass and glazing"; Erika → "women founders in construction," "marketing-to-construction career"; Quinta/Practice → "AI for small business owners," "no-code tools for founders." Pick what fits the topic. ONE clean, natural mention beats five forced ones — never keyword-stuff.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
 // ── POV Sets: four angles per topic category ──
 const POV_SETS = {
@@ -4324,9 +4355,9 @@ async function generateContent() {
 
   let fmtInstr='';
   const ctaEridion=`\n\nCTA RULES — APPLY TO ALL FORMATS:
-- Every post must include at least one subtle CTA mid-content (e.g. "If you're planning a project in the next 90 days, now is the time to get on our schedule." or "We'd love to walk through your specs.")
-- Every post must end with a clear strong CTA (e.g. "Ready to talk through your next luxury install? Reach us at erika@eridionglass.com or visit eridionglass.com." or "Let's get your project on our calendar before Q3 fills up.")
-- CTAs should feel like a natural next step, never salesy or pushy — always builder-focused`;
+- Every post must include at least one subtle CTA mid-content, framed as a concrete next step (e.g. "If you're speccing glass for a project, send us the elevations and we'll flag anything that affects lead time." or "We're glad to walk through your specs.")
+- Every post must end with a clear, specific CTA — never manufactured urgency or scarcity (e.g. "If you want a second set of eyes on the glass package, reach us at erika@eridionglass.com or eridionglass.com." Do NOT use countdown pressure like "before Q3 fills up" or "now is the time.")
+- CTAs should read as a natural next step, never salesy or pushy — always builder-focused`;
   const ctaErika=`\n\nCTA RULES:
 - Include one soft mid-content CTA (e.g. invite to connect, comment, or DM)
 - End with a clear strong CTA (e.g. "I'd love to hear how you're navigating this — drop a comment or connect with me." or "If you're building something in Dallas, let's talk.")`;
@@ -4337,7 +4368,7 @@ async function generateContent() {
 - Default to NO CTA. Add one only when it deepens the invitation; if the post is just a field note or a manifesto, let it breathe.`;
   const ctaFinal = currentStream==='eridion' ? ctaEridion : (currentStream==='quinta' ? ctaQuinta : ctaErika);
 
-  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook that stops the scroll. One subtle mid-post CTA. Strong closing CTA. Also generate 5 relevant hashtags.${ctaFinal}`;
+  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Open with a specific, concrete first line — the actual point or observation, not a generic "scroll-stopping" hook. One subtle mid-post CTA. Strong closing CTA. Also generate 3-5 relevant hashtags (aim for 3-4 specific ones; never more than 5).${ctaFinal}`;
   else if(format==='blog+linkedin') fmtInstr=`Generate BOTH a full blog post AND a LinkedIn snippet.
 
 BLOG POST (1000-1400 words):
@@ -4346,7 +4377,7 @@ BLOG POST (1000-1400 words):
 - 3-4 sections with subheadings
 - Specific data points with sources cited by name
 - 2 subtle inline CTAs woven naturally into the body (not forced — tied to the point being made)
-- Strong closing CTA paragraph that feels urgent but not pushy
+- Strong closing CTA paragraph — clear and direct, never manufactured urgency
 - Final line: a direct action statement (email, website, or "let's talk")
 
 LINKEDIN SNIPPET (150-300 words):
@@ -4360,18 +4391,18 @@ FORMAT EXACTLY:
 ===LINKEDIN===
 [linkedin post]
 ===HASHTAGS===
-[5 hashtags, one per line]
+[3-5 hashtags, one per line — aim for 3-4, never more than 5]
 ${ctaFinal}`;
-  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post about a glass, glazing, or building code requirement. Start with "Did you know?" then the surprising fact, why it matters to builders, Eridion's expertise connection. End with a CTA to reach out or learn more. 100-200 words. Also 5 hashtags.${ctaFinal}`;
-  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post. Warm, genuine, not promotional. Celebrate the subject's story and one key insight. End with a soft CTA to connect or follow. 150-250 words. Also 5 hashtags.${ctaErika}`;
+  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post about a glass, glazing, or building code requirement. Start with "Did you know?" then the surprising fact, why it matters to builders, Eridion's expertise connection. End with a CTA to reach out or learn more. 100-200 words. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
+  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post. Warm, genuine, not promotional. Celebrate the subject's story and one key insight. End with a soft CTA to connect or follow. 150-250 words. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaErika}`;
 
-  const prompt=`${voice}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment)'}\nTONE: ${tone}\n\n${fmtInstr}`;
+  const prompt=`${voice}\n${HOUSE_STYLE}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment)'}\nTONE: ${tone}\n\n${fmtInstr}`;
 
   // Use higher token limit for blog format
   const maxTokens = format==='blog+linkedin' ? 4000 : 1000;
 
   try {
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.[0]?.text||'';
@@ -4384,7 +4415,7 @@ ${ctaFinal}`;
       if(bm&&lm){generatedBlog=bm[1].trim();generatedLinkedIn=lm[1].trim();}
       else{const sp=Math.floor(text.length*0.65);const lp=text.lastIndexOf('\n\n',sp);generatedBlog=text.substring(0,lp>0?lp:sp).trim();generatedLinkedIn=text.substring(lp>0?lp:sp).trim();}
       const hr=hm?hm[1].trim():'';
-      generatedHashtags=hr?hr.split('\n').map(h=>h.trim()).filter(h=>h.startsWith('#')):[...new Set(text.match(/#[A-Za-z][A-Za-z0-9]*/g)||[])].slice(0,6);
+      generatedHashtags=hr?hr.split('\n').map(h=>h.trim()).filter(h=>h.startsWith('#')):[...new Set(text.match(/#[A-Za-z][A-Za-z0-9]*/g)||[])].slice(0,5);
     } else {
       const lines=text.split('\n');const htLines=[];const ctLines=[];
       let inH=false;
@@ -4490,7 +4521,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"sources":[{"id":"s1","title":"...","source":"...","snippet":"...","date":"2026","category":"STUDY"}]}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,messages:[{role:'user',content:prompt}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:3000,messages:[{role:'user',content:prompt}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     // Web search responses contain multiple content blocks (server_tool_use,
@@ -4650,9 +4681,9 @@ async function draftFromResearch(){
 
   // Reuse the existing CTA + format instructions from generateContent
   const ctaEridion=`\n\nCTA RULES — APPLY TO ALL FORMATS:
-- Every post must include at least one subtle CTA mid-content
-- Every post must end with a clear strong CTA
-- CTAs should feel like a natural next step, never salesy — always builder-focused`;
+- Every post must include at least one subtle CTA mid-content, framed as a concrete next step
+- Every post must end with a clear, specific CTA — never manufactured urgency or scarcity (no "before Q3 fills up," no "now is the time")
+- CTAs should read as a natural next step, never salesy — always builder-focused`;
   const ctaErika=`\n\nCTA RULES:
 - Include one soft mid-content CTA
 - End with a clear strong CTA`;
@@ -4664,7 +4695,7 @@ async function draftFromResearch(){
   const ctaFinal=currentStream==='eridion'?ctaEridion:(currentStream==='quinta'?ctaQuinta:ctaErika);
 
   let fmtInstr='';
-  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook. One subtle mid-post CTA. Strong closing CTA. Also 5 relevant hashtags.${ctaFinal}`;
+  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook. One subtle mid-post CTA. Strong closing CTA. Also 3-5 relevant hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
   else if(format==='blog+linkedin') fmtInstr=`Generate BOTH a full blog post AND a LinkedIn snippet.
 
 BLOG POST (1000-1400 words):
@@ -4686,10 +4717,10 @@ FORMAT EXACTLY:
 ===LINKEDIN===
 [linkedin post]
 ===HASHTAGS===
-[5 hashtags, one per line]
+[3-5 hashtags, one per line — aim for 3-4, never more than 5]
 ${ctaFinal}`;
-  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post (100-200 words). Start with "Did you know?" then the surprising fact from the sources, why it matters to builders, Eridion's angle, CTA. Also 5 hashtags.${ctaFinal}`;
-  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post (150-250 words). Warm, genuine, not promotional. End with soft CTA. Also 5 hashtags.${ctaErika}`;
+  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post (100-200 words). Start with "Did you know?" then the surprising fact from the sources, why it matters to builders, Eridion's angle, CTA. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
+  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post (150-250 words). Warm, genuine, not promotional. End with soft CTA. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaErika}`;
 
   const povInstruction=`\n\n✦ ANGLE / POINT OF VIEW FOR THIS PIECE — FOLLOW THIS CONSISTENTLY THROUGHOUT:\n${pov.modifier}\n\nDo not hedge against the chosen angle. Stay consistent. Every section should reinforce this lean.`;
 
@@ -4699,12 +4730,12 @@ ${ctaFinal}`;
 - Do NOT invent or fabricate specific statistics or studies beyond what's in the curated list
 - If you need a supporting claim not in the sources, phrase it generally ("industry practice," "commonly observed") rather than attributing to a specific source`;
 
-  const prompt=`${voice}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\n✦ CURATED SOURCE MATERIAL (the writer has reviewed and selected these — use them):\n\n${sourcesBlock}${sourceRule}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment from sources)'}\nTONE: ${tone}${povInstruction}\n\n${fmtInstr}`;
+  const prompt=`${voice}\n${HOUSE_STYLE}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\n✦ CURATED SOURCE MATERIAL (the writer has reviewed and selected these — use them):\n\n${sourcesBlock}${sourceRule}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment from sources)'}\nTONE: ${tone}${povInstruction}\n\n${fmtInstr}`;
 
   const maxTokens=format==='blog+linkedin'?4000:1200;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.[0]?.text||'';
@@ -4718,7 +4749,7 @@ ${ctaFinal}`;
       if(bm&&lm){generatedBlog=bm[1].trim();generatedLinkedIn=lm[1].trim();}
       else{const sp=Math.floor(text.length*0.65);const lp=text.lastIndexOf('\n\n',sp);generatedBlog=text.substring(0,lp>0?lp:sp).trim();generatedLinkedIn=text.substring(lp>0?lp:sp).trim();}
       const hr=hm?hm[1].trim():'';
-      generatedHashtags=hr?hr.split('\n').map(h=>h.trim()).filter(h=>h.startsWith('#')):[...new Set(text.match(/#[A-Za-z][A-Za-z0-9]*/g)||[])].slice(0,6);
+      generatedHashtags=hr?hr.split('\n').map(h=>h.trim()).filter(h=>h.startsWith('#')):[...new Set(text.match(/#[A-Za-z][A-Za-z0-9]*/g)||[])].slice(0,5);
     } else {
       const lines=text.split('\n');const htLines=[];const ctLines=[];
       let inH=false;
@@ -4820,7 +4851,7 @@ YOUR TASK:
 4. The injection should feel like it was always there — a colleague should not spot the seam
 5. Keep the same overall length and structure
 6. Keep Erika's voice: confident, data-informed, builder-focused, never salesy
-
+${HOUSE_STYLE}
 Wrap ONLY the added/rewritten sentence(s) with <HIGHLIGHT> and </HIGHLIGHT> tags.
 Return ONLY the rewritten post. No preamble.`;
 
@@ -4838,7 +4869,7 @@ YOUR TASK:
 2. Write a richer 2-3 sentence injection that expands on the experience with business context and builder impact
 3. The injection should feel editorial and authoritative — not a personal anecdote bolted on, but a natural part of the expert narrative
 4. Keep Erika's voice: confident, data-informed, builder-focused
-
+${HOUSE_STYLE}
 CRITICAL — PRESERVE ALL FORMATTING:
 - Keep every # H1, ## H2, and ### H3 heading exactly as written
 - Keep every **bold** emphasis
@@ -4881,10 +4912,10 @@ Return ONLY the rewritten blog post. No preamble, no code fences.` : null;
   try {
     // Run both API calls in parallel
     const calls = [
-      fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:liPrompt}]})})
+      fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:1000,messages:[{role:'user',content:liPrompt}]})})
     ];
     if(blogPrompt) {
-      calls.push(fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:blogPrompt}]})}));
+      calls.push(fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:2000,messages:[{role:'user',content:blogPrompt}]})}));
     }
 
     const responses = await Promise.all(calls);
@@ -5316,7 +5347,7 @@ Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "He
     const response = await fetch(WORKER, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: MODEL_UTILITY, max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
     });
     const data = await response.json();
     if(data.error) throw new Error(data.error.message || 'Unknown error');
@@ -5724,7 +5755,7 @@ ${content}
 4 talking points for panels and networking events. One to two sentences each. Confident, specific, natural. Start each with "TP:" on its own line.`;
 
   try{
-    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const d=await r.json(); if(d.error) throw new Error(d.error.message);
     const text=d.content?.[0]?.text||'';
     const bm=text.match(/===BRIEFING===([\s\S]*?)===TALKING POINTS===/i);
@@ -5783,7 +5814,7 @@ async function askResearch(){
   const el=document.getElementById('research-answer');
   el.textContent='Researching...'; el.className='research-answer loading';
   try{
-    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`Erika Harrison is co-founder of Eridion Glass, luxury glass subcontractor Dallas TX. She published:\n---\n${content}\n---\nShe asks: "${q}"\n\nAnswer in plain conversational language. Include: (1) clear 2-3 sentence explanation, (2) source/basis, (3) one sentence she could say confidently on a panel. Tight and practical.`}]})});
+    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:`Erika Harrison is co-founder of Eridion Glass, luxury glass subcontractor Dallas TX. She published:\n---\n${content}\n---\nShe asks: "${q}"\n\nAnswer in plain conversational language. Include: (1) clear 2-3 sentence explanation, (2) source/basis, (3) one sentence she could say confidently on a panel. Tight and practical.`}]})});
     const d=await r.json(); if(d.error) throw new Error(d.error.message);
     const answer=d.content?.[0]?.text||'';
     el.textContent=answer; el.className='research-answer';
@@ -5826,7 +5857,7 @@ let spinSnippetResults = [];     // last results from one-off spin (for save/reg
 let spinWeekResults = [];        // last results from week spin
 
 const SPIN_ANGLES = {
-  hook:     {label:'Hook + tease',     instruction:'Write a strong-hook LinkedIn post that teases the key insight of the blog without giving it all away. Open with a scroll-stopping line, sketch the thesis in 2-3 short paragraphs, then end with something like "Full breakdown in my latest post →" so readers are drawn to click through.'},
+  hook:     {label:'Hook + tease',     instruction:'Write a LinkedIn post that teases the key insight of the blog without giving it all away. Open with a specific, concrete line that states the actual angle (not a generic "scroll-stopping" opener), sketch the thesis in 2-3 short paragraphs, then end with something like "Full breakdown in my latest post →" so readers are drawn to click through.'},
   data:     {label:'Data pull',        instruction:'Pull the single most compelling data point, stat, or factual finding from the blog and build a short LinkedIn post around it. Lead with the number/fact, explain in 2-3 sentences why it matters for builders, land on the implication. No "read more" hook needed — this post stands on its own.'},
   personal: {label:'Personal take',    instruction:'Write a reflective, personal-voice LinkedIn post riffing on one idea from the blog. Opens with an observation or memory ("Was thinking about this today..." or "Had a conversation last week that..."), draws out one insight, ends with a light reflection — no hard CTA, no link-to-blog push.'},
   question: {label:'Question to audience', instruction:'Write an engagement-focused LinkedIn post that poses a real question the blog answered — asking the audience their view BEFORE revealing the blog\'s answer. Open with framing context (2 sentences), then the question. Short, punchy, designed to drive comments.'},
@@ -5963,7 +5994,7 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
   const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:900,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:900,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const rawText=(data.content?.[0]?.text||'').trim();
@@ -6186,6 +6217,7 @@ ${getKB()}
 
 VOICE REFERENCE (follow strictly for each snippet's assigned voice):
 ${voiceRef}
+${HOUSE_STYLE}
 
 SOURCE POST (originally written in the ${sourceVoice.toUpperCase()} voice):
 ---
@@ -6224,7 +6256,7 @@ RULES FOR EVERY SNIPPET:
 - 80-200 words each (cross-voice snippets can run to 220 to accommodate the bridge)
 - Stay factually consistent with the source — no invented data
 - Match the assigned voice precisely (different voices have different CTA rules: Eridion = direct CTA, Erika = soft CTA, Quinta & Co = usually NO CTA at all)
-- Include 4 relevant hashtags per snippet
+- Include 3-5 relevant hashtags per snippet (aim for 3-4; never more than 5). Vary them across the 5 days — do not repeat the same hashtag on more than 2 of the days
 ${spinMode==='sections'
   ? '- Each snippet must focus on its assigned section ONLY — do not bleed content from other sections\n- Reference the section by its actual subject (the standard name, the claim, the item) so it feels self-contained'
   : '- Each snippet must be distinct — different hooks, different angles, different factual pulls from the source'}
@@ -6237,7 +6269,7 @@ For same-voice snippets, set cross_voice:false and bridge_from:null.
 For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Quinta & Co-voice snippets, ig_intro must be a 1-2 sentence channel intro per the rules above.`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:2000,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=(data.content?.[0]?.text||'').trim();
@@ -6439,7 +6471,9 @@ ${blog.slice(0,3500)}
 ---
 
 YOUR TASK:
-Produce a complete SEO package for this post, tuned for Google search and LinkedIn/Facebook social sharing. The audience is builders, GCs, project managers, architects, and luxury homeowners in DFW. Keywords should feel natural to those audiences — not keyword-stuffed.
+Produce a complete SEO package for this post, tuned for THREE surfaces: (1) Google search, (2) AI answer engines (ChatGPT, Google AI Overviews, Perplexity) that increasingly intercept these queries, and (3) LinkedIn/Facebook social sharing. The audience is builders, GCs, project managers, architects, and luxury homeowners in DFW. Keywords should feel natural to those audiences — not keyword-stuffed.
+
+ANSWER-ENGINE NOTE: AI assistants cite pages whose key claim is stated as a clean, self-contained sentence with real nouns (material, code, city, service). Choose a focus_keyword that matches how a person would actually phrase the question to an assistant, and make the meta_description read as a direct, quotable answer — not a teaser.
 
 RULES PER FIELD:
 - focus_keyword: 2-5 words, the primary phrase you want this post to rank for. Should appear naturally in the blog body, title, and meta. Builder or construction-audience-relevant.
@@ -6455,7 +6489,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"focus_keyword":"...","title_tag":"...","meta_description":"...","url_slug":"...","excerpt":"...","alt_text":"...","og_title":"...","og_description":"..."}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.[0]?.text||'';
@@ -6618,7 +6652,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"headline":"...","subtitle":"...","email_preview":"...","alt_text":"...","tags":"...","subscribe_cta":"..."}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.[0]?.text||'';
@@ -8530,7 +8564,7 @@ Return ONLY valid JSON. No preamble, no markdown fences. Shape:
 ]}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,messages:[{role:'user',content:prompt}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:1500,messages:[{role:'user',content:prompt}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     const resp=(data.content?.[0]?.text||'').trim();
@@ -8797,7 +8831,7 @@ Context: ${brandContext}
 STAT OR QUOTE: ${text}
 
 Return ONLY valid JSON, no preamble: {"terms":["query one","query two","query three"]}`;
-  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,messages:[{role:'user',content:prompt}]})});
+  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:400,messages:[{role:'user',content:prompt}]})});
   const data=await response.json();
   if(data.error) throw new Error(data.error.message);
   const resp=(data.content?.[0]?.text||'').trim();
@@ -8833,7 +8867,7 @@ DO / DON'T
 [One line each on what to lean into and what to avoid]
 
 Return the brief as plain text, no markdown fences.`;
-  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:prompt}]})});
+  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:800,messages:[{role:'user',content:prompt}]})});
   const data=await response.json();
   if(data.error) throw new Error(data.error.message);
   return (data.content?.[0]?.text||'').trim();
@@ -8852,7 +8886,7 @@ Context: ${brandContext} The image should feel purposeful — NOT corny stock im
 Write a single paragraph (80-150 words) that includes: subject matter, composition, lighting, materials/textures, mood, stylistic references, and aspect ratio note. The prompt should be ready to paste straight into any AI image tool.
 
 Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "Here's the prompt:" — just the prompt itself.`;
-  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
+  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:600,messages:[{role:'user',content:prompt}]})});
   const data=await response.json();
   if(data.error) throw new Error(data.error.message);
   return (data.content?.[0]?.text||'').trim();
