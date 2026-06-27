@@ -8778,7 +8778,7 @@ ${days}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
 {"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":""}]}`;
-  const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+  const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:8000,messages:[{role:'user',content:prompt}]})});
   const data=await res.json();
   if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
   let txt=(data.content?.[0]?.text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
