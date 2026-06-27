@@ -3498,6 +3498,7 @@ textarea { min-height: 80px; line-height: 1.6; }
               <button class="action-btn" onclick="closeSpinModal('spin-week-modal')">Cancel</button>
             </div>
             <div class="spin-results" id="spin-week-results" style="display:none"></div>
+            <div id="week-assets" style="display:none;margin-top:18px"></div>
           </div>
         </div>
 
@@ -6426,12 +6427,16 @@ For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Quinta
 
 function renderSpinWeekResults(){
   const resultsEl=document.getElementById('spin-week-results');
+  // A freshly generated week has no assets yet — clear any stale asset grid.
+  const wa=document.getElementById('week-assets');
+  if(wa && !spinWeekResults.some(r=>r.assetFormat)){ wa.style.display='none'; wa.innerHTML=''; }
   if(!spinWeekResults.length){resultsEl.style.display='none';return;}
   resultsEl.style.display='block';
   const header=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;padding-bottom:12px;border-bottom:1px solid var(--border)">
       <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--gold-dim)">5 SNIPPETS READY</span>
-      <button class="action-btn primary" style="margin-left:auto" onclick="saveAllSpinWeek()">+ Save All to Library</button>
+      <button class="action-btn primary" style="margin-left:auto" onclick="autoBuildWeekAssets()" title="Evaluate the week's arc, pick a visual format per day, and build every image automatically">🎨 Auto-build week's assets</button>
+      <button class="action-btn" onclick="saveAllSpinWeek()">+ Save All to Library</button>
       <button class="action-btn" onclick="saveAndScheduleSpinWeek()">+ Save & Auto-Schedule</button>
     </div>
   `;
@@ -6494,6 +6499,16 @@ function saveOneSpinWeek(i){
     entry.bridge_from=r.bridgeFrom;
   }
   if(r.ig_intro) entry.ig_intro=r.ig_intro;
+  // Attach the auto-built asset (if Auto-build was run) so it's pushable to Buffer.
+  if(r.imageUrl){
+    entry.selectedImageUrl=r.imageUrl;
+    entry.image_url=r.imageUrl;
+    entry.imageUrls=[r.imageUrl];
+    entry.imageSource='auto-assets';
+    entry.imageCredit=r.imageCredit||'';
+    entry.asset_format=r.assetFormat||'';
+    if(r.assetSpec&&r.assetSpec.image_prompt) entry.image_prompt=r.assetSpec.image_prompt;
+  }
   persistLibrary();
   renderLibrary();
   showToast(`${r.day} saved`,'success');
@@ -7098,6 +7113,7 @@ function renderLibrary(){
               <button class="lib-menu-item" onclick="openSpinSnippetModal('${it.id}');closeLibMenus()">✦ Spin Snippet</button>
               <button class="lib-menu-item" onclick="openSpinWeekModal('${it.id}');closeLibMenus()">✦ Spin Week</button>
               <button class="lib-menu-item" onclick="openImageIdeasModal('${it.id}');closeLibMenus()">🎨 Image Ideas</button>
+              <button class="lib-menu-item" onclick="buildWeekImagesFromLibrary('${it.id}');closeLibMenus()">🪄 Auto-build week's images</button>
             </div>
           </div>`:'<div class="lib-menu-spacer"></div>'}
           <div class="lib-menu">
@@ -8590,6 +8606,285 @@ function renderQuoteCard(voice, quote, attribution='', ratio='square'){
   ${quoteSvg}
   ${attrSvg}
 </svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── AUTO-BUILD WEEK ASSETS ──
+// One click on the spin-week results: read the whole week's arc, choose a
+// visual format per day (quote / stat / infographic / stock / generated image),
+// build every asset, stage them for review, and attach to each day on save.
+// Reuses VOICE_STYLES, renderStatCard/renderQuoteCard/renderInfographicCard,
+// svgToPNG, uploadImageToImgBB, Unsplash, and the worker's /api/image route.
+// ═══════════════════════════════════════════════════════════════════
+
+// /api/image lives on the same worker as /api/messages.
+const IMAGE_ENDPOINT = WORKER.replace(/\/api\/messages$/, '/api/image');
+const ASSET_FORMATS = ['quote','stat','infographic','stock','image'];
+const ASSET_FMT_LABEL = {quote:'Pull quote',stat:'Stat card',infographic:'Infographic',stock:'Stock photo',image:'Generated image'};
+
+// Gradient stops for all four voices (the existing stat/quote renderers omit practice).
+function cardGradStops(voice){
+  const m={
+    eridion:`<stop offset="0%" stop-color="#0F1218"/><stop offset="100%" stop-color="#080A0E"/>`,
+    erika:`<stop offset="0%" stop-color="#F5F0E8"/><stop offset="100%" stop-color="#EDE5D8"/>`,
+    quinta:`<stop offset="0%" stop-color="#242B37"/><stop offset="100%" stop-color="#1D2430"/>`,
+    practice:`<stop offset="0%" stop-color="#FAFAF6"/><stop offset="100%" stop-color="#F5F2EA"/>`,
+  };
+  return m[voice]||m.eridion;
+}
+
+// Infographic card: a title + 2-4 value/label rows, brand-styled per voice.
+function renderInfographicCard(voice, title, points, ratio='square'){
+  const style=VOICE_STYLES[voice]||VOICE_STYLES.eridion;
+  const w=1200, h=ratio==='landscape'?675:1200;
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const cx=w/2;
+  const rows=(points||[]).slice(0,4).filter(p=>p&&(p.value||p.label));
+  const titleLines=wrapText(esc(title), ratio==='landscape'?40:26);
+  const titleSize=ratio==='landscape'?44:56;
+  const titleLH=titleSize*1.25;
+  const titleTop=ratio==='landscape'?70:120;
+  const titleBlockH=titleLines.length*titleLH;
+  const titleSvg=titleLines.map((ln,i)=>`<text x="${cx}" y="${titleTop+(i+0.8)*titleLH}" text-anchor="middle" font-family="${style.bodyFont}" font-size="${titleSize}" font-weight="600" fill="${style.text}">${ln}</text>`).join('');
+  const rowsTop=titleTop+titleBlockH+(ratio==='landscape'?40:80);
+  const rowsArea=h-rowsTop-(ratio==='landscape'?50:90);
+  const rowH=rows.length?rowsArea/rows.length:rowsArea;
+  const valSize=ratio==='landscape'?56:84;
+  const labSize=ratio==='landscape'?22:28;
+  const rowsSvg=rows.map((p,i)=>{
+    const yc=rowsTop+rowH*i+rowH/2;
+    const val=esc(p.value), lab=esc(p.label);
+    return `<text x="${cx}" y="${yc-labSize*0.3}" text-anchor="middle" dominant-baseline="middle" font-family="${style.numFont}" font-size="${valSize}" font-weight="${style.numWeight}" fill="${style.accent}">${val}</text>`
+      +`<text x="${cx}" y="${yc+valSize*0.55}" text-anchor="middle" font-family="${style.labelFont}" font-size="${labSize}" fill="${style.textDim}" letter-spacing="0.06em">${lab.toUpperCase()}</text>`
+      +(i<rows.length-1?`<line x1="${cx-120}" y1="${rowsTop+rowH*(i+1)}" x2="${cx+120}" y2="${rowsTop+rowH*(i+1)}" stroke="${style.accent}" stroke-width="0.5" opacity="0.3"/>`:'');
+  }).join('');
+  const decor = style.decorPattern==='green-bar'?`<rect x="0" y="0" width="14" height="${h}" fill="${style.accent}"/>`:'';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+  <defs><linearGradient id="bgi-${voice}-${ratio}" x1="0%" y1="0%" x2="100%" y2="100%">${cardGradStops(voice)}</linearGradient></defs>
+  <rect width="${w}" height="${h}" fill="url(#bgi-${voice}-${ratio})"/>
+  ${decor}
+  ${titleSvg}
+  ${rowsSvg}
+</svg>`;
+}
+
+// Step 1 — read the whole week and decide a format + spec per day (one Opus call).
+async function evaluateArc(entries){
+  const days=entries.map((r,i)=>`DAY ${i+1} — ${r.label||('Day '+(i+1))} (voice: ${r.voice})\n${r.text}`).join('\n\n---\n\n');
+  const prompt=`You are an art director planning the visual asset for each day of a 5-day LinkedIn series. You see all five posts at once — treat them as one arc and give the week visual RHYTHM (do not pick the same format five times; aim for a mix).
+
+For each day pick ONE format and fill only that format's fields:
+- "quote": a single sharp line from the post works as a pull-quote card. Fields: quote_text (<=180 chars, drawn from the post), attribution (the author/brand name, or "").
+- "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars).
+- "infographic": the day lists 2-4 discrete points/steps/standards. Fields: infographic_title (<=50 chars), infographic_points = array of 2-4 {"value","label"} (value short: a number or 1-2 words; label <=40 chars).
+- "stock": a real-world photograph fits better than anything generated. Fields: stock_query (2-4 concrete words, searchable on Unsplash).
+- "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid, specific, photographic or illustrative; describe a scene, NOT text on screen).
+
+Choose the format that best fits each day's actual content. Prefer quote/stat/infographic when the post hands you a line, a number, or a list — they're cleaner and on-brand. Use stock for real scenes, image only when a made image truly beats the alternatives.
+
+THE WEEK:
+${days}
+
+Return ONLY valid JSON, no preamble, no markdown fences:
+{"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":""}]}`;
+  const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+  const data=await res.json();
+  if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+  let txt=(data.content?.[0]?.text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
+  let s=txt.indexOf('{'), e=-1, depth=0;
+  for(let i=s;i<txt.length;i++){ if(txt[i]==='{')depth++; else if(txt[i]==='}'){depth--; if(depth===0){e=i;break;}} }
+  if(s<0||e<0) throw new Error('No JSON in arc response');
+  const parsed=JSON.parse(txt.substring(s,e+1));
+  const arr=Array.isArray(parsed.days)?parsed.days:[];
+  if(!arr.length) throw new Error('Arc evaluation returned no days');
+  return arr;
+}
+
+// base64 string -> Blob (for OpenAI image output)
+function b64ToBlob(b64, type='image/png'){
+  const bytes=atob(b64);
+  const arr=new Uint8Array(bytes.length);
+  for(let i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
+  return new Blob([arr],{type});
+}
+
+// Render an SVG card to PNG and host it on ImgBB -> public URL (Buffer-ready).
+async function svgToImgBBUrl(svg, w, h){
+  const blob=await svgToPNG(svg, w, h, 2);
+  const file=new File([blob],'card.png',{type:'image/png'});
+  const {url}=await uploadImageToImgBB(file);
+  return url;
+}
+
+// First Unsplash result for a query -> {url, credit}
+async function unsplashFirst(query){
+  const key=(document.getElementById('unsplash-key')?.value||localStorage.getItem('unsplash_key')||'').trim();
+  if(!key) throw new Error('Add your Unsplash key in API Keys');
+  const res=await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=squarish`,{headers:{Authorization:`Client-ID ${key}`}});
+  const data=await res.json();
+  const img=data.results&&data.results[0];
+  if(!img) throw new Error(`No stock photo for "${query}"`);
+  return {url:img.urls.regular, credit:`Photo by ${img.user.name} on Unsplash`};
+}
+
+// Generate an image via the worker's /api/image (OpenAI) -> hosted ImgBB URL.
+async function generateImageViaWorker(prompt, ratio){
+  const size = ratio==='landscape' ? '1536x1024' : '1024x1024';
+  let res;
+  try{
+    res=await fetch(IMAGE_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,size})});
+  }catch(_){ throw new Error('Could not reach the image endpoint — is the worker deployed?'); }
+  if(res.status===404) throw new Error('Image endpoint not deployed yet (add /api/image to your worker — see setup)');
+  const data=await res.json().catch(()=>null);
+  if(!data) throw new Error('No response from image endpoint');
+  if(data.error) throw new Error(typeof data.error==='string'?data.error:(data.error.message||'Image API error'));
+  const b64=data.b64||data.b64_json||(data.data&&data.data[0]&&data.data[0].b64_json);
+  if(!b64) throw new Error('Image endpoint returned no image data');
+  const file=new File([b64ToBlob(b64)],'generated.png',{type:'image/png'});
+  const {url}=await uploadImageToImgBB(file);
+  return url;
+}
+
+// Build one asset (any source) -> {url, credit}. Shared by the spin-week panel
+// and the Content Library entry point.
+async function produceAsset(format, spec, voice, fallbackText){
+  spec=spec||{}; const ratio='square';
+  if(format==='quote') return {url:await svgToImgBBUrl(renderQuoteCard(voice, spec.quote_text||(fallbackText||'').slice(0,160), spec.attribution||'', ratio),1200,1200), credit:''};
+  if(format==='stat') return {url:await svgToImgBBUrl(renderStatCard(voice, spec.stat_number||'', spec.stat_label||'', ratio),1200,1200), credit:''};
+  if(format==='infographic') return {url:await svgToImgBBUrl(renderInfographicCard(voice, spec.infographic_title||'', spec.infographic_points||[], ratio),1200,1200), credit:''};
+  if(format==='stock'){ const s=await unsplashFirst(spec.stock_query||(fallbackText||'').slice(0,40)); return {url:s.url, credit:s.credit}; }
+  if(format==='image'){
+    const vibe=(VOICE_STYLES[voice]||{}).vibe||'';
+    const p=(spec.image_prompt||(fallbackText||'').slice(0,200))+(vibe?` Aesthetic: ${vibe}.`:'')+' No text, words, or letters in the image.';
+    return {url:await generateImageViaWorker(p, ratio), credit:'AI-generated'};
+  }
+  throw new Error('Unknown format: '+format);
+}
+
+// Spin-week panel: build one day's asset based on its chosen format.
+async function buildDayAsset(i){
+  const r=spinWeekResults[i]; if(!r) return;
+  r.assetStatus='building'; r.assetError=''; renderWeekAssetsGrid();
+  try{
+    const {url, credit}=await produceAsset(r.assetFormat, r.assetSpec, r.voice, r.text);
+    if(!url) throw new Error('No asset produced');
+    r.imageUrl=url; r.imageCredit=credit; r.assetStatus='ready';
+  }catch(e){
+    r.imageUrl=''; r.assetStatus='error'; r.assetError=e.message;
+  }
+  renderWeekAssetsGrid();
+}
+
+// Orchestrator — the button handler.
+async function autoBuildWeekAssets(){
+  if(!spinWeekResults.length){showToast('Generate the week first','error');return;}
+  if(!getImgBBKey()){showToast('Add your ImgBB key in API Keys — needed to host the cards','error');if(typeof toggleKeys==='function')toggleKeys();return;}
+  const wrap=document.getElementById('week-assets');
+  wrap.style.display='block';
+  wrap.innerHTML='<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);padding:10px 0">Reading the week\'s arc…</div>';
+  setStatus('Evaluating the week\'s visual arc…',true);
+  try{
+    const decisions=await evaluateArc(spinWeekResults.map(r=>({label:r.day, voice:r.voice, text:r.text})));
+    decisions.forEach((d,i)=>{
+      if(!spinWeekResults[i]) return;
+      spinWeekResults[i].assetFormat=ASSET_FORMATS.includes(d.format)?d.format:'quote';
+      spinWeekResults[i].assetRationale=d.rationale||'';
+      spinWeekResults[i].assetSpec={
+        quote_text:d.quote_text, attribution:d.attribution,
+        stat_number:d.stat_number, stat_label:d.stat_label,
+        infographic_title:d.infographic_title, infographic_points:Array.isArray(d.infographic_points)?d.infographic_points:[],
+        image_prompt:d.image_prompt, stock_query:d.stock_query,
+      };
+      spinWeekResults[i].assetStatus='pending';
+    });
+    renderWeekAssetsGrid();
+    setStatus('Building assets…',true);
+    // Sequential — gentler on ImgBB / image-API rate limits, and the grid updates per day.
+    for(let i=0;i<spinWeekResults.length;i++){ await buildDayAsset(i); }
+    const ok=spinWeekResults.filter(r=>r.assetStatus==='ready').length;
+    showToast(`${ok}/${spinWeekResults.length} assets built — review, then Save All`, ok?'success':'error');
+  }catch(e){
+    wrap.innerHTML=`<div style="color:var(--error);font-size:12px;padding:8px 0">Arc evaluation failed: ${escapeHTML(e.message)}</div>`;
+    showToast('Auto-build failed: '+e.message,'error');
+  }finally{
+    setStatus('Ready',false);
+  }
+}
+
+function regenerateDayAsset(i){ buildDayAsset(i); }
+function changeDayFormat(i, fmt){ if(!spinWeekResults[i])return; spinWeekResults[i].assetFormat=fmt; buildDayAsset(i); }
+
+// Content Library entry point — build the whole week's images for snippets that
+// are ALREADY saved (grouped by their source post), and attach each to its card.
+// Triggered from any one snippet's Transform menu; operates on all its siblings.
+const WEEKDAY_ORDER = {Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6,Sunday:7};
+async function buildWeekImagesFromLibrary(id){
+  const it=library.find(x=>x.id===id);
+  if(!it){ showToast('Post not found','error'); return; }
+  if(!getImgBBKey()){ showToast('Add your ImgBB key in API Keys — needed to host the cards','error'); if(typeof toggleKeys==='function') toggleKeys(); return; }
+  // The "week" = this item's snippet siblings (same source), or its children if it's the source.
+  const groupKey = it.parent_id || it.id;
+  const group = library
+    .filter(x => (x.parent_id||x.id)===groupKey && ((x.linkedin_text||x.blog_text||'').trim()))
+    .sort((a,b)=>(WEEKDAY_ORDER[a.snippet_day]||99)-(WEEKDAY_ORDER[b.snippet_day]||99));
+  if(!group.length){ showToast('No snippets found for this week','error'); return; }
+  setStatus(`Reading the week's arc (${group.length} posts)…`,true);
+  showToast(`Building images for ${group.length} posts — this runs in the background`,'success');
+  try{
+    const decisions=await evaluateArc(group.map(g=>({label:g.snippet_day||g.title||'', voice:g.voice, text:g.linkedin_text||g.blog_text||''})));
+    let ok=0;
+    for(let i=0;i<group.length;i++){
+      const d=decisions[i]||{};
+      const fmt=ASSET_FORMATS.includes(d.format)?d.format:'quote';
+      const spec={
+        quote_text:d.quote_text, attribution:d.attribution,
+        stat_number:d.stat_number, stat_label:d.stat_label,
+        infographic_title:d.infographic_title, infographic_points:Array.isArray(d.infographic_points)?d.infographic_points:[],
+        image_prompt:d.image_prompt, stock_query:d.stock_query,
+      };
+      setStatus(`Building image ${i+1} of ${group.length}…`,true);
+      try{
+        const {url, credit}=await produceAsset(fmt, spec, group[i].voice, group[i].linkedin_text||group[i].blog_text);
+        if(url){ attachImageToLibraryItem(group[i].id, url, 'auto-assets', credit); ok++; }
+      }catch(err){ console.warn('asset failed for', group[i].id, err); }
+    }
+    renderLibrary();
+    showToast(`${ok}/${group.length} images built & attached to your posts`, ok?'success':'error');
+  }catch(e){
+    showToast('Auto-build failed: '+e.message,'error');
+  }finally{
+    setStatus('Ready',false);
+  }
+}
+
+// Step 3 — the review grid.
+function renderWeekAssetsGrid(){
+  const wrap=document.getElementById('week-assets'); if(!wrap) return;
+  if(!spinWeekResults.some(r=>r.assetFormat)){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  const vLabel={eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'};
+  const cards=spinWeekResults.map((r,i)=>{
+    const st=r.assetStatus||'pending';
+    let thumb;
+    if(st==='ready'&&r.imageUrl) thumb=`<img src="${r.imageUrl}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:1px solid var(--border)"/>`;
+    else if(st==='building') thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-size:11px;color:var(--text-muted)">Building…</div>`;
+    else if(st==='error') thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;background:var(--surface2);border:1px solid var(--error);border-radius:4px;font-size:10px;color:var(--error)">⚠ ${escapeHTML(r.assetError||'Failed')}</div>`;
+    else thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px dashed var(--border);border-radius:4px;font-size:18px;color:var(--text-muted)">—</div>`;
+    const opts=ASSET_FORMATS.map(f=>`<option value="${f}" ${r.assetFormat===f?'selected':''}>${ASSET_FMT_LABEL[f]}</option>`).join('');
+    return `<div style="border:1px solid var(--border);border-radius:6px;padding:10px;background:var(--surface)">
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px">${escapeHTML(r.day)} · ${vLabel[r.voice]||r.voice}</div>
+      ${thumb}
+      <div style="font-size:10px;color:var(--text-muted);margin:8px 0;line-height:1.5;min-height:28px">${escapeHTML(r.assetRationale||'')}</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select onchange="changeDayFormat(${i}, this.value)" style="flex:1;font-size:11px;padding:4px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text)">${opts}</select>
+        <button class="action-btn" style="padding:4px 9px" onclick="regenerateDayAsset(${i})" title="Rebuild this day">↻</button>
+      </div>
+    </div>`;
+  }).join('');
+  const anyImage=spinWeekResults.some(r=>r.assetFormat==='image');
+  const note=anyImage?`<div style="font-size:10px;color:var(--text-muted);margin-top:10px;line-height:1.5">Generated-image days need your worker's <code>/api/image</code> endpoint. Quote / stat / infographic / stock work without it.</div>`:'';
+  wrap.innerHTML=`<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--gold-dim);margin-bottom:10px">WEEK ASSETS · change format or ↻ to rebuild · Save All attaches them</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">${cards}</div>${note}`;
 }
 
 // Simple word-wrap helper — breaks at spaces, respects max chars per line
