@@ -6,7 +6,8 @@
 <title>Eridion | Social Campaign Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Cinzel:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@500;700&family=Inter:ital,wght@0,400;0,500;1,400;1,500&family=Cinzel:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 /* ====================================================================
    Eridion Studio — Editorial rebrand
@@ -8432,10 +8433,10 @@ const VOICE_STYLES = {
     accentBright: '#46C40E',
     text: '#FFFFFF',
     textDim: '#C4C4C4',      // brand gray
-    numFont: "'Avenir Next','Avenir','Montserrat','Segoe UI',Helvetica,Arial,sans-serif",
+    numFont: "'Archivo Expanded','Inter','Segoe UI',Helvetica,Arial,sans-serif",
     numWeight: '700',
-    labelFont: "'Avenir Next','Avenir','Montserrat','Segoe UI',Helvetica,Arial,sans-serif",
-    bodyFont: "'Avenir Next','Avenir','Montserrat','Segoe UI',Helvetica,Arial,sans-serif",
+    labelFont: "'Archivo Expanded','Inter','Segoe UI',Helvetica,Arial,sans-serif",
+    bodyFont: "'Inter','Segoe UI',Helvetica,Arial,sans-serif",
     dividerColor: '#32A200',
     decorPattern: 'gold-line',   // thin rule, drawn in accent (now green)
     vibe: 'clean, modern, architectural; navy and green, structured and precise',
@@ -8557,6 +8558,7 @@ function renderStatCard(voice, number, label, ratio='square'){
     <linearGradient id="bg-${voice}-${ratio}" x1="0%" y1="0%" x2="100%" y2="100%">${gradStops}</linearGradient>
   </defs>
   <rect width="${w}" height="${h}" fill="url(#bg-${voice}-${ratio})"/>
+  ${brandFrame(style,w,h,'stat-'+voice+'-'+ratio)}
   ${decor}
   <text x="${cx}" y="${numY}" text-anchor="middle" dominant-baseline="middle" font-family="${style.numFont}" font-size="${numSize}" font-weight="${style.numWeight}" fill="${style.accent}">${numEscape}</text>
   ${labelSvg}
@@ -8618,6 +8620,7 @@ function renderQuoteCard(voice, quote, attribution='', ratio='square'){
     <linearGradient id="bgq-${voice}-${ratio}" x1="0%" y1="0%" x2="100%" y2="100%">${gradStops}</linearGradient>
   </defs>
   <rect width="${w}" height="${h}" fill="url(#bgq-${voice}-${ratio})"/>
+  ${brandFrame(style,w,h,'quote-'+voice+'-'+ratio)}
   ${decor}
   ${quoteMark}
   ${quoteSvg}
@@ -8650,6 +8653,23 @@ function cardGradStops(voice){
   return m[voice]||m.eridion;
 }
 
+// Shared art-direction layer for every card: a soft vignette for depth, a faint
+// oversized brand circle (echoes the emblem) off the top-right, and editorial
+// corner brackets in the accent color. Pure decoration — sits above the bg,
+// below the text — so it never affects text layout. `id` must be unique per card.
+function brandFrame(style, w, h, id){
+  const a=style.accent, inset=46, leg=42, sw=2.5;
+  const L=(x,y,dx,dy)=>`<path d="M ${x+dx*leg} ${y} L ${x} ${y} L ${x} ${y+dy*leg}" fill="none" stroke="${a}" stroke-width="${sw}" stroke-linecap="square" opacity="0.85"/>`;
+  return `
+  <defs><radialGradient id="vig-${id}" cx="50%" cy="40%" r="78%">
+    <stop offset="52%" stop-color="#000000" stop-opacity="0"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.24"/>
+  </radialGradient></defs>
+  <rect width="${w}" height="${h}" fill="url(#vig-${id})"/>
+  <circle cx="${w*0.92}" cy="${h*0.12}" r="${w*0.46}" fill="none" stroke="${a}" stroke-width="2" opacity="0.06"/>
+  ${L(inset,inset,1,1)}${L(w-inset,inset,-1,1)}${L(inset,h-inset,1,-1)}${L(w-inset,h-inset,-1,-1)}`;
+}
+
 // Infographic card: a title + 2-4 value/label rows, brand-styled per voice.
 function renderInfographicCard(voice, title, points, ratio='square'){
   const style=VOICE_STYLES[voice]||VOICE_STYLES.eridion;
@@ -8679,6 +8699,7 @@ function renderInfographicCard(voice, title, points, ratio='square'){
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
   <defs><linearGradient id="bgi-${voice}-${ratio}" x1="0%" y1="0%" x2="100%" y2="100%">${cardGradStops(voice)}</linearGradient></defs>
   <rect width="${w}" height="${h}" fill="url(#bgi-${voice}-${ratio})"/>
+  ${brandFrame(style,w,h,'info-'+voice+'-'+ratio)}
   ${decor}
   ${titleSvg}
   ${rowsSvg}
@@ -8692,8 +8713,8 @@ async function evaluateArc(entries){
 
 For each day pick ONE format and fill only that format's fields:
 - "quote": a single sharp line from the post works as a pull-quote card. Fields: quote_text (<=180 chars, drawn from the post), attribution (the author/brand name, or "").
-- "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars).
-- "infographic": the day lists 2-4 discrete points/steps/standards. Fields: infographic_title (<=50 chars), infographic_points = array of 2-4 {"value","label"} (value short: a number or 1-2 words; label <=40 chars).
+- "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars). ALSO fill the Eridion brand-card fields: eyebrow (one word, e.g. "GLASS"), hero_stat (the number itself), sub_label (UPPERCASE, <=30 chars, what it measures), and optionally closing_line + closing_emphasis (a two-part italic sign-off; closing_emphasis is the punchy second half).
+- "infographic": the day lists 2-5 discrete points/standards/benefits. Fields: infographic_title (<=50 chars), infographic_points = array of 2-5 {"value","label"}. ALSO fill the Eridion brand-card fields: eyebrow (one word), headline (UPPERCASE, <=30 chars — the claim), kicker (short UPPERCASE lead-in, e.g. "DESIGNED FOR"), hero_stat (the single biggest number/phrase, e.g. "20+ YEARS"), sub_label (UPPERCASE), benefits = array of 2-5 {"label" (1-2 words, UPPERCASE), "icon"} where icon is one of: droplet, noslash, shield, window, diamond, check, ruler, layers (pick the closest meaning — droplet=water/non-porous, noslash=resistant/anti-X, shield=protection, window=glass/panel, diamond=quality/durability, check=verified, ruler=precision/measure, layers=panels), and optionally closing_line + closing_emphasis.
 - "stock": a real-world photograph fits better than anything generated. Fields: stock_query (2-4 concrete words, searchable on Unsplash).
 - "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid, specific, photographic or illustrative; describe a scene, NOT text on screen).
 
@@ -8703,7 +8724,7 @@ THE WEEK:
 ${days}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":""}]}`;
+{"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":""}]}`;
   const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:2000,messages:[{role:'user',content:prompt}]})});
   const data=await res.json();
   if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
@@ -8762,10 +8783,93 @@ async function generateImageViaWorker(prompt, ratio){
   return url;
 }
 
+// ── Eridion brand card template (ported from the brand "infographic builder") ──
+// Fill-in template that renders an HTML card and rasterizes it via html2canvas.
+// Covers BOTH the stat card (benefits blank) and the hero infographic. Fonts:
+// Archivo Expanded (headings) + Inter (body). One green per layout: brand green
+// on navy, deep green on light. The Eridion default for stat/infographic in auto-build.
+const ERIDION_ICONS={
+  droplet:'<path d="M12 4 L6 13 a6.5 6.5 0 1 0 12 0 Z"/><line x1="8" y1="15" x2="13" y2="15"/>',
+  noslash:'<circle cx="12" cy="12" r="8.5"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  shield:'<path d="M12 3 L19 6 V12 C19 17 12 21 12 21 C12 21 5 17 5 12 V6 Z"/>',
+  window:'<rect x="4" y="4" width="16" height="16"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>',
+  diamond:'<path d="M12 3 L18 12 L12 21 L6 12 Z"/>',
+  check:'<path d="M4 12 L10 18 L20 6"/>',
+  ruler:'<rect x="3" y="8" width="18" height="8"/><line x1="8" y1="8" x2="8" y2="12"/><line x1="13" y1="8" x2="13" y2="12"/><line x1="18" y1="8" x2="18" y2="12"/>',
+  layers:'<path d="M4 6 H16 V18 H4 Z"/><path d="M8 10 H20 V22"/>'
+};
+const ERIDION_CARD_THEMES={
+  navy:{bg:'#153862',head:'#ffffff',sub:'#C4C4C4',green:'#32A200',bracket:'#ffffff',div:'rgba(255,255,255,.18)',stroke:'#ffffff',close:'#ffffff',bdr:'#153862'},
+  light:{bg:'#F7F8FA',head:'#153862',sub:'#5C6B7A',green:'#1E6B00',bracket:'#153862',div:'#E6E8EC',stroke:'#153862',close:'#000000',bdr:'#E6E8EC'}
+};
+function eridionCardHTML(f, theme){
+  const t=ERIDION_CARD_THEMES[theme]||ERIDION_CARD_THEMES.navy;
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const AX="font-family:'Archivo Expanded',sans-serif;", INT="font-family:'Inter',sans-serif;";
+  let cells='', first=true;
+  (f.benefits||[]).slice(0,5).forEach(b=>{
+    const lab=b&&b.label?String(b.label).trim():''; if(!lab) return;
+    const ic=ERIDION_ICONS[b.icon]?b.icon:'diamond';
+    if(!first) cells+='<div style="width:0.5px;background:'+t.div+'"></div>';
+    first=false;
+    cells+='<div style="flex:1;text-align:center;padding:0 4px">'+
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="'+t.stroke+'" stroke-width="1.8" stroke-linejoin="miter" stroke-linecap="square">'+ERIDION_ICONS[ic]+'</svg>'+
+      '<p style="'+AX+'font-weight:500;font-size:11px;letter-spacing:.04em;color:'+t.sub+';line-height:1.3;margin:8px 0 0">'+esc(lab)+'</p></div>';
+  });
+  const eyebrow=f.eyebrow?'<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:18px"><span style="width:26px;height:2px;background:'+t.green+'"></span><span style="'+AX+'font-weight:500;font-size:15px;letter-spacing:.22em;color:'+t.green+'">'+esc(f.eyebrow)+'</span><span style="width:26px;height:2px;background:'+t.green+'"></span></div>':'';
+  const headline=f.headline?'<div style="'+AX+'font-weight:700;font-size:21px;letter-spacing:.01em;color:'+t.head+';text-align:center;line-height:1.12">'+esc(f.headline)+'</div><div style="width:54px;height:2px;background:'+t.green+';margin:16px auto 18px"></div>':'';
+  const kicker=f.kicker?'<div style="'+AX+'font-weight:500;font-size:11px;letter-spacing:.2em;color:'+t.sub+';text-align:center;margin-bottom:10px">'+esc(f.kicker)+'</div>':'';
+  const hero=f.hero?'<div style="display:flex;align-items:stretch;justify-content:center;gap:12px;margin-bottom:10px"><span style="width:14px;border:2px solid '+t.bracket+';border-right:none"></span><span style="'+AX+'font-weight:700;font-size:34px;color:'+t.green+';line-height:1">'+esc(f.hero)+'</span><span style="width:14px;border:2px solid '+t.bracket+';border-left:none"></span></div>':'';
+  const sub=f.sub?'<div style="'+AX+'font-weight:500;font-size:11px;letter-spacing:.18em;color:'+t.head+';text-align:center;margin-bottom:22px">'+esc(f.sub)+'</div>':'';
+  const benefitsRow=cells?'<div style="display:flex;align-items:flex-start;justify-content:center;margin-bottom:22px">'+cells+'</div>':'';
+  const closing=(f.closeLine||f.closeEmph)?'<div style="width:100%;height:0.5px;background:'+t.div+';margin-bottom:16px"></div><p style="'+INT+'font-style:italic;font-size:13px;line-height:1.5;text-align:center;color:'+t.close+';margin:0">'+esc(f.closeLine||'')+(f.closeEmph?'<br><span style="color:'+t.green+';font-weight:500">'+esc(f.closeEmph)+'</span>':'')+'</p>':'';
+  return '<div id="eridionTheCard" style="width:420px;background:'+t.bg+';padding:28px 26px;border:0.5px solid '+t.bdr+'">'+eyebrow+headline+kicker+hero+sub+benefitsRow+closing+'</div>';
+}
+// Render the HTML card offscreen, rasterize with html2canvas, host on ImgBB -> URL.
+async function eridionCardToImgBBUrl(f, theme){
+  if(typeof html2canvas==='undefined') throw new Error('html2canvas not loaded yet — refresh and retry');
+  const host=document.createElement('div');
+  host.style.cssText='position:absolute;left:-99999px;top:0;background:#fff';
+  host.innerHTML=eridionCardHTML(f, theme||'navy');
+  document.body.appendChild(host);
+  const card=host.firstChild;
+  try{
+    if(document.fonts&&document.fonts.ready){ try{ await document.fonts.ready; }catch(_){} }
+    const w=card.offsetWidth||420;
+    const canvas=await html2canvas(card,{scale:1080/w, backgroundColor:null, useCORS:true});
+    const blob=await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('toBlob failed')),'image/png'));
+    const file=new File([blob],'eridion-card.png',{type:'image/png'});
+    const {url}=await uploadImageToImgBB(file);
+    return url;
+  } finally { host.remove(); }
+}
+// Map an arc-evaluator spec onto the template's fields, with graceful fallbacks.
+function eridionCardFields(format, spec, fallbackText){
+  spec=spec||{};
+  const benefits=(spec.benefits&&spec.benefits.length)
+    ? spec.benefits
+    : (spec.infographic_points||[]).map(p=>({label:p.value||p.label||'', icon:'diamond'}));
+  return {
+    eyebrow: spec.eyebrow || 'GLASS',
+    headline: spec.headline || (format==='infographic'?spec.infographic_title:'') || '',
+    kicker: spec.kicker || '',
+    hero: spec.hero_stat || spec.stat_number || '',
+    sub: spec.sub_label || spec.stat_label || '',
+    benefits: benefits,
+    closeLine: spec.closing_line || '',
+    closeEmph: spec.closing_emphasis || '',
+  };
+}
+
 // Build one asset (any source) -> {url, credit}. Shared by the spin-week panel
 // and the Content Library entry point.
 async function produceAsset(format, spec, voice, fallbackText){
   spec=spec||{}; const ratio='square';
+  // Eridion stat/infographic use the brand fill-in template (Archivo/Inter, cut-corner, icons).
+  if(voice==='eridion' && (format==='stat'||format==='infographic')){
+    const theme=(spec.theme==='light')?'light':'navy';
+    return {url:await eridionCardToImgBBUrl(eridionCardFields(format, spec, fallbackText), theme), credit:''};
+  }
   if(format==='quote') return {url:await svgToImgBBUrl(renderQuoteCard(voice, spec.quote_text||(fallbackText||'').slice(0,160), spec.attribution||'', ratio),1200,1200), credit:''};
   if(format==='stat') return {url:await svgToImgBBUrl(renderStatCard(voice, spec.stat_number||'', spec.stat_label||'', ratio),1200,1200), credit:''};
   if(format==='infographic') return {url:await svgToImgBBUrl(renderInfographicCard(voice, spec.infographic_title||'', spec.infographic_points||[], ratio),1200,1200), credit:''};
@@ -8811,6 +8915,8 @@ async function autoBuildWeekAssets(){
         stat_number:d.stat_number, stat_label:d.stat_label,
         infographic_title:d.infographic_title, infographic_points:Array.isArray(d.infographic_points)?d.infographic_points:[],
         image_prompt:d.image_prompt, stock_query:d.stock_query,
+        eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
+        benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
       };
       spinWeekResults[i].assetStatus='pending';
     });
@@ -8858,6 +8964,8 @@ async function buildWeekImagesFromLibrary(id){
         stat_number:d.stat_number, stat_label:d.stat_label,
         infographic_title:d.infographic_title, infographic_points:Array.isArray(d.infographic_points)?d.infographic_points:[],
         image_prompt:d.image_prompt, stock_query:d.stock_query,
+        eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
+        benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
       };
       setStatus(`Building image ${i+1} of ${group.length}…`,true);
       try{
