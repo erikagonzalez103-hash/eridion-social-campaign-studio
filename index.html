@@ -8769,7 +8769,7 @@ For each day pick ONE format and fill only that format's fields:
 - "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars). ALSO fill the Eridion brand-card fields: eyebrow (one word, e.g. "GLASS"), hero_stat (the number itself), sub_label (UPPERCASE, <=30 chars, what it measures), and optionally closing_line + closing_emphasis (a two-part italic sign-off; closing_emphasis is the punchy second half).
 - "infographic": the day lists 2-5 discrete points/standards/benefits. Fields: infographic_title (<=50 chars), infographic_points = array of 2-5 {"value","label"}. ALSO fill the Eridion brand-card fields: eyebrow (one word), headline (UPPERCASE, <=30 chars — the claim), kicker (short UPPERCASE lead-in, e.g. "DESIGNED FOR"), hero_stat (the single biggest number/phrase, e.g. "20+ YEARS"), sub_label (UPPERCASE), benefits = array of 2-5 {"label" (1-2 words, UPPERCASE), "icon"} where icon is one of: droplet, noslash, shield, window, diamond, check, ruler, layers (pick the closest meaning — droplet=water/non-porous, noslash=resistant/anti-X, shield=protection, window=glass/panel, diamond=quality/durability, check=verified, ruler=precision/measure, layers=panels), and optionally closing_line + closing_emphasis.
 - "stock": a real-world photograph fits better than anything generated. Fields: stock_query (2-4 concrete words, searchable on Unsplash).
-- "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid, specific, photographic or illustrative; describe a scene, NOT text on screen).
+- "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid and SPECIFIC — name the concrete subject, material, object, or place the post is actually about, e.g. "antiqued mirror panels installed on a coffered ceiling," not just "a ceiling"; photographic or illustrative; NO text on screen).
 
 Choose the format that best fits each day's actual content. Prefer quote/stat/infographic when the post hands you a line, a number, or a list — they're cleaner and on-brand. Use stock for real scenes, image only when a made image truly beats the alternatives.
 
@@ -8959,8 +8959,12 @@ async function produceAsset(format, spec, voice, fallbackText){
   if(format==='stock'){ const s=await unsplashFirst(spec.stock_query||(fallbackText||'').slice(0,40)); return {url:s.url, credit:s.credit}; }
   if(format==='image'){
     const brief=BRAND_IMAGE_BRIEFS[voice]||'';
-    const scene=spec.image_prompt||(fallbackText||'').slice(0,200);
-    const p=(brief?brief+'\n\n':'')+scene+' Photographic or illustrative scene — no text, words, or letters in the image.';
+    const ground=(fallbackText||'').replace(/\s+/g,' ').slice(0,400);
+    const scene=spec.image_prompt||'';
+    const p=(brief?brief+'\n\n':'')+
+      'Depict the SPECIFIC subject this post is about — show the actual thing it describes (the exact material, object, or place), not a generic stand-in:\n"'+ground+'"'+
+      (scene?('\n\nArt direction: '+scene):'')+
+      '\n\nPhotographic or illustrative scene — no text, words, or letters in the image.';
     return {url:await generateImageViaWorker(p, ratio), credit:'AI-generated'};
   }
   throw new Error('Unknown format: '+format);
