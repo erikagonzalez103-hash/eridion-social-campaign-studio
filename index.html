@@ -7140,6 +7140,7 @@ function renderLibrary(){
               <button class="lib-menu-item" onclick="openSpinWeekModal('${it.id}');closeLibMenus()">✦ Spin Week</button>
               <button class="lib-menu-item" onclick="openImageIdeasModal('${it.id}');closeLibMenus()">🎨 Image Ideas</button>
               <button class="lib-menu-item" onclick="buildWeekImagesFromLibrary('${it.id}');closeLibMenus()">🪄 Auto-build week's images</button>
+              ${(it.blog_text&&it.blog_text.length>200)?`<button class="lib-menu-item" onclick="generateBlogHeroForItem('${it.id}');closeLibMenus()">🖼 Generate hero image</button>`:''}
             </div>
           </div>`:'<div class="lib-menu-spacer"></div>'}
           <div class="lib-menu">
@@ -8650,6 +8651,32 @@ const BRAND_IMAGE_BRIEFS = {
   erika: "BRAND: Erika Harrison personal brand — warm, editorial, confident, human. Soft natural light, real and grounded, never corporate stock. Restrained, modern, magazine-soft.",
   practice: "BRAND: The Practice (under Quinta & Co.) — same world as Quinta: cream #FAFAF6, sage #6E8B7A, moss #3D544A; serif (Fraunces/Cinzel); thin hand-drawn single-color line art on cream; quiet, peaceful, editorial. No tech stock, no neon, no startup gradients."
 };
+
+// Generate a single on-brand HERO image for a blog post (no text in the image),
+// brand brief injected. Landscape, gpt-image-1 -> ImgBB.
+async function generateBlogHeroImage(voice, title, blog){
+  const brief=BRAND_IMAGE_BRIEFS[voice]||'';
+  const excerpt=String(blog||'').replace(/\s+/g,' ').slice(0,1200);
+  const p=(brief?brief+'\n\n':'')+
+    'Create ONE hero image for a blog post'+(title?(' titled "'+title+'"'):'')+'. Capture the post’s theme as a calm, on-brand photographic or hand-drawn illustrative scene. NO text, words, numbers, or letters anywhere in the image.\n\nBlog excerpt for context: '+excerpt;
+  return await generateImageViaWorker(p, 'landscape');
+}
+async function generateBlogHeroForItem(id){
+  const it=library.find(x=>x.id===id);
+  if(!it){ showToast('Post not found','error'); return; }
+  const blog=(it.blog_text||'').trim() || (it.linkedin_text||'').trim();
+  if(!blog){ showToast('No blog/post text to base a hero on','error'); return; }
+  if(!getImgBBKey()){ showToast('Add your ImgBB key in API Keys','error'); if(typeof toggleKeys==='function') toggleKeys(); return; }
+  const voice=it.voice||it.scheduled_account||'eridion';
+  setStatus('Generating hero image…',true);
+  showToast('Generating hero image — ~15s','success');
+  try{
+    const url=await generateBlogHeroImage(voice, it.title||'', blog);
+    attachImageToLibraryItem(id, url, 'auto-assets', 'AI-generated hero');
+    showToast('Hero image generated & attached','success');
+  }catch(e){ showToast('Hero failed: '+e.message,'error'); }
+  finally{ setStatus('Ready',false); }
+}
 
 // Build a gpt-image-1 prompt for a bespoke, on-brand INFOGRAPHIC (used for generative
 // brands like Quinta). Folds in the day's data so the rendered text/stats are right.
