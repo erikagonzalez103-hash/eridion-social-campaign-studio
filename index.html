@@ -6,7 +6,7 @@
 <title>Eridion | Social Campaign Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Cinzel:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 /* ====================================================================
    Eridion Studio — Editorial rebrand
@@ -8425,20 +8425,20 @@ async function _legacyPushWeekToBufferViaZapier(){
 // not just a color swap. Fonts, composition, decorative elements all differ.
 const VOICE_STYLES = {
   eridion: {
-    // Polished, architectural. Deep navy with gold serif numerals.
-    bg: '#080A0E',
-    bgGradient: 'linear-gradient(135deg,#0F1218 0%,#080A0E 100%)',
-    accent: '#C8A96E',       // gold
-    accentBright: '#E8C98E',
-    text: '#E8E4DC',
-    textDim: '#8A8680',
-    numFont: "'Cormorant Garamond', serif",
-    numWeight: '300',
-    labelFont: "'DM Mono', monospace",
-    bodyFont: "'Outfit', sans-serif",
-    dividerColor: '#C8A96E',
-    decorPattern: 'gold-line',   // thin gold divider
-    vibe: 'polished, architectural, luxury-confident',
+    // On brand: deep navy ground, green accent, clean geometric sans (Avenir → Montserrat).
+    bg: '#0E2A47',
+    bgGradient: 'linear-gradient(135deg,#1B466F 0%,#0E2A47 100%)',
+    accent: '#32A200',       // brand green
+    accentBright: '#46C40E',
+    text: '#FFFFFF',
+    textDim: '#C4C4C4',      // brand gray
+    numFont: "'Avenir Next','Avenir','Montserrat','Segoe UI',Helvetica,Arial,sans-serif",
+    numWeight: '700',
+    labelFont: "'Avenir Next','Avenir','Montserrat','Segoe UI',Helvetica,Arial,sans-serif",
+    bodyFont: "'Avenir Next','Avenir','Montserrat','Segoe UI',Helvetica,Arial,sans-serif",
+    dividerColor: '#32A200',
+    decorPattern: 'gold-line',   // thin rule, drawn in accent (now green)
+    vibe: 'clean, modern, architectural; navy and green, structured and precise',
   },
   erika: {
     // Warm editorial. Soft cream bg with rose-gold accent. More air.
@@ -8501,11 +8501,7 @@ function renderStatCard(voice, number, label, ratio='square'){
   const labelEscape=String(label||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   // Gradient defs
-  const gradStops = voice==='erika'
-    ? `<stop offset="0%" stop-color="#F5F0E8"/><stop offset="100%" stop-color="#EDE5D8"/>`
-    : voice==='quinta'
-      ? `<stop offset="0%" stop-color="#242B37"/><stop offset="100%" stop-color="#1D2430"/>`
-      : `<stop offset="0%" stop-color="#0F1218"/><stop offset="100%" stop-color="#080A0E"/>`;
+  const gradStops = cardGradStops(voice);
 
   // Number sizing — auto-shrink long numbers
   const numLen=numEscape.length;
@@ -8574,11 +8570,7 @@ function renderQuoteCard(voice, quote, attribution='', ratio='square'){
   const quoteEscape=String(quote||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const attrEscape=String(attribution||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  const gradStops = voice==='erika'
-    ? `<stop offset="0%" stop-color="#F5F0E8"/><stop offset="100%" stop-color="#EDE5D8"/>`
-    : voice==='quinta'
-      ? `<stop offset="0%" stop-color="#242B37"/><stop offset="100%" stop-color="#1D2430"/>`
-      : `<stop offset="0%" stop-color="#0F1218"/><stop offset="100%" stop-color="#080A0E"/>`;
+  const gradStops = cardGradStops(voice);
 
   // Quote text sizing — scale down for longer quotes
   const qLen=quoteEscape.length;
@@ -8650,7 +8642,7 @@ const ASSET_FMT_LABEL = {quote:'Pull quote',stat:'Stat card',infographic:'Infogr
 // Gradient stops for all four voices (the existing stat/quote renderers omit practice).
 function cardGradStops(voice){
   const m={
-    eridion:`<stop offset="0%" stop-color="#0F1218"/><stop offset="100%" stop-color="#080A0E"/>`,
+    eridion:`<stop offset="0%" stop-color="#1B466F"/><stop offset="100%" stop-color="#0E2A47"/>`,
     erika:`<stop offset="0%" stop-color="#F5F0E8"/><stop offset="100%" stop-color="#EDE5D8"/>`,
     quinta:`<stop offset="0%" stop-color="#242B37"/><stop offset="100%" stop-color="#1D2430"/>`,
     practice:`<stop offset="0%" stop-color="#FAFAF6"/><stop offset="100%" stop-color="#F5F2EA"/>`,
