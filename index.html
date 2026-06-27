@@ -5344,7 +5344,7 @@ function renderImagePicker(containerId, itemId){
           return `<div class="ip-cell">
             <span class="ip-cell-badge">${i+1}</span>
             <button class="ip-cell-x" title="Remove this image" onclick="removeLibraryItemImageAt('${itemId}',${i})">✕</button>
-            <img class="img-picker-thumb" src="${safe}" alt="Image ${i+1}" onerror="this.outerHTML='<div class=\\'img-picker-thumb empty\\'>Broken</div>'">
+            <img class="img-picker-thumb" src="${safe}" alt="Image ${i+1}" title="Click to enlarge" style="cursor:zoom-in" onclick="openImageLightbox('${safe}')" onerror="this.outerHTML='<div class=\\'img-picker-thumb empty\\'>Broken</div>'">
             <div class="ip-cell-move">
               <button class="ip-move-btn" title="Move earlier" ${i===0?'disabled':''} onclick="moveLibraryItemImage('${itemId}',${i},-1)">◀</button>
               <button class="ip-move-btn" title="Move later" ${i===n-1?'disabled':''} onclick="moveLibraryItemImage('${itemId}',${i},1)">▶</button>
@@ -5376,6 +5376,31 @@ function renderImagePicker(containerId, itemId){
     </div>
   `;
 }
+
+// ── Image lightbox ──
+// Full-size, in-app view of any attached/generated image. Click a thumbnail
+// to open; click the backdrop, press Esc, or hit Close to dismiss. The overlay
+// is created once and reused (hidden, not destroyed).
+function openImageLightbox(url){
+  if(!url) return;
+  let ov=document.getElementById('img-lightbox');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.id='img-lightbox';
+    ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:24px;cursor:zoom-out';
+    ov.addEventListener('click',(e)=>{ if(e.target===ov) closeImageLightbox(); });
+    document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeImageLightbox(); });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML=`
+    <img src="${escapeHTML(url)}" style="max-width:92vw;max-height:80vh;object-fit:contain;border-radius:6px;box-shadow:0 10px 50px rgba(0,0,0,0.55);background:#fff">
+    <div style="display:flex;gap:16px;align-items:center" onclick="event.stopPropagation()">
+      <a href="${escapeHTML(url)}" target="_blank" rel="noopener" style="color:#fff;font-size:13px;text-decoration:underline">Open original ↗</a>
+      <button onclick="closeImageLightbox()" style="background:#fff;border:none;border-radius:4px;padding:7px 16px;font-size:13px;cursor:pointer">Close ✕</button>
+    </div>`;
+  ov.style.display='flex';
+}
+function closeImageLightbox(){ const ov=document.getElementById('img-lightbox'); if(ov) ov.style.display='none'; }
 
 // Reads the post copy from the library item, asks Claude to produce a
 // polished AI image prompt (DALL·E / Midjourney / Firefly compatible),
@@ -8866,7 +8891,7 @@ function renderWeekAssetsGrid(){
   const cards=spinWeekResults.map((r,i)=>{
     const st=r.assetStatus||'pending';
     let thumb;
-    if(st==='ready'&&r.imageUrl) thumb=`<img src="${r.imageUrl}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:1px solid var(--border)"/>`;
+    if(st==='ready'&&r.imageUrl) thumb=`<img src="${r.imageUrl}" title="Click to enlarge" onclick="openImageLightbox('${r.imageUrl}')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:zoom-in"/>`;
     else if(st==='building') thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-size:11px;color:var(--text-muted)">Building…</div>`;
     else if(st==='error') thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;background:var(--surface2);border:1px solid var(--error);border-radius:4px;font-size:10px;color:var(--error)">⚠ ${escapeHTML(r.assetError||'Failed')}</div>`;
     else thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px dashed var(--border);border-radius:4px;font-size:18px;color:var(--text-muted)">—</div>`;
