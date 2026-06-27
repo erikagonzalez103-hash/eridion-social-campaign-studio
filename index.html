@@ -8781,14 +8781,39 @@ Return ONLY valid JSON, no preamble, no markdown fences:
   const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:8000,messages:[{role:'user',content:prompt}]})});
   const data=await res.json();
   if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
-  let txt=(data.content?.[0]?.text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
-  let s=txt.indexOf('{'), e=-1, depth=0;
-  for(let i=s;i<txt.length;i++){ if(txt[i]==='{')depth++; else if(txt[i]==='}'){depth--; if(depth===0){e=i;break;}} }
-  if(s<0||e<0) throw new Error('No JSON in arc response');
-  const parsed=JSON.parse(txt.substring(s,e+1));
+  const txt=(data.content?.[0]?.text||'');
+  const jsonStr=extractJsonObject(txt);
+  if(!jsonStr){
+    console.error('Arc raw response (no JSON found):\n', txt);
+    throw new Error('No JSON in arc response — got: '+txt.slice(0,140).replace(/\s+/g,' '));
+  }
+  const parsed=JSON.parse(jsonStr);
   const arr=Array.isArray(parsed.days)?parsed.days:[];
   if(!arr.length) throw new Error('Arc evaluation returned no days');
   return arr;
+}
+
+// Extract the first balanced top-level {...} object, IGNORING braces that appear
+// inside string values (the naive depth-counter broke when the model wrote a "{"
+// inside a field like a closing line or image prompt). Strips ``` fences.
+function extractJsonObject(text){
+  let t=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
+  const s=t.indexOf('{');
+  if(s<0) return null;
+  let depth=0, inStr=false, esc=false;
+  for(let i=s;i<t.length;i++){
+    const c=t[i];
+    if(inStr){
+      if(esc) esc=false;
+      else if(c==='\\') esc=true;
+      else if(c==='"') inStr=false;
+    } else {
+      if(c==='"') inStr=true;
+      else if(c==='{') depth++;
+      else if(c==='}'){ depth--; if(depth===0) return t.slice(s,i+1); }
+    }
+  }
+  return null;
 }
 
 // base64 string -> Blob (for OpenAI image output)
