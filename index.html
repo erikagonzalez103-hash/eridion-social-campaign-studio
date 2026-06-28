@@ -8737,7 +8737,7 @@ const QUALITY_BAR = "You are a senior graphic designer with 10+ years of experie
 // Brand "style briefs" injected into gpt-image-1 prompts so generated images/infographics
 // come out on-brand automatically — the studio equivalent of "my ChatGPT has my guidelines."
 const BRAND_IMAGE_BRIEFS = {
-  eridion: "BRAND: Eridion Glass — architectural, precise, master-glazier-to-builder. Palette: navy #153862 and brand green #32A200 (green as accent only) on light/off-white grounds; gray #C4C4C4 for secondary. Type feel: squared expanded sans headlines (Archivo Expanded) + clean sans (Inter). Icons: 2px lines, square joins, never rounded. Imagery: real custom-glass installs in natural daylight — reflections, transparency, strong architectural lines and right angles, true-to-life color. Never moody/HDR, never generic stock. One green per layout. Calm, confident, uncluttered.",
+  eridion: "BRAND: Eridion Glass — architectural, precise, master-glazier-to-builder. Palette: navy #153862 and brand green #32A200 (green as accent only) on light/off-white grounds; gray #C4C4C4 for secondary. Type feel: squared expanded sans headlines (Archivo Expanded) + clean sans (Inter). Icons: 2px lines, square joins, never rounded. IMAGERY MUST READ AS LUXURY HIGH-END RESIDENTIAL ($1M+ custom homes): opulent, warm, layered, designer-furnished rooms — natural stone, warm wood, brass/bronze fixtures, rich textiles, art, plants — with the custom glass as the hero (glass wine rooms, curved-glass staircases, frameless spa showers, glass railings, tinted/antiqued mirror walls). Warm natural daylight, editorial real-estate quality, inviting and lived-in. NEVER commercial/office buildings, empty cold concrete rooms, institutional facades, sterile minimalism, or builder-grade/stock interiors. True-to-life color, never moody/HDR. One green per layout.",
   quinta: "BRAND: Quinta & Co. — editorial, calm, hand-built; 'a small room, not a stadium.' Palette: warm cream #FAFAF6 ground, sage #6E8B7A, sage-deep #4F6B5C, moss #3D544A for emphasis — NO other accents (no terracotta, purple, coral, neon). Type feel: classical serif headlines (Fraunces) + letter-spaced UPPERCASE serif labels (Cinzel). Visual language: thin, single-color, HAND-DRAWN line illustration on cream (sketched in one breath, not technical), or calm natural-light photography of real desks/plants/paper. Include a small hand-drawn sprout mark and 'QUINTA & CO.' wordmark when it fits. AVOID: tech stock (laptops/glowing circuits), gradient-on-white startup look, over-saturation, AI portraits of 'women in business.' Generous white space, refined, quiet.",
   erika: "BRAND: Erika Harrison personal brand — warm, editorial, confident, human. Soft natural light, real and grounded, never corporate stock. Restrained, modern, magazine-soft.",
   practice: "BRAND: The Practice (under Quinta & Co.) — same world as Quinta: cream #FAFAF6, sage #6E8B7A, moss #3D544A; serif (Fraunces/Cinzel); thin hand-drawn single-color line art on cream; quiet, peaceful, editorial. No tech stock, no neon, no startup gradients."
@@ -9070,6 +9070,16 @@ async function produceAsset(format, spec, voice, fallbackText){
     const urls=[];
     for(let i=0;i<slides.length;i++){ urls.push(await generateImageViaWorker(brandSlidePrompt(voice, slides[i], i+1, slides.length), ratio)); }
     return {url:urls[0], urls, credit:'AI-generated'};
+  }
+  // Eridion text cards -> code template (EXACT text, longevity-card quality). Generation
+  // garbles dense text, so text-bearing Eridion cards are rendered, not generated.
+  if(voice==='eridion' && (format==='stat'||format==='infographic')){
+    const theme=(spec.theme==='light')?'light':'navy';
+    return {url:await eridionCardToImgBBUrl(eridionCardFields(format, spec, fallbackText), theme), credit:''};
+  }
+  if(voice==='eridion' && format==='quote'){
+    const theme=(spec.theme==='light')?'light':'navy';
+    return {url:await eridionCardToImgBBUrl({eyebrow:'', headline:(spec.quote_text||(fallbackText||'').slice(0,160)), kicker:'', hero:'', sub:'', benefits:[], closeLine:(spec.attribution?('— '+String(spec.attribution)):''), closeEmph:''}, theme), credit:''};
   }
   if(format==='quote') return {url:await generateImageViaWorker(brandQuotePrompt(voice, spec, fallbackText), ratio), credit:'AI-generated'};
   if(format==='stat'||format==='infographic') return {url:await generateImageViaWorker(brandInfographicPrompt(voice, spec, fallbackText), ratio), credit:'AI-generated'};
