@@ -8640,8 +8640,60 @@ function renderQuoteCard(voice, quote, attribution='', ratio='square'){
 
 // /api/image lives on the same worker as /api/messages.
 const IMAGE_ENDPOINT = WORKER.replace(/\/api\/messages$/, '/api/image');
-const ASSET_FORMATS = ['quote','stat','infographic','stock','image'];
-const ASSET_FMT_LABEL = {quote:'Pull quote',stat:'Stat card',infographic:'Infographic',stock:'Stock photo',image:'Generated image'};
+const ASSET_FORMATS = ['quote','stat','infographic','chart','stock','image'];
+const ASSET_FMT_LABEL = {quote:'Pull quote',stat:'Stat card',infographic:'Infographic',chart:'Data chart',stock:'Stock photo',image:'Generated image'};
+
+// Per-voice palettes for the code-rendered (exact) data chart. Light grounds, one
+// highlight color, brand fonts. Charts are drawn in SVG so bar heights are TRUE to
+// the numbers and text is never misspelled — gpt-image-1 can't do either.
+const CHART_PALETTES = {
+  eridion:{bg:'#F7F8FA',text:'#153862',sub:'#5C6B7A',highlight:'#32A200',base:'#C4C4C4',axis:'#153862',font:"'Archivo Expanded','Inter',sans-serif",labelFont:"'Inter',sans-serif"},
+  quinta:{bg:'#FAFAF6',text:'#20231F',sub:'#5A5E55',highlight:'#4F6B5C',base:'#C9D2C9',axis:'#20231F',font:"'Fraunces',serif",labelFont:"'Inter',sans-serif"},
+  practice:{bg:'#FAFAF6',text:'#20231F',sub:'#5A5E55',highlight:'#4F6B5C',base:'#C9D2C9',axis:'#20231F',font:"'Fraunces',serif",labelFont:"'Inter',sans-serif"},
+  erika:{bg:'#F5F0E8',text:'#2A2520',sub:'#6B6560',highlight:'#9E5E7E',base:'#C4C4C4',axis:'#2A2520',font:"'Fraunces',serif",labelFont:"'Inter',sans-serif"}
+};
+// Exact bar chart: heights proportional to the real values, labels/values as SVG text.
+function renderBarChartSVG(voice, data){
+  const p=CHART_PALETTES[voice]||CHART_PALETTES.eridion;
+  const w=1080,h=1080;
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const items=(data.items||[]).slice(0,4).filter(it=>it&&(it.label||it.value));
+  const vals=items.map(it=>{const n=parseFloat(String(it.value||'').replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n;});
+  const maxV=Math.max(...vals,1);
+  const hiIdx=vals.indexOf(Math.max(...vals));
+  const margin=100;
+  const titleLines=wrapText(esc(data.title||''), 24);
+  const titleSize=58, titleLH=titleSize*1.14, titleTop=120;
+  const titleH=titleLines.length*titleLH;
+  const baselineY=h-300;
+  const chartTop=titleTop+titleH+70;
+  const maxBarH=Math.max(120,(baselineY-chartTop)*0.92);
+  const n=items.length||1;
+  const slot=(w-2*margin)/n;
+  const barW=Math.min(slot*0.5,160);
+  let bars='';
+  items.forEach((it,i)=>{
+    const cx=margin+slot*i+slot/2;
+    const bh=(vals[i]/maxV)*maxBarH;
+    const by=baselineY-bh;
+    bars+=`<rect x="${cx-barW/2}" y="${by}" width="${barW}" height="${bh}" fill="${i===hiIdx?p.highlight:p.base}"/>`;
+    bars+=`<text x="${cx}" y="${by-22}" text-anchor="middle" font-family="${p.font}" font-size="56" font-weight="700" fill="${i===hiIdx?p.highlight:p.text}">${esc(it.value||'')}</text>`;
+    wrapText(esc(it.label||'').toUpperCase(),14).forEach((ln,j)=>{
+      bars+=`<text x="${cx}" y="${baselineY+46+j*30}" text-anchor="middle" font-family="${p.labelFont}" font-size="24" font-weight="500" fill="${p.sub}" letter-spacing="0.04em">${ln}</text>`;
+    });
+  });
+  const titleSvg=titleLines.map((ln,i)=>`<text x="${margin}" y="${titleTop+(i+0.8)*titleLH}" font-family="${p.font}" font-size="${titleSize}" font-weight="700" fill="${p.text}">${ln}</text>`).join('');
+  const capLines=wrapText(esc(data.caption||''),42);
+  const capTop=h-150, capSize=30;
+  const capSvg=capLines.map((ln,i)=>`<text x="${w/2}" y="${capTop+i*capSize*1.4}" text-anchor="middle" font-family="${p.labelFont}" font-size="${capSize}" fill="${p.sub}">${ln}</text>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+  <rect width="${w}" height="${h}" fill="${p.bg}"/>
+  ${titleSvg}
+  ${bars}
+  <line x1="${margin}" y1="${baselineY}" x2="${w-margin}" y2="${baselineY}" stroke="${p.axis}" stroke-width="2"/>
+  ${capSvg}
+</svg>`;
+}
 
 // Brand "style briefs" injected into gpt-image-1 prompts so generated images/infographics
 // come out on-brand automatically — the studio equivalent of "my ChatGPT has my guidelines."
@@ -8769,6 +8821,7 @@ For each day pick ONE format and fill only that format's fields:
 - "quote": a single sharp line from the post works as a pull-quote card. Fields: quote_text (<=180 chars, drawn from the post), attribution (the author/brand name, or "").
 - "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars). ALSO fill the Eridion brand-card fields: eyebrow (one word, e.g. "GLASS"), hero_stat (the number itself), sub_label (UPPERCASE, <=30 chars, what it measures), and optionally closing_line + closing_emphasis (a two-part italic sign-off; closing_emphasis is the punchy second half).
 - "infographic": the day lists 2-5 discrete points/standards/benefits. Fields: infographic_title (<=50 chars), infographic_points = array of 2-5 {"value","label"}. ALSO fill the Eridion brand-card fields: eyebrow (one word), headline (UPPERCASE, <=30 chars — the claim), kicker (short UPPERCASE lead-in, e.g. "DESIGNED FOR"), hero_stat (the single biggest number/phrase, e.g. "20+ YEARS"), sub_label (UPPERCASE), benefits = array of 2-5 {"label" (1-2 words, UPPERCASE), "icon"} where icon is one of: droplet, noslash, shield, window, diamond, check, ruler, layers (pick the closest meaning — droplet=water/non-porous, noslash=resistant/anti-X, shield=protection, window=glass/panel, diamond=quality/durability, check=verified, ruler=precision/measure, layers=panels), and optionally closing_line + closing_emphasis.
+- "chart": the day compares 2-4 numbers (e.g. 91% vs 83% light transmission, or a before/after). PREFER this over stat/infographic whenever the point is a quantitative comparison — it's rendered as a real, accurate bar chart. Fields: chart_title (<=30 chars), chart_items = array of 2-4 {"label","value"} (value like "91%" or "20 yrs"; label 1-3 words), chart_caption (one short line).
 - "stock": a real-world photograph fits better than anything generated. Fields: stock_query (2-4 concrete words, searchable on Unsplash).
 - "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid and SPECIFIC — name the concrete subject, material, object, or place the post is actually about, e.g. "antiqued mirror panels installed on a coffered ceiling," not just "a ceiling"; photographic or illustrative; NO text on screen).
 
@@ -8778,7 +8831,7 @@ THE WEEK:
 ${days}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":""}]}`;
+{"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":"","chart_title":"","chart_items":[],"chart_caption":""}]}`;
   const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:8000,messages:[{role:'user',content:prompt}]})});
   const data=await res.json();
   if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
@@ -8958,6 +9011,8 @@ function brandQuotePrompt(voice, spec, fallbackText){
 async function produceAsset(format, spec, voice, fallbackText){
   spec=spec||{}; const ratio='square';
   if(format==='stock'){ const s=await unsplashFirst(spec.stock_query||(fallbackText||'').slice(0,40)); return {url:s.url, credit:s.credit}; }
+  // Data charts are rendered in code (exact bars + exact text), NOT generated.
+  if(format==='chart') return {url:await svgToImgBBUrl(renderBarChartSVG(voice,{title:spec.chart_title||spec.infographic_title,items:(spec.chart_items&&spec.chart_items.length?spec.chart_items:spec.infographic_points)||[],caption:spec.chart_caption||spec.closing_line||''}),1080,1080), credit:''};
   if(format==='quote') return {url:await generateImageViaWorker(brandQuotePrompt(voice, spec, fallbackText), ratio), credit:'AI-generated'};
   if(format==='stat'||format==='infographic') return {url:await generateImageViaWorker(brandInfographicPrompt(voice, spec, fallbackText), ratio), credit:'AI-generated'};
   if(format==='image'){
@@ -9008,6 +9063,7 @@ async function autoBuildWeekAssets(){
         image_prompt:d.image_prompt, stock_query:d.stock_query,
         eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
         benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
+        chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
       };
       spinWeekResults[i].assetStatus='pending';
     });
@@ -9057,6 +9113,7 @@ async function buildWeekImagesFromLibrary(id){
         image_prompt:d.image_prompt, stock_query:d.stock_query,
         eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
         benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
+        chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
       };
       setStatus(`Building image ${i+1} of ${group.length}…`,true);
       try{
