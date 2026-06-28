@@ -8691,7 +8691,8 @@ function brandInfographicPrompt(voice, spec, fallbackText){
   if(pts.length) L.push("Points/items (render each exactly): "+pts.join("; "));
   if(spec.closing_line||spec.closing_emphasis) L.push("Closing line (render exactly): "+[spec.closing_line,spec.closing_emphasis].filter(Boolean).join(" "));
   if(!head && !pts.length && fallbackText) L.push("Source post to distill into a simple visual: "+String(fallbackText).slice(0,500));
-  L.push("Choose a visual device that fits the idea — a clean chart, a hand-drawn diagram, or a single-color line illustration. Render ALL text crisply and spelled correctly in the brand serif. Lots of calm cream space. Output the finished infographic only — no surrounding UI, no watermark other than the brand's own sprout/wordmark.");
+  L.push("Use a simple visual device — a hand-drawn diagram or single-color line illustration. Do NOT draw bar charts, graphs, or data plots: you cannot size bars to the real numbers, so present figures as bold typographic callouts instead, never as proportional bars.");
+  L.push("KEEP TEXT MINIMAL — every extra word risks a misspelling. Use only the few words given above, render EACH one EXACTLY and spelled correctly (double-check: LIGHT, frameless, antiqued, transmission), no invented words, no stray dashes before numbers. Lots of calm space. Output the finished card only — no UI, and no rendered logo/wordmark (a small hand-drawn sprout is fine for Quinta).");
   return L.join("\n");
 }
 
@@ -8944,8 +8945,8 @@ function brandQuotePrompt(voice, spec, fallbackText){
   const L=[BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta];
   L.push("\nDesign ONE beautiful pull-quote social card (1:1 square) in this brand.");
   L.push('Quote (render EXACTLY, spelled correctly, as the focal typographic element): "'+(spec.quote_text||(fallbackText||'').slice(0,180))+'"');
-  if(spec.attribution) L.push("Attribution: — "+spec.attribution);
-  L.push("Elegant typographic composition with generous space, brand colors and fonts. No other text; render the quote crisply and correctly.");
+  if(spec.attribution) L.push("Attribution line: set it as small, plain UPPERCASE letters reading exactly: — "+String(spec.attribution).toUpperCase());
+  L.push("Elegant typographic composition with generous space, brand colors and fonts. Do NOT render any logo, emblem, or stylized wordmark (those come out garbled) — the attribution is plain type only. No other text; render every word crisply and spelled correctly.");
   return L.join("\n");
 }
 
@@ -8966,7 +8967,7 @@ async function produceAsset(format, spec, voice, fallbackText){
     const p=(brief?brief+'\n\n':'')+
       'Depict the SPECIFIC subject this post is about — show the actual thing it describes (the exact material, object, or place), not a generic stand-in:\n"'+ground+'"'+
       (scene?('\n\nArt direction: '+scene):'')+
-      '\n\nPhotographic or illustrative scene — no text, words, or letters in the image.';
+      '\n\nShow the subject EN SITU — in its real room or setting, framed wide enough that a viewer can read the space (what room it is). Do NOT crop to an extreme texture close-up. Photographic or illustrative scene — no text, words, or letters in the image.';
     return {url:await generateImageViaWorker(p, ratio), credit:'AI-generated'};
   }
   throw new Error('Unknown format: '+format);
