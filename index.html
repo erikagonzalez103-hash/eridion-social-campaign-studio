@@ -6529,7 +6529,7 @@ function saveOneSpinWeek(i){
   if(r.imageUrl){
     entry.selectedImageUrl=r.imageUrl;
     entry.image_url=r.imageUrl;
-    entry.imageUrls=[r.imageUrl];
+    entry.imageUrls=(r.imageUrls&&r.imageUrls.length)?r.imageUrls:[r.imageUrl];
     entry.imageSource='auto-assets';
     entry.imageCredit=r.imageCredit||'';
     entry.asset_format=r.assetFormat||'';
@@ -8640,8 +8640,8 @@ function renderQuoteCard(voice, quote, attribution='', ratio='square'){
 
 // /api/image lives on the same worker as /api/messages.
 const IMAGE_ENDPOINT = WORKER.replace(/\/api\/messages$/, '/api/image');
-const ASSET_FORMATS = ['quote','stat','infographic','chart','stock','image'];
-const ASSET_FMT_LABEL = {quote:'Pull quote',stat:'Stat card',infographic:'Infographic',chart:'Data chart',stock:'Stock photo',image:'Generated image'};
+const ASSET_FORMATS = ['quote','stat','infographic','chart','carousel','stock','image'];
+const ASSET_FMT_LABEL = {quote:'Pull quote',stat:'Stat card',infographic:'Infographic',chart:'Data chart',carousel:'Carousel',stock:'Stock photo',image:'Generated image'};
 
 // Per-voice palettes for the code-rendered (exact) data chart. Light grounds, one
 // highlight color, brand fonts. Charts are drawn in SVG so bar heights are TRUE to
@@ -8822,6 +8822,7 @@ For each day pick ONE format and fill only that format's fields:
 - "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars). ALSO fill the Eridion brand-card fields: eyebrow (one word, e.g. "GLASS"), hero_stat (the number itself), sub_label (UPPERCASE, <=30 chars, what it measures), and optionally closing_line + closing_emphasis (a two-part italic sign-off; closing_emphasis is the punchy second half).
 - "infographic": the day lists 2-5 discrete points/standards/benefits. Fields: infographic_title (<=50 chars), infographic_points = array of 2-5 {"value","label"}. ALSO fill the Eridion brand-card fields: eyebrow (one word), headline (UPPERCASE, <=30 chars — the claim), kicker (short UPPERCASE lead-in, e.g. "DESIGNED FOR"), hero_stat (the single biggest number/phrase, e.g. "20+ YEARS"), sub_label (UPPERCASE), benefits = array of 2-5 {"label" (1-2 words, UPPERCASE), "icon"} where icon is one of: droplet, noslash, shield, window, diamond, check, ruler, layers (pick the closest meaning — droplet=water/non-porous, noslash=resistant/anti-X, shield=protection, window=glass/panel, diamond=quality/durability, check=verified, ruler=precision/measure, layers=panels), and optionally closing_line + closing_emphasis.
 - "chart": the day compares 2-4 numbers (e.g. 91% vs 83% light transmission, or a before/after). PREFER this over stat/infographic whenever the point is a quantitative comparison — it's rendered as a real, accurate bar chart. Fields: chart_title (<=30 chars), chart_items = array of 2-4 {"label","value"} (value like "91%" or "20 yrs"; label 1-3 words), chart_caption (one short line).
+- "carousel": the day tells a LONGER story worth multiple slides — a step-by-step, a before/after, a 3-part argument. Carousels earn more clicks, so use one when a day genuinely has a sequence (not every day). Fields: carousel_slides = array of 3-6 {"slide_title" (<=8 words), "slide_body" (<=20 words)}, building a clear narrative across slides.
 - "stock": a real-world photograph fits better than anything generated. Fields: stock_query (2-4 concrete words, searchable on Unsplash).
 - "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid and SPECIFIC — name the concrete subject, material, object, or place the post is actually about, e.g. "antiqued mirror panels installed on a coffered ceiling," not just "a ceiling"; photographic or illustrative; NO text on screen).
 
@@ -8831,7 +8832,7 @@ THE WEEK:
 ${days}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":"","chart_title":"","chart_items":[],"chart_caption":""}]}`;
+{"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":"","chart_title":"","chart_items":[],"chart_caption":"","carousel_slides":[]}]}`;
   const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:8000,messages:[{role:'user',content:prompt}]})});
   const data=await res.json();
   if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
@@ -9003,8 +9004,18 @@ function brandQuotePrompt(voice, spec, fallbackText){
   return L.join("\n");
 }
 
-// Build one asset (any source) -> {url, credit}. Shared by the spin-week panel
-// and the Content Library entry point. ALL cards are bespoke, on-brand gpt-image-1
+// One carousel slide prompt — kept visually consistent with its siblings via the brand brief.
+function brandSlidePrompt(voice, slide, idx, total){
+  const L=[BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta];
+  L.push("\nThis is slide "+idx+" of "+total+" in ONE cohesive carousel — keep the SAME layout, palette, and type treatment across every slide so they read as a set.");
+  if(slide.slide_title) L.push("Slide title (render EXACTLY, spelled correctly): "+slide.slide_title);
+  if(slide.slide_body) L.push("Supporting line (render EXACTLY): "+slide.slide_body);
+  L.push("Square 1:1. Minimal words, exact spelling, no bar charts. Calm, on-brand, lots of space. No logo/wordmark.");
+  return L.join("\n");
+}
+
+// Build one asset (any source) -> {url, credit} (or {urls} for a carousel). Shared by
+// the spin-week panel and the Content Library. ALL cards are bespoke, on-brand gpt-image-1
 // generations (brand brief injected) — the studio equivalent of Erika's brand-loaded
 // ChatGPT, for every voice. (The SVG renderers + Eridion HTML template remain defined
 // but are no longer the auto-build default.)
@@ -9013,6 +9024,14 @@ async function produceAsset(format, spec, voice, fallbackText){
   if(format==='stock'){ const s=await unsplashFirst(spec.stock_query||(fallbackText||'').slice(0,40)); return {url:s.url, credit:s.credit}; }
   // Data charts are rendered in code (exact bars + exact text), NOT generated.
   if(format==='chart') return {url:await svgToImgBBUrl(renderBarChartSVG(voice,{title:spec.chart_title||spec.infographic_title,items:(spec.chart_items&&spec.chart_items.length?spec.chart_items:spec.infographic_points)||[],caption:spec.chart_caption||spec.closing_line||''}),1080,1080), credit:''};
+  // Carousel: generate a cohesive set of slides -> multi-image post.
+  if(format==='carousel'){
+    const slides=(spec.carousel_slides||[]).slice(0,8).filter(s=>s&&(s.slide_title||s.slide_body));
+    if(!slides.length) throw new Error('No carousel slides');
+    const urls=[];
+    for(let i=0;i<slides.length;i++){ urls.push(await generateImageViaWorker(brandSlidePrompt(voice, slides[i], i+1, slides.length), ratio)); }
+    return {url:urls[0], urls, credit:'AI-generated'};
+  }
   if(format==='quote') return {url:await generateImageViaWorker(brandQuotePrompt(voice, spec, fallbackText), ratio), credit:'AI-generated'};
   if(format==='stat'||format==='infographic') return {url:await generateImageViaWorker(brandInfographicPrompt(voice, spec, fallbackText), ratio), credit:'AI-generated'};
   if(format==='image'){
@@ -9033,11 +9052,11 @@ async function buildDayAsset(i){
   const r=spinWeekResults[i]; if(!r) return;
   r.assetStatus='building'; r.assetError=''; renderWeekAssetsGrid();
   try{
-    const {url, credit}=await produceAsset(r.assetFormat, r.assetSpec, r.voice, r.text);
+    const {url, urls, credit}=await produceAsset(r.assetFormat, r.assetSpec, r.voice, r.text);
     if(!url) throw new Error('No asset produced');
-    r.imageUrl=url; r.imageCredit=credit; r.assetStatus='ready';
+    r.imageUrl=url; r.imageUrls=(urls&&urls.length)?urls:[url]; r.imageCredit=credit; r.assetStatus='ready';
   }catch(e){
-    r.imageUrl=''; r.assetStatus='error'; r.assetError=e.message;
+    r.imageUrl=''; r.imageUrls=[]; r.assetStatus='error'; r.assetError=e.message;
   }
   renderWeekAssetsGrid();
 }
@@ -9064,6 +9083,7 @@ async function autoBuildWeekAssets(){
         eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
         benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
         chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
+        carousel_slides:Array.isArray(d.carousel_slides)?d.carousel_slides:[],
       };
       spinWeekResults[i].assetStatus='pending';
     });
@@ -9114,11 +9134,16 @@ async function buildWeekImagesFromLibrary(id){
         eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
         benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
         chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
+        carousel_slides:Array.isArray(d.carousel_slides)?d.carousel_slides:[],
       };
       setStatus(`Building image ${i+1} of ${group.length}…`,true);
       try{
-        const {url, credit}=await produceAsset(fmt, spec, group[i].voice, group[i].linkedin_text||group[i].blog_text);
-        if(url){ attachImageToLibraryItem(group[i].id, url, 'auto-assets', credit); ok++; }
+        const {url, urls, credit}=await produceAsset(fmt, spec, group[i].voice, group[i].linkedin_text||group[i].blog_text);
+        if(url && urls && urls.length>1){
+          const it2=library.find(x=>x.id===group[i].id);
+          if(it2){ it2.selectedImageUrl=urls[0]; it2.image_url=urls[0]; it2.imageUrls=urls; it2.imageSource='auto-assets'; it2.imageCredit=credit||''; persistLibrary(); }
+          ok++;
+        } else if(url){ attachImageToLibraryItem(group[i].id, url, 'auto-assets', credit); ok++; }
       }catch(err){ console.warn('asset failed for', group[i].id, err); }
     }
     renderLibrary();
@@ -9139,7 +9164,11 @@ function renderWeekAssetsGrid(){
   const cards=spinWeekResults.map((r,i)=>{
     const st=r.assetStatus||'pending';
     let thumb;
-    if(st==='ready'&&r.imageUrl) thumb=`<img src="${r.imageUrl}" title="Click to enlarge" onclick="openImageLightbox('${r.imageUrl}')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:zoom-in"/>`;
+    if(st==='ready'&&r.imageUrl){
+      const nImg=(r.imageUrls&&r.imageUrls.length)||1;
+      const badge=nImg>1?`<span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;padding:2px 6px;border-radius:3px">▦ ${nImg}</span>`:'';
+      thumb=`<div style="position:relative"><img src="${r.imageUrl}" title="Click to enlarge${nImg>1?' (carousel — slide 1)':''}" onclick="openImageLightbox('${r.imageUrl}')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:zoom-in"/>${badge}</div>`;
+    }
     else if(st==='building') thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-size:11px;color:var(--text-muted)">Building…</div>`;
     else if(st==='error') thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;background:var(--surface2);border:1px solid var(--error);border-radius:4px;font-size:10px;color:var(--error)">⚠ ${escapeHTML(r.assetError||'Failed')}</div>`;
     else thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px dashed var(--border);border-radius:4px;font-size:18px;color:var(--text-muted)">—</div>`;
