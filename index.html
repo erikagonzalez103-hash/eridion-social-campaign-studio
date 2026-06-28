@@ -8666,52 +8666,63 @@ function renderBarChartSVG(voice, data){
   const delta=(sorted.length>1)?Math.round((sorted[0]-sorted[1])*10)/10:0;
   const deltaLabel=delta>0?('+'+delta+(isPct?' pts':'')):'';
   const margin=96;
-  // Brand cut-corner device (ties the piece back to the mark)
   const corner=`<path d="M0 0 L132 0 L0 132 Z" fill="${p.highlight}"/>`;
-  // Title (left, editorial) + accent rule
-  const titleLines=wrapText(esc(data.title||''), 22);
-  const titleSize=64, titleLH=titleSize*1.08, titleTop=170;
-  const titleH=titleLines.length*titleLH;
-  const titleSvg=titleLines.map((ln,i)=>`<text x="${margin}" y="${titleTop+(i+0.8)*titleLH}" font-family="${p.font}" font-size="${titleSize}" font-weight="700" fill="${p.text}">${ln}</text>`).join('');
-  const ruleY=titleTop+titleH+20;
-  const titleRule=`<rect x="${margin}" y="${ruleY}" width="120" height="6" fill="${p.highlight}"/>`;
+  // Eyebrow = the metric label (small, tracked caps)
+  const eyebrow=data.eyebrow?`<text x="${margin}" y="118" font-family="${p.labelFont}" font-size="25" font-weight="700" fill="${p.highlight}" letter-spacing="0.14em">${esc(String(data.eyebrow).toUpperCase())}</text>`:'';
+  // Headline = the hook that stops the scroll
+  const headLines=wrapText(esc(data.headline||data.eyebrow||''), 24);
+  const headSize=56, headLH=headSize*1.06, headTop=162;
+  const headH=headLines.length*headLH;
+  const headSvg=headLines.map((ln,i)=>`<text x="${margin}" y="${headTop+(i+0.82)*headLH}" font-family="${p.font}" font-size="${headSize}" font-weight="700" fill="${p.text}">${ln}</text>`).join('');
+  const ruleY=headTop+headH+14;
+  const rule=`<rect x="${margin}" y="${ruleY}" width="110" height="6" fill="${p.highlight}"/>`;
   // Chart band
   const baselineY=h-300;
-  const chartTop=ruleY+96;
-  const maxBarH=Math.max(140,(baselineY-chartTop)*0.9);
+  const chartTop=ruleY+78;
+  const maxBarH=Math.max(120,(baselineY-chartTop)*0.86);
   const n=items.length||1;
   const slot=(w-2*margin)/n;
-  const barW=Math.min(slot*0.44,150);
-  // Faint gridlines for a real-chart read
+  const barW=Math.min(slot*0.42,140);
   let grid='';
-  for(let g=1;g<=4;g++){ const gy=baselineY-(maxBarH*g/4); grid+=`<line x1="${margin}" y1="${gy}" x2="${w-margin}" y2="${gy}" stroke="${p.sub}" stroke-width="1" opacity="0.13"/>`; }
+  for(let g=1;g<=4;g++){ const gy=baselineY-(maxBarH*g/4); grid+=`<line x1="${margin}" y1="${gy}" x2="${w-margin}" y2="${gy}" stroke="${p.sub}" stroke-width="1" opacity="0.12"/>`; }
+  const tops=[];
   let bars='';
   items.forEach((it,i)=>{
     const cx=margin+slot*i+slot/2;
     const bh=(vals[i]/maxV)*maxBarH;
-    const by=baselineY-bh;
+    const by=baselineY-bh; tops.push({cx,by});
     const isHi=i===hiIdx;
     bars+=`<rect x="${cx-barW/2}" y="${by}" width="${barW}" height="${bh}" fill="${isHi?p.highlight:p.base}"/>`;
-    bars+=`<text x="${cx}" y="${by-26}" text-anchor="middle" font-family="${p.font}" font-size="66" font-weight="700" fill="${isHi?p.highlight:p.text}">${esc(it.value||'')}</text>`;
+    bars+=`<text x="${cx}" y="${by-24}" text-anchor="middle" font-family="${p.font}" font-size="62" font-weight="700" fill="${isHi?p.highlight:p.text}">${esc(it.value||'')}</text>`;
     wrapText(esc(it.label||'').toUpperCase(),16).forEach((ln,j)=>{
-      bars+=`<text x="${cx}" y="${baselineY+52+j*32}" text-anchor="middle" font-family="${p.labelFont}" font-size="26" font-weight="600" fill="${p.text}" letter-spacing="0.05em">${ln}</text>`;
+      bars+=`<text x="${cx}" y="${baselineY+48+j*30}" text-anchor="middle" font-family="${p.labelFont}" font-size="25" font-weight="600" fill="${p.text}" letter-spacing="0.05em">${ln}</text>`;
     });
   });
-  // Focal insight: the delta, as a pill top-right (the "so what")
+  // Anchored delta: a dashed reference at the shorter bar's top, with the gain labeled
+  // beside the taller bar — so "+N" clearly reads as "this much above the other."
   let deltaSvg='';
-  if(deltaLabel && items.length>=2){
-    const bw=deltaLabel.length*24+56, bx=w-margin-bw, by=titleTop-4;
-    deltaSvg=`<rect x="${bx}" y="${by}" width="${bw}" height="64" rx="32" fill="${p.highlight}"/>`+
-      `<text x="${bx+bw/2}" y="${by+43}" text-anchor="middle" font-family="${p.font}" font-size="34" font-weight="700" fill="#FFFFFF">${esc(deltaLabel)}</text>`;
+  if(deltaLabel && items.length===2){
+    const a=tops[0], b=tops[1];
+    const refY=Math.max(a.by,b.by);
+    const hiT=(a.by<b.by)?a:b;
+    const shorterIdx=(a.by>b.by)?0:1;
+    const shorterLabel=esc(String((items[shorterIdx]||{}).label||'').toUpperCase());
+    deltaSvg+=`<line x1="${Math.min(a.cx,b.cx)-barW/2}" y1="${refY}" x2="${hiT.cx+barW/2+150}" y2="${refY}" stroke="${p.sub}" stroke-width="2" stroke-dasharray="7 6" opacity="0.6"/>`;
+    const lx=hiT.cx+barW/2+24, ly=(refY+hiT.by)/2;
+    deltaSvg+=`<text x="${lx}" y="${ly+8}" font-family="${p.font}" font-size="34" font-weight="700" fill="${p.highlight}">${esc(deltaLabel)}</text>`;
+    if(shorterLabel) deltaSvg+=`<text x="${lx}" y="${ly+38}" font-family="${p.labelFont}" font-size="19" font-weight="600" fill="${p.sub}" letter-spacing="0.04em">VS ${shorterLabel}</text>`;
   }
-  // Caption (left, prominent)
-  const capLines=wrapText(esc(data.caption||''),44);
-  const capTop=h-150, capSize=33;
-  const capSvg=capLines.map((ln,i)=>`<text x="${margin}" y="${capTop+i*capSize*1.35}" font-family="${p.labelFont}" font-size="${capSize}" fill="${p.sub}">${ln}</text>`).join('');
+  // Caption = prominent, two-tone (navy lead, green emphasis after an em dash)
+  const parts=String(data.caption||'').split(/\s*—\s*/);
+  const cap1=esc(parts[0]||''), cap2=esc(parts.slice(1).join(' — '));
+  const capSize=36; let cy=h-170; let capSvg='';
+  wrapText(cap1,40).forEach(ln=>{ capSvg+=`<text x="${margin}" y="${cy}" font-family="${p.labelFont}" font-size="${capSize}" font-weight="600" fill="${p.text}">${ln}</text>`; cy+=capSize*1.28; });
+  if(cap2) wrapText(cap2,40).forEach(ln=>{ capSvg+=`<text x="${margin}" y="${cy}" font-family="${p.labelFont}" font-size="${capSize}" font-weight="600" fill="${p.highlight}">${ln}</text>`; cy+=capSize*1.28; });
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
   <rect width="${w}" height="${h}" fill="${p.bg}"/>
   ${corner}
-  ${titleSvg}${titleRule}
+  ${eyebrow}
+  ${headSvg}${rule}
   ${grid}
   ${bars}
   <line x1="${margin}" y1="${baselineY}" x2="${w-margin}" y2="${baselineY}" stroke="${p.axis}" stroke-width="2"/>
@@ -8849,7 +8860,7 @@ For each day pick ONE format and fill only that format's fields:
 - "quote": a single sharp line from the post works as a pull-quote card. Fields: quote_text (<=180 chars, drawn from the post), attribution (the author/brand name, or "").
 - "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars). ALSO fill the Eridion brand-card fields: eyebrow (one word, e.g. "GLASS"), hero_stat (the number itself), sub_label (UPPERCASE, <=30 chars, what it measures), and optionally closing_line + closing_emphasis (a two-part italic sign-off; closing_emphasis is the punchy second half).
 - "infographic": the day lists 2-5 discrete points/standards/benefits. Fields: infographic_title (<=50 chars), infographic_points = array of 2-5 {"value","label"}. ALSO fill the Eridion brand-card fields: eyebrow (one word), headline (UPPERCASE, <=30 chars — the claim), kicker (short UPPERCASE lead-in, e.g. "DESIGNED FOR"), hero_stat (the single biggest number/phrase, e.g. "20+ YEARS"), sub_label (UPPERCASE), benefits = array of 2-5 {"label" (1-2 words, UPPERCASE), "icon"} where icon is one of: droplet, noslash, shield, window, diamond, check, ruler, layers (pick the closest meaning — droplet=water/non-porous, noslash=resistant/anti-X, shield=protection, window=glass/panel, diamond=quality/durability, check=verified, ruler=precision/measure, layers=panels), and optionally closing_line + closing_emphasis.
-- "chart": the day compares 2-4 numbers (e.g. 91% vs 83% light transmission, or a before/after). PREFER this over stat/infographic whenever the point is a quantitative comparison — it's rendered as a real, accurate bar chart. Fields: chart_title (<=30 chars), chart_items = array of 2-4 {"label","value"} (value like "91%" or "20 yrs"; label 1-3 words), chart_caption (one short line).
+- "chart": the day compares 2-4 numbers (e.g. 91% vs 83% light transmission, or a before/after). PREFER this over stat/infographic whenever the point is a quantitative comparison — it's rendered as a real, accurate bar chart. Fields: chart_headline (the SCROLL-STOPPING hook/takeaway, <=8 words — the story, NOT the metric name; e.g. "The clarity the high end now notices"), chart_title (the small metric label/eyebrow, e.g. "Visible light transmitted", <=30 chars), chart_items = array of 2-4 {"label","value"} (value like "91%" or "20 yrs"; label 1-3 words), chart_caption (one supporting sentence — the "so what"; put the punchiest half after an em dash "—" for emphasis).
 - "carousel": the day tells a LONGER story worth multiple slides — a step-by-step, a before/after, a 3-part argument. Carousels earn more clicks, so use one when a day genuinely has a sequence (not every day). Fields: carousel_slides = array of 3-6 {"slide_title" (<=8 words), "slide_body" (<=20 words)}, building a clear narrative across slides.
 - "stock": a real-world photograph fits better than anything generated. Fields: stock_query (2-4 concrete words, searchable on Unsplash).
 - "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid and SPECIFIC — name the concrete subject, material, object, or place the post is actually about, e.g. "antiqued mirror panels installed on a coffered ceiling," not just "a ceiling"; photographic or illustrative; NO text on screen).
@@ -8860,7 +8871,7 @@ THE WEEK:
 ${days}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":"","chart_title":"","chart_items":[],"chart_caption":"","carousel_slides":[]}]}`;
+{"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":"","chart_headline":"","chart_title":"","chart_items":[],"chart_caption":"","carousel_slides":[]}]}`;
   const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:8000,messages:[{role:'user',content:prompt}]})});
   const data=await res.json();
   if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
@@ -9051,7 +9062,7 @@ async function produceAsset(format, spec, voice, fallbackText){
   spec=spec||{}; const ratio='square';
   if(format==='stock'){ const s=await unsplashFirst(spec.stock_query||(fallbackText||'').slice(0,40)); return {url:s.url, credit:s.credit}; }
   // Data charts are rendered in code (exact bars + exact text), NOT generated.
-  if(format==='chart') return {url:await svgToImgBBUrl(renderBarChartSVG(voice,{title:spec.chart_title||spec.infographic_title,items:(spec.chart_items&&spec.chart_items.length?spec.chart_items:spec.infographic_points)||[],caption:spec.chart_caption||spec.closing_line||''}),1080,1080), credit:''};
+  if(format==='chart') return {url:await svgToImgBBUrl(renderBarChartSVG(voice,{headline:spec.chart_headline||spec.headline||'',eyebrow:spec.chart_title||spec.infographic_title||'',items:(spec.chart_items&&spec.chart_items.length?spec.chart_items:spec.infographic_points)||[],caption:spec.chart_caption||spec.closing_line||''}),1080,1080), credit:''};
   // Carousel: generate a cohesive set of slides -> multi-image post.
   if(format==='carousel'){
     const slides=(spec.carousel_slides||[]).slice(0,8).filter(s=>s&&(s.slide_title||s.slide_body));
@@ -9110,7 +9121,7 @@ async function autoBuildWeekAssets(){
         image_prompt:d.image_prompt, stock_query:d.stock_query,
         eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
         benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
-        chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
+        chart_headline:d.chart_headline, chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
         carousel_slides:Array.isArray(d.carousel_slides)?d.carousel_slides:[],
       };
       spinWeekResults[i].assetStatus='pending';
@@ -9161,7 +9172,7 @@ async function buildWeekImagesFromLibrary(id){
         image_prompt:d.image_prompt, stock_query:d.stock_query,
         eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
         benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
-        chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
+        chart_headline:d.chart_headline, chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
         carousel_slides:Array.isArray(d.carousel_slides)?d.carousel_slides:[],
       };
       setStatus(`Building image ${i+1} of ${group.length}…`,true);
