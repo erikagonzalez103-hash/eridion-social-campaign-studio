@@ -8661,39 +8661,67 @@ function renderBarChartSVG(voice, data){
   const vals=items.map(it=>{const n=parseFloat(String(it.value||'').replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n;});
   const maxV=Math.max(...vals,1);
   const hiIdx=vals.indexOf(Math.max(...vals));
-  const margin=100;
-  const titleLines=wrapText(esc(data.title||''), 24);
-  const titleSize=58, titleLH=titleSize*1.14, titleTop=120;
+  const isPct=items.some(it=>/%/.test(String(it.value||'')));
+  const sorted=[...vals].sort((a,b)=>b-a);
+  const delta=(sorted.length>1)?Math.round((sorted[0]-sorted[1])*10)/10:0;
+  const deltaLabel=delta>0?('+'+delta+(isPct?' pts':'')):'';
+  const margin=96;
+  // Brand cut-corner device (ties the piece back to the mark)
+  const corner=`<path d="M0 0 L132 0 L0 132 Z" fill="${p.highlight}"/>`;
+  // Title (left, editorial) + accent rule
+  const titleLines=wrapText(esc(data.title||''), 22);
+  const titleSize=64, titleLH=titleSize*1.08, titleTop=170;
   const titleH=titleLines.length*titleLH;
+  const titleSvg=titleLines.map((ln,i)=>`<text x="${margin}" y="${titleTop+(i+0.8)*titleLH}" font-family="${p.font}" font-size="${titleSize}" font-weight="700" fill="${p.text}">${ln}</text>`).join('');
+  const ruleY=titleTop+titleH+20;
+  const titleRule=`<rect x="${margin}" y="${ruleY}" width="120" height="6" fill="${p.highlight}"/>`;
+  // Chart band
   const baselineY=h-300;
-  const chartTop=titleTop+titleH+70;
-  const maxBarH=Math.max(120,(baselineY-chartTop)*0.92);
+  const chartTop=ruleY+96;
+  const maxBarH=Math.max(140,(baselineY-chartTop)*0.9);
   const n=items.length||1;
   const slot=(w-2*margin)/n;
-  const barW=Math.min(slot*0.5,160);
+  const barW=Math.min(slot*0.44,150);
+  // Faint gridlines for a real-chart read
+  let grid='';
+  for(let g=1;g<=4;g++){ const gy=baselineY-(maxBarH*g/4); grid+=`<line x1="${margin}" y1="${gy}" x2="${w-margin}" y2="${gy}" stroke="${p.sub}" stroke-width="1" opacity="0.13"/>`; }
   let bars='';
   items.forEach((it,i)=>{
     const cx=margin+slot*i+slot/2;
     const bh=(vals[i]/maxV)*maxBarH;
     const by=baselineY-bh;
-    bars+=`<rect x="${cx-barW/2}" y="${by}" width="${barW}" height="${bh}" fill="${i===hiIdx?p.highlight:p.base}"/>`;
-    bars+=`<text x="${cx}" y="${by-22}" text-anchor="middle" font-family="${p.font}" font-size="56" font-weight="700" fill="${i===hiIdx?p.highlight:p.text}">${esc(it.value||'')}</text>`;
-    wrapText(esc(it.label||'').toUpperCase(),14).forEach((ln,j)=>{
-      bars+=`<text x="${cx}" y="${baselineY+46+j*30}" text-anchor="middle" font-family="${p.labelFont}" font-size="24" font-weight="500" fill="${p.sub}" letter-spacing="0.04em">${ln}</text>`;
+    const isHi=i===hiIdx;
+    bars+=`<rect x="${cx-barW/2}" y="${by}" width="${barW}" height="${bh}" fill="${isHi?p.highlight:p.base}"/>`;
+    bars+=`<text x="${cx}" y="${by-26}" text-anchor="middle" font-family="${p.font}" font-size="66" font-weight="700" fill="${isHi?p.highlight:p.text}">${esc(it.value||'')}</text>`;
+    wrapText(esc(it.label||'').toUpperCase(),16).forEach((ln,j)=>{
+      bars+=`<text x="${cx}" y="${baselineY+52+j*32}" text-anchor="middle" font-family="${p.labelFont}" font-size="26" font-weight="600" fill="${p.text}" letter-spacing="0.05em">${ln}</text>`;
     });
   });
-  const titleSvg=titleLines.map((ln,i)=>`<text x="${margin}" y="${titleTop+(i+0.8)*titleLH}" font-family="${p.font}" font-size="${titleSize}" font-weight="700" fill="${p.text}">${ln}</text>`).join('');
-  const capLines=wrapText(esc(data.caption||''),42);
-  const capTop=h-150, capSize=30;
-  const capSvg=capLines.map((ln,i)=>`<text x="${w/2}" y="${capTop+i*capSize*1.4}" text-anchor="middle" font-family="${p.labelFont}" font-size="${capSize}" fill="${p.sub}">${ln}</text>`).join('');
+  // Focal insight: the delta, as a pill top-right (the "so what")
+  let deltaSvg='';
+  if(deltaLabel && items.length>=2){
+    const bw=deltaLabel.length*24+56, bx=w-margin-bw, by=titleTop-4;
+    deltaSvg=`<rect x="${bx}" y="${by}" width="${bw}" height="64" rx="32" fill="${p.highlight}"/>`+
+      `<text x="${bx+bw/2}" y="${by+43}" text-anchor="middle" font-family="${p.font}" font-size="34" font-weight="700" fill="#FFFFFF">${esc(deltaLabel)}</text>`;
+  }
+  // Caption (left, prominent)
+  const capLines=wrapText(esc(data.caption||''),44);
+  const capTop=h-150, capSize=33;
+  const capSvg=capLines.map((ln,i)=>`<text x="${margin}" y="${capTop+i*capSize*1.35}" font-family="${p.labelFont}" font-size="${capSize}" fill="${p.sub}">${ln}</text>`).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
   <rect width="${w}" height="${h}" fill="${p.bg}"/>
-  ${titleSvg}
+  ${corner}
+  ${titleSvg}${titleRule}
+  ${grid}
   ${bars}
   <line x1="${margin}" y1="${baselineY}" x2="${w-margin}" y2="${baselineY}" stroke="${p.axis}" stroke-width="2"/>
+  ${deltaSvg}
   ${capSvg}
 </svg>`;
 }
+
+// The bar every generated image must clear. Prepended to every gpt-image-1 prompt.
+const QUALITY_BAR = "You are a senior graphic designer with 10+ years of experience, executing a social brief written by a digital strategist with 15+ years at a top-3 global agency. The result must look ART-DIRECTED and premium: confident visual hierarchy, deliberate asymmetry and composition, refined typography and spacing, depth and texture where it serves the idea, and ONE clear focal point. Never a flat, centered, 'default template' or clip-art look. Editorial, considered, scroll-stopping for the right reasons.\n\n";
 
 // Brand "style briefs" injected into gpt-image-1 prompts so generated images/infographics
 // come out on-brand automatically — the studio equivalent of "my ChatGPT has my guidelines."
@@ -8734,7 +8762,7 @@ async function generateBlogHeroForItem(id){
 // brands like Quinta). Folds in the day's data so the rendered text/stats are right.
 function brandInfographicPrompt(voice, spec, fallbackText){
   spec=spec||{};
-  const L=[BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta];
+  const L=[QUALITY_BAR+(BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta)];
   L.push("\nDesign ONE original, beautiful editorial infographic (1:1 square) in this brand for a single social post.");
   const head=spec.headline||spec.infographic_title;
   if(head) L.push("Headline (render exactly): "+head);
@@ -8996,7 +9024,7 @@ function eridionCardFields(format, spec, fallbackText){
 
 // Build a gpt-image-1 prompt for a bespoke, on-brand PULL-QUOTE card.
 function brandQuotePrompt(voice, spec, fallbackText){
-  const L=[BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta];
+  const L=[QUALITY_BAR+(BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta)];
   L.push("\nDesign ONE beautiful pull-quote social card (1:1 square) in this brand.");
   L.push('Quote (render EXACTLY, spelled correctly, as the focal typographic element): "'+(spec.quote_text||(fallbackText||'').slice(0,180))+'"');
   if(spec.attribution) L.push("Attribution line: set it as small, plain UPPERCASE letters reading exactly: — "+String(spec.attribution).toUpperCase());
@@ -9006,7 +9034,7 @@ function brandQuotePrompt(voice, spec, fallbackText){
 
 // One carousel slide prompt — kept visually consistent with its siblings via the brand brief.
 function brandSlidePrompt(voice, slide, idx, total){
-  const L=[BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta];
+  const L=[QUALITY_BAR+(BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta)];
   L.push("\nThis is slide "+idx+" of "+total+" in ONE cohesive carousel — keep the SAME layout, palette, and type treatment across every slide so they read as a set.");
   if(slide.slide_title) L.push("Slide title (render EXACTLY, spelled correctly): "+slide.slide_title);
   if(slide.slide_body) L.push("Supporting line (render EXACTLY): "+slide.slide_body);
@@ -9038,7 +9066,7 @@ async function produceAsset(format, spec, voice, fallbackText){
     const brief=BRAND_IMAGE_BRIEFS[voice]||'';
     const ground=(fallbackText||'').replace(/\s+/g,' ').slice(0,400);
     const scene=spec.image_prompt||'';
-    const p=(brief?brief+'\n\n':'')+
+    const p=QUALITY_BAR+(brief?brief+'\n\n':'')+
       'Depict the SPECIFIC subject this post is about — show the actual thing it describes (the exact material, object, or place), not a generic stand-in:\n"'+ground+'"'+
       (scene?('\n\nArt direction: '+scene):'')+
       '\n\nShow the subject EN SITU — in its real room or setting, framed wide enough that a viewer can read the space (what room it is). Do NOT crop to an extreme texture close-up. Photographic or illustrative scene — no text, words, or letters in the image.';
