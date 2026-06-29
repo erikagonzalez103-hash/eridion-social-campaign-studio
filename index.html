@@ -3298,6 +3298,20 @@ textarea { min-height: 80px; line-height: 1.6; }
           </div>
         </div>
 
+        <!-- Prompt Pack Modal — the tool plans the week + writes every image prompt;
+             you render them in your own ChatGPT, then drop each finished image back. -->
+        <div class="sched-modal" id="prompt-pack-modal">
+          <div class="sched-modal-inner" style="max-width:760px;max-height:88vh;overflow-y:auto">
+            <div class="sched-modal-title">🎟 Prompt Pack — render in your ChatGPT, drop the images back</div>
+            <div style="font-size:12px;color:var(--text-muted);margin:6px 0 16px;line-height:1.5">The tool picked a format and wrote a ready-to-paste prompt for each day. Copy each into your brand-loaded ChatGPT, then upload the finished image back here to attach it to that post.</div>
+            <div id="prompt-pack-body"></div>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:16px">
+              <button class="action-btn" onclick="copyAllDayPrompts()">⧉ Copy all prompts</button>
+              <button class="action-btn" onclick="closePromptPack()" style="margin-left:auto">Close</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Buffer Preview Modal — shows per-channel previews and lets the
              user toggle channels + pick IG type before the actual push. -->
         <div class="sched-modal" id="buffer-preview-modal">
@@ -6488,9 +6502,10 @@ function renderSpinWeekResults(){
   const header=`
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;padding-bottom:12px;border-bottom:1px solid var(--border)">
       <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--gold-dim)">5 SNIPPETS READY</span>
-      <button class="action-btn primary" style="margin-left:auto" onclick="autoBuildWeekAssets()" title="Evaluate the week's arc, pick a visual format per day, and build every image automatically">🎨 Auto-build week's assets</button>
-      <button class="action-btn" onclick="saveAllSpinWeek()">+ Save All to Library</button>
-      <button class="action-btn" onclick="saveAndScheduleSpinWeek()">+ Save & Auto-Schedule</button>
+      <button class="action-btn primary" style="margin-left:auto" onclick="saveAllSpinWeek();openPromptPackForGroup(spinSource&&spinSource.id)" title="Save the week, then get a ready-to-paste image prompt per day to run in your ChatGPT">🎟 Save &amp; build prompt pack</button>
+      <button class="action-btn" onclick="autoBuildWeekAssets()" title="Generate every image in the tool instead (gpt-image-1)">🎨 Auto-build in tool</button>
+      <button class="action-btn" onclick="saveAllSpinWeek()">+ Save All</button>
+      <button class="action-btn" onclick="saveAndScheduleSpinWeek()">+ Save &amp; Schedule</button>
     </div>
   `;
   const cards=spinWeekResults.map((r,i)=>{
@@ -7166,6 +7181,7 @@ function renderLibrary(){
               <button class="lib-menu-item" onclick="openSpinSnippetModal('${it.id}');closeLibMenus()">✦ Spin Snippet</button>
               <button class="lib-menu-item" onclick="openSpinWeekModal('${it.id}');closeLibMenus()">✦ Spin Week</button>
               <button class="lib-menu-item" onclick="openImageIdeasModal('${it.id}');closeLibMenus()">🎨 Image Ideas</button>
+              <button class="lib-menu-item" onclick="openPromptPackFromLibrary('${it.id}');closeLibMenus()">🎟 Build prompt pack (for ChatGPT)</button>
               <button class="lib-menu-item" onclick="buildWeekImagesFromLibrary('${it.id}');closeLibMenus()">🪄 Auto-build week's images</button>
               ${(it.blog_text&&it.blog_text.length>200)?`<button class="lib-menu-item" onclick="generateBlogHeroForItem('${it.id}');closeLibMenus()">🖼 Generate hero image</button>`:''}
             </div>
@@ -9080,6 +9096,42 @@ function brandSlidePrompt(voice, slide, idx, total){
   return L.join("\n");
 }
 
+// Chart prompt for the hand-off pack (when rendering in ChatGPT instead of code).
+function brandChartPrompt(voice, spec){
+  const L=[QUALITY_BAR+(BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta)];
+  L.push("\nCreate ONE clean, accurate bar chart (1:1 square) in this brand.");
+  if(spec.chart_headline||spec.headline) L.push("Headline (render exactly): "+(spec.chart_headline||spec.headline));
+  if(spec.chart_title||spec.infographic_title) L.push("Metric label / eyebrow: "+(spec.chart_title||spec.infographic_title));
+  const items=(spec.chart_items&&spec.chart_items.length?spec.chart_items:spec.infographic_points)||[];
+  if(items.length) L.push("Bars (each EXACT; bar HEIGHTS must be TRUE to the values — a 83% bar is shorter than a 91% bar): "+items.map(p=>(p.label||'')+" = "+(p.value||'')).join("; "));
+  if(spec.chart_caption||spec.closing_line) L.push("Caption (render exactly): "+(spec.chart_caption||spec.closing_line));
+  L.push("Accurate proportions, exact spelling, brand colors and fonts.");
+  return L.join("\n");
+}
+
+// Compose the ready-to-paste ChatGPT prompt for a day, based on its arc format.
+function buildPromptForDay(voice, format, spec, fallbackText){
+  spec=spec||{};
+  if(format==='quote') return brandQuotePrompt(voice, spec, fallbackText);
+  if(format==='stat'||format==='infographic') return brandInfographicPrompt(voice, spec, fallbackText);
+  if(format==='chart') return brandChartPrompt(voice, spec);
+  if(format==='carousel'){
+    const slides=(spec.carousel_slides||[]).slice(0,8).filter(s=>s&&(s.slide_title||s.slide_body));
+    const L=[QUALITY_BAR+(BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta)];
+    L.push("\nCreate a cohesive "+slides.length+"-slide CAROUSEL (each slide 1:1 square) that tells one story. Keep the SAME layout/palette/type across every slide. Minimal words, exact spelling.");
+    slides.forEach((s,i)=>{ L.push("Slide "+(i+1)+": "+[s.slide_title,s.slide_body].filter(Boolean).join(" — ")); });
+    return L.join("\n");
+  }
+  // image / stock -> photographic prompt
+  const brief=BRAND_IMAGE_BRIEFS[voice]||'';
+  const ground=(fallbackText||'').replace(/\s+/g,' ').slice(0,400);
+  const scene=spec.image_prompt||spec.stock_query||'';
+  return QUALITY_BAR+(brief?brief+'\n\n':'')+
+    'Create ONE on-brand image (1:1 square) for this post — show the SPECIFIC subject it describes, EN SITU in a real luxury setting (wide enough to read the room), not a texture close-up. No text in the image.'+
+    (scene?('\n\nSubject / art direction: '+scene):'')+
+    (ground?('\n\nPost context: '+ground):'');
+}
+
 // Build one asset (any source) -> {url, credit} (or {urls} for a carousel). Shared by
 // the spin-week panel and the Content Library. ALL cards are bespoke, on-brand gpt-image-1
 // generations (brand brief injected) — the studio equivalent of Erika's brand-loaded
@@ -9230,6 +9282,82 @@ async function buildWeekImagesFromLibrary(id){
     setStatus('Ready',false);
   }
 }
+
+// ── Prompt Pack: hand the week's prompts to your ChatGPT, drop the images back ──
+let promptPackEntries=[]; // [{itemId, day, voice, format, prompt}]
+function openPromptPackFromLibrary(id){ const it=library.find(x=>x.id===id); if(!it){showToast('Post not found','error');return;} openPromptPackForGroup(it.parent_id||it.id); }
+async function openPromptPackForGroup(groupKey){
+  if(!groupKey){ showToast('No week found','error'); return; }
+  const group=library
+    .filter(x=>(x.parent_id||x.id)===groupKey && ((x.linkedin_text||x.blog_text||'').trim()))
+    .sort((a,b)=>(WEEKDAY_ORDER[a.snippet_day]||99)-(WEEKDAY_ORDER[b.snippet_day]||99));
+  if(!group.length){ showToast('No snippets found for this week','error'); return; }
+  document.getElementById('prompt-pack-body').innerHTML='<div style="padding:16px;color:var(--text-muted);font-size:12px">Reading the week\'s arc and writing prompts…</div>';
+  document.getElementById('prompt-pack-modal').classList.add('open');
+  setStatus("Reading the week's arc…",true);
+  try{
+    const decisions=await evaluateArc(group.map(g=>({label:g.snippet_day||g.title||'', voice:g.voice, text:g.linkedin_text||g.blog_text||''})));
+    promptPackEntries=group.map((g,i)=>{
+      const d=decisions[i]||{};
+      const fmt=ASSET_FORMATS.includes(d.format)?d.format:'image';
+      const spec={
+        quote_text:d.quote_text, attribution:d.attribution, stat_number:d.stat_number, stat_label:d.stat_label,
+        infographic_title:d.infographic_title, infographic_points:Array.isArray(d.infographic_points)?d.infographic_points:[],
+        image_prompt:d.image_prompt, stock_query:d.stock_query,
+        eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
+        benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
+        chart_headline:d.chart_headline, chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
+        carousel_slides:Array.isArray(d.carousel_slides)?d.carousel_slides:[]
+      };
+      return { itemId:g.id, day:g.snippet_day||g.title||('Day '+(i+1)), voice:g.voice, format:fmt, prompt:buildPromptForDay(g.voice, fmt, spec, g.linkedin_text||g.blog_text) };
+    });
+    renderPromptPack();
+  }catch(e){
+    document.getElementById('prompt-pack-body').innerHTML='<div style="color:var(--error);font-size:12px;padding:12px">Arc failed: '+escapeHTML(e.message)+'</div>';
+  }finally{ setStatus('Ready',false); }
+}
+function renderPromptPack(){
+  const wrap=document.getElementById('prompt-pack-body'); if(!wrap) return;
+  const vLabel={eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'};
+  wrap.innerHTML=promptPackEntries.map((e,i)=>{
+    const it=library.find(x=>x.id===e.itemId);
+    const hasImg=it&&getItemImageUrls(it).length;
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;background:var(--surface)">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+        <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:.05em;color:var(--text-muted)">${escapeHTML(e.day)} · ${vLabel[e.voice]||e.voice}</span>
+        <span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;color:var(--text)">${ASSET_FMT_LABEL[e.format]||e.format}</span>
+        ${hasImg?'<span style="color:var(--success);font-size:11px;margin-left:auto">✓ image attached</span>':''}
+      </div>
+      <textarea readonly id="pp-text-${i}" style="width:100%;min-height:96px;font-family:var(--font-mono);font-size:11px;line-height:1.5;padding:9px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);resize:vertical">${escapeHTML(e.prompt)}</textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <button class="action-btn" onclick="copyDayPrompt(${i})">⧉ Copy prompt</button>
+        <button class="action-btn" onclick="copyOpenChatGPT(${i})">⧉ Copy &amp; open ChatGPT</button>
+        <label class="action-btn" style="cursor:pointer;margin-left:auto">⬆ Attach finished image<input type="file" accept="image/*" style="display:none" onchange="attachFinishedImage(event, ${i})"></label>
+      </div>
+    </div>`;
+  }).join('');
+}
+function copyDayPrompt(i){ const e=promptPackEntries[i]; if(!e)return; navigator.clipboard.writeText(e.prompt).then(()=>showToast('Prompt copied','success')); }
+function copyOpenChatGPT(i){ const e=promptPackEntries[i]; if(!e)return; navigator.clipboard.writeText(e.prompt).then(()=>{ showToast('Copied — paste into ChatGPT','success'); window.open('https://chatgpt.com/','_blank','noopener'); }); }
+function copyAllDayPrompts(){
+  if(!promptPackEntries.length){ showToast('Nothing to copy yet','error'); return; }
+  const all=promptPackEntries.map(e=>`=== ${e.day} · ${ASSET_FMT_LABEL[e.format]||e.format} ===\n${e.prompt}`).join('\n\n\n');
+  navigator.clipboard.writeText(all).then(()=>showToast('All prompts copied','success'));
+}
+async function attachFinishedImage(event, i){
+  const e=promptPackEntries[i]; if(!e){ event.target.value=''; return; }
+  const file=event.target.files&&event.target.files[0]; if(!file){ return; }
+  if(!getImgBBKey()){ showToast('Add your ImgBB key in API Keys','error'); if(typeof toggleKeys==='function') toggleKeys(); event.target.value=''; return; }
+  setStatus('Hosting your image…',true);
+  try{
+    const {url}=await uploadImageToImgBB(file);
+    attachImageToLibraryItem(e.itemId, url, 'chatgpt', 'Made in ChatGPT');
+    showToast(e.day+' image attached ✓','success');
+    renderPromptPack();
+  }catch(err){ showToast('Attach failed: '+err.message,'error'); }
+  finally{ setStatus('Ready',false); event.target.value=''; }
+}
+function closePromptPack(){ document.getElementById('prompt-pack-modal').classList.remove('open'); }
 
 // Step 3 — the review grid.
 function renderWeekAssetsGrid(){
