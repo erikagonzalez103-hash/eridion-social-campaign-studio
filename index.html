@@ -4703,6 +4703,7 @@ function renderResearchBrief(){
                 <span class="source-cat cat-${s.category.toLowerCase()}">${s.category.replace('_',' ')}</span>
                 <span class="source-name">${escapeHTML(s.source)}</span>
                 ${dateChip}
+                ${s.url?`<a href="${escapeHTML(s.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Open source in a new tab to verify the link" style="margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--navy,#1e3a5f);text-decoration:underline">↗ verify</a>`:''}
               </div>
               <div class="source-title">${escapeHTML(s.title)}</div>
               <div class="source-snippet">${escapeHTML(s.snippet)}</div>
