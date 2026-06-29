@@ -4603,6 +4603,7 @@ Do NOT write an article. Curate 8-12 real research points grounded in what you a
 For each research point provide:
 - title: A clear title summarizing the finding or standard
 - source: The publishing body or document, cited specifically as you found it (e.g. "NAHB Cost of Doing Business Study", "ASTM C1048", "Construction Dive Labor Report"). Do NOT invent specific statistics — only report figures you actually found.
+- url: the EXACT source URL from the web_search results (a real, working link — never invent or guess a URL). If this source has no real URL (e.g. a print standard you know but didn't open), use an empty string "".
 - snippet: 2-3 sentences summarizing what this source says that matters for this topic
 - date: the publication date or year of the source as a string (e.g. "2026", "2025-11", "Mar 2026"). For timeless codes/standards, use the edition (e.g. "2021 IRC") or "standard". NEVER guess a date — use the one from the source you actually found.
 - category: one of STUDY, CODE, INDUSTRY_DATA, TREND, FRAMEWORK, CASE
@@ -4614,7 +4615,7 @@ Be honest and grounded. Well-known codes, standards, and industry dynamics are f
 Aim for a mix of categories so the writer has range — some hard codes/standards, some market data, some trend analysis, some case/framework material.
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"sources":[{"id":"s1","title":"...","source":"...","snippet":"...","date":"2026","category":"STUDY"}]}`;
+{"sources":[{"id":"s1","title":"...","source":"...","url":"https://...","snippet":"...","date":"2026","category":"STUDY"}]}`;
 
   try{
     const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:3000,messages:[{role:'user',content:prompt}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]})});
@@ -4647,7 +4648,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
     const src=Array.isArray(parsed.sources)?parsed.sources:[];
     if(!src.length) throw new Error('No sources returned');
 
-    researchSources=src.map((s,i)=>({id:s.id||`s${i+1}`,title:s.title||'Untitled',source:s.source||'Unknown source',snippet:s.snippet||'',date:s.date||'',category:(s.category||'INDUSTRY_DATA').toUpperCase(),selected:true}));
+    researchSources=src.map((s,i)=>({id:s.id||`s${i+1}`,title:s.title||'Untitled',source:s.source||'Unknown source',url:(s.url||'').trim(),snippet:s.snippet||'',date:s.date||'',category:(s.category||'INDUSTRY_DATA').toUpperCase(),selected:true}));
 
     // Default POV set from current bucket
     currentPOVSet=BUCKET_TO_POV_SET[currentBucket]||'industry';
@@ -4844,6 +4845,12 @@ ${ctaFinal}`;
       generatedBlog='';
     }
 
+    // Cite the sources this article drew on — appended to the bottom of the blog body
+    // so they publish with it (good for credibility + SEO/AEO outbound authority).
+    if(generatedBlog && selected && selected.length){
+      generatedBlog += buildSourcesMarkdown(selected);
+    }
+
     const liOut=document.getElementById('linkedin-output');
     liOut.innerHTML=''; liOut.textContent=generatedLinkedIn||'No LinkedIn post generated.';
     document.getElementById('hashtags-container').innerHTML=generatedHashtags.map(h=>`<span class="hashtag">${h}</span>`).join('');
@@ -4864,6 +4871,7 @@ ${ctaFinal}`;
       title:topic,
       pov:pov.id,
       pov_label:pov.label,
+      sources:selected.map(s=>({title:s.title,source:s.source,url:s.url,date:s.date,category:s.category})),
     });
     clearSEO(); clearSubstack();
     renderLibrary();
@@ -5585,6 +5593,7 @@ function copyHashtags(){navigator.clipboard.writeText(generatedHashtags.join(' '
 // Strip markdown markers so the plain-text fallback doesn't show ## or **.
 function stripMarkdown(text){
   return (text||'')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'$1 ($2)')
     .replace(/^#{1,6}\s+(.+)$/gm,'$1')
     .replace(/\*\*(.+?)\*\*/g,'$1')
     .replace(/\*(.+?)\*/g,'$1')
@@ -5622,8 +5631,24 @@ function copyBlogHTML(){
 function copyText(id){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>showToast('Copied!','success'));}
 function openLinkedIn(){window.open('https://www.linkedin.com/post/new/','_blank');setTimeout(()=>copyLinkedIn(),300);}
 
+// Build a markdown "Sources" section from the research sources used in a blog.
+// Each source becomes its own line: linked title (if a real URL) + source · date.
+function buildSourcesMarkdown(sources){
+  const used=(sources||[]).filter(s=>s&&(s.title||s.source));
+  if(!used.length) return '';
+  const paras=used.map(s=>{
+    const meta=[s.source,s.date].filter(Boolean).join(', ');
+    const title=(s.title||s.source||'Source').trim();
+    const url=(s.url||'').trim();
+    if(/^https?:\/\//i.test(url)) return `[${title}](${url})${meta?` — ${meta}`:''}`;
+    return `${title}${meta?` — ${meta}`:''}`;
+  });
+  return `\n\n## Sources\n\n${paras.join('\n\n')}`;
+}
+
 function formatBlogHTML(text){
   return text
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
     .replace(/^# (.+)$/gm,'<h1>$1</h1>')
     .replace(/^## (.+)$/gm,'<h2>$1</h2>')
     .replace(/^### (.+)$/gm,'<h3>$1</h3>')
@@ -5643,6 +5668,7 @@ function updateCharCount(){
 // markdown so saveCurrentToLibrary picks up the user's inline edits.
 function blogHtmlToMarkdown(html){
   return (html||'')
+    .replace(/<a [^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi,'[$2]($1)')
     .replace(/<h1>(.*?)<\/h1>/gi,'# $1\n\n')
     .replace(/<h2>(.*?)<\/h2>/gi,'## $1\n\n')
     .replace(/<h3>(.*?)<\/h3>/gi,'### $1\n\n')
