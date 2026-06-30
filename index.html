@@ -4632,7 +4632,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"sources":[{"id":"s1","title":"...","source":"...","url":"https://...","snippet":"...","date":"2026","category":"STUDY"}]}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:3000,messages:[{role:'user',content:prompt}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]})});
+    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:8000,messages:[{role:'user',content:prompt}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]})});
     const data=await response.json();
     if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
     // Web search responses contain multiple content blocks (server_tool_use,
@@ -4641,23 +4641,29 @@ Return ONLY valid JSON, no preamble, no markdown fences:
     const text=(data.content||[]).filter(b=>b&&b.type==='text').map(b=>b.text).join('\n').trim();
     if(!text) throw new Error('Empty response from worker');
 
-    // Robust JSON extraction: strip markdown fences, then find balanced {...} block
-    let jsonText=text.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
-    let startIdx=jsonText.indexOf('{"sources"');
-    if(startIdx<0) startIdx=jsonText.search(/\{\s*"sources"/);
-    if(startIdx<0) startIdx=jsonText.indexOf('{');
-    if(startIdx<0) throw new Error('No JSON found in response');
-    let depth=0,endIdx=-1;
-    for(let i=startIdx;i<jsonText.length;i++){
-      if(jsonText[i]==='{') depth++;
-      else if(jsonText[i]==='}'){depth--;if(depth===0){endIdx=i;break;}}
+    // String-aware extraction (ignores braces inside string values), with a salvage
+    // path: if the full object is truncated or trips, recover whatever individual
+    // source objects DID complete so the run still succeeds.
+    let parsed=null;
+    const jsonStr=extractJsonObject(text);
+    if(jsonStr){ try{ parsed=JSON.parse(jsonStr); }catch(_){} }
+    if(!parsed || !Array.isArray(parsed.sources) || !parsed.sources.length){
+      const objs=[]; const arrStart=text.indexOf('[');
+      if(arrStart>=0){
+        let depth=0,objStart=-1,inStr=false,esc=false;
+        for(let i=arrStart;i<text.length;i++){
+          const c=text[i];
+          if(inStr){ if(esc)esc=false; else if(c==='\\')esc=true; else if(c==='"')inStr=false; }
+          else if(c==='"') inStr=true;
+          else if(c==='{'){ if(depth===0)objStart=i; depth++; }
+          else if(c==='}'){ depth--; if(depth===0&&objStart>=0){ try{ objs.push(JSON.parse(text.slice(objStart,i+1))); }catch(_){} objStart=-1; } }
+        }
+      }
+      if(objs.length) parsed={sources:objs};
     }
-    if(endIdx<0) throw new Error('JSON object not closed — response may be truncated');
-    let parsed;
-    try{parsed=JSON.parse(jsonText.substring(startIdx,endIdx+1));}
-    catch(parseErr){
-      console.error('Research JSON parse failed. Raw response:',text);
-      throw new Error('Could not parse research JSON — check browser console for raw response');
+    if(!parsed || !Array.isArray(parsed.sources)){
+      console.error('Research raw response:',text);
+      throw new Error('Could not parse research sources — please try again');
     }
     const src=Array.isArray(parsed.sources)?parsed.sources:[];
     if(!src.length) throw new Error('No sources returned');
