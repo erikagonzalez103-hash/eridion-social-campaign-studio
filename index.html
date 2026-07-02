@@ -3715,6 +3715,70 @@ const WORKER = 'https://frosty-base-f01e.erikagonzalez103.workers.dev/api/messag
 const MODEL_CREATIVE = 'claude-opus-4-8';
 const MODEL_UTILITY = 'claude-sonnet-4-6';
 
+// ═══ HARDENED CLAUDE CALL — timeout, retries, real error surfacing ═══
+// The worker proxies Anthropic verbatim: always HTTP 200 with the API's JSON
+// (errors arrive as {error:{type,message}}), or {error:'API proxy failed: …'}
+// (a string) when the worker itself fails. Transient conditions — rate limit,
+// overload, network blips, timeouts, HTML error pages — are retried with
+// backoff. Permanent ones (bad key, invalid request) fail immediately.
+// NOTE: WORKER already includes the /api/messages path.
+const TRANSIENT_API_ERRORS=['rate_limit_error','overloaded_error','api_error','timeout_error'];
+
+async function callClaude(body, onStatus, retries=2){
+  let lastErr='';
+  for(let attempt=0;attempt<=retries;attempt++){
+    if(attempt>0){
+      const waitS=attempt===1?5:20;
+      if(onStatus) onStatus(`AI busy (${lastErr}) — retrying in ${waitS}s, attempt ${attempt+1} of ${retries+1}…`);
+      await new Promise(r=>setTimeout(r,waitS*1000));
+      if(onStatus) onStatus('Retrying…');
+    }
+    const controller=typeof AbortController!=='undefined'?new AbortController():null;
+    const timer=controller?setTimeout(()=>controller.abort(),120000):null;
+    try{
+      const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller?controller.signal:undefined});
+      if(timer) clearTimeout(timer);
+      const rawText=await response.text();
+      let apiResp;
+      try{ apiResp=JSON.parse(rawText); }
+      catch(e){ lastErr=`service returned a non-JSON page (HTTP ${response.status})`; continue; }
+      const errObj=apiResp&&apiResp.error;
+      if(errObj){
+        const etype=typeof errObj==='object'?(errObj.type||''):'';
+        const emsg=typeof errObj==='object'?(errObj.message||'API error'):String(errObj);
+        if(TRANSIENT_API_ERRORS.indexOf(etype)!==-1||typeof errObj==='string'||response.status>=500){
+          lastErr=etype?etype.replace(/_/g,' '):emsg;
+          continue;
+        }
+        const friendly=etype==='authentication_error'
+          ?'the worker’s Anthropic API key was rejected — check ANTHROPIC_API_KEY on the worker'
+          :emsg;
+        const permErr=new Error(friendly);
+        permErr.permanent=true;
+        throw permErr;
+      }
+      return apiResp;
+    }catch(err){
+      if(timer) clearTimeout(timer);
+      if(err.permanent) throw err;
+      if(err&&err.name==='AbortError'){ lastErr='timed out after 2 minutes'; continue; }
+      lastErr='network error — worker unreachable';
+      continue;
+    }
+  }
+  throw new Error(`gave up after ${retries+1} attempts — last problem: ${lastErr}. This is usually a temporary rate limit; wait a minute and try again.`);
+}
+
+// Pull the first JSON object out of the model's text reply (tolerates ```json
+// fences and multi-block web-search replies). Delegates to the string-aware
+// extractJsonObject so braces inside string values don't break extraction.
+function extractJSONFromResponse(apiResp){
+  const text=(apiResp.content||[]).filter(b=>b&&b.type==='text').map(b=>b.text).join('\n');
+  const jsonStr=extractJsonObject(text);
+  if(!jsonStr) throw new Error('the AI reply contained no JSON — try again');
+  return JSON.parse(jsonStr);
+}
+
 let currentStream = 'eridion';
 let currentBucket = '';
 let generatedLinkedIn = '';
@@ -4512,9 +4576,7 @@ ${ctaFinal}`;
   const maxTokens = format==='blog+linkedin' ? 4000 : 1000;
 
   try {
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const data=await callClaude({model:MODEL_CREATIVE,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
     const text=data.content?.[0]?.text||'';
     if(!text) throw new Error('Empty response');
 
@@ -4633,9 +4695,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"sources":[{"id":"s1","title":"...","source":"...","url":"https://...","snippet":"...","date":"2026","category":"STUDY"}]}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:8000,messages:[{role:'user',content:prompt}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const data=await callClaude({model:MODEL_UTILITY,max_tokens:8000,messages:[{role:'user',content:prompt}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]},m=>setStatus(m,true));
     // Web search responses contain multiple content blocks (server_tool_use,
     // web_search_tool_result, and text). The JSON answer lives in the final
     // text block(s) — NOT content[0] — so concatenate every text block.
@@ -4842,9 +4902,7 @@ ${ctaFinal}`;
   const maxTokens=format==='blog+linkedin'?4000:1200;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const data=await callClaude({model:MODEL_CREATIVE,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
     const text=data.content?.[0]?.text||'';
     if(!text) throw new Error('Empty response');
 
@@ -5025,18 +5083,16 @@ Return ONLY the rewritten blog post. No preamble, no code fences.` : null;
   }
 
   try {
-    // Run both API calls in parallel
+    // Run both API calls in parallel (only the first reports retry status, to avoid clobbering)
     const calls = [
-      fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:1000,messages:[{role:'user',content:liPrompt}]})})
+      callClaude({model:MODEL_CREATIVE,max_tokens:1000,messages:[{role:'user',content:liPrompt}]},m=>setStatus(m,true))
     ];
     if(blogPrompt) {
-      calls.push(fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:2000,messages:[{role:'user',content:blogPrompt}]})}));
+      calls.push(callClaude({model:MODEL_CREATIVE,max_tokens:2000,messages:[{role:'user',content:blogPrompt}]},null));
     }
 
-    const responses = await Promise.all(calls);
-    const [liData, blogData] = await Promise.all(responses.map(r=>r.json()));
+    const [liData, blogData] = await Promise.all(calls);
 
-    if(liData.error) throw new Error(liData.error.message);
     const newLI = liData.content?.[0]?.text || '';
     const newBlog = blogData ? (blogData.content?.[0]?.text || '') : '';
 
@@ -5484,13 +5540,10 @@ Compose a single paragraph (80–150 words) that includes: subject matter (drive
 Avoid: corny stock photography (handshakes, thumbs-up, suits in a row, people pointing at charts), AI tropes (glowing brains, neon circuits, robots), obvious infographic styling, and any image that's just "generic luxury" or "generic productivity."
 
 Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "Here's the prompt:" — just the prompt itself.`;
-    const response = await fetch(WORKER, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL_UTILITY, max_tokens: 600, messages: [{ role: 'user', content: prompt }] }),
-    });
-    const data = await response.json();
-    if(data.error) throw new Error(data.error.message || 'Unknown error');
+    const data = await callClaude(
+      { model: MODEL_UTILITY, max_tokens: 600, messages: [{ role: 'user', content: prompt }] },
+      btn ? (m => { btn.textContent = m; }) : null
+    );
     const result = (data.content?.[0]?.text || '').trim();
     if(!result) throw new Error('Empty response');
     await navigator.clipboard.writeText(result);
@@ -5731,9 +5784,7 @@ async function deAiDraft(){
   const voice=voicePrompts[currentStream]||'';
   const prompt=`${voice}\n${HOUSE_STYLE}\n\nYou are editing an EXISTING post to remove AI-tell phrasing and cadence. Apply the HOUSE WRITING STANDARDS above aggressively to the draft below — this is a cleanup pass, not a rewrite of the substance.\n\nDRAFT:\n---\n${current}\n---\n\nReturn the same post with the worn phrases and AI cadence removed: keep the voice, keep every fact and number, keep roughly the same length and structure, and do not introduce new claims or a different point. If a line already sounds human, leave it alone. Return ONLY the cleaned-up post — no preamble, no commentary, no quotes around it.`;
   try{
-    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const data=await r.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const data=await callClaude({model:MODEL_CREATIVE,max_tokens:1000,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
     const text=(data.content?.[0]?.text||'').trim();
     if(!text) throw new Error('Empty response');
     generatedLinkedIn=text;
@@ -5947,8 +5998,7 @@ ${content}
 4 talking points for panels and networking events. One to two sentences each. Confident, specific, natural. Start each with "TP:" on its own line.`;
 
   try{
-    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const d=await r.json(); if(d.error) throw new Error(d.error.message);
+    const d=await callClaude({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
     const text=d.content?.[0]?.text||'';
     const bm=text.match(/===BRIEFING===([\s\S]*?)===TALKING POINTS===/i);
     const tm=text.match(/===TALKING POINTS===([\s\S]*?)$/i);
@@ -5965,7 +6015,7 @@ ${content}
     document.getElementById('now-reading').textContent='Briefing ready — hit ▶ to listen.';
     showToast('Briefing ready — hit play!','success');
     setStatus('Ready',false);
-  }catch(e){showToast('Briefing generation failed','error');setStatus('Ready',false);}
+  }catch(e){showToast('Briefing failed: '+e.message,'error');setStatus('Ready',false);}
   finally{btn.disabled=false;btn.textContent='🎙 Generate Audio Briefing';}
 }
 
@@ -6006,14 +6056,13 @@ async function askResearch(){
   const el=document.getElementById('research-answer');
   el.textContent='Researching...'; el.className='research-answer loading';
   try{
-    const r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:`Erika Harrison is co-founder of Eridion Glass, luxury glass subcontractor Dallas TX. She published:\n---\n${content}\n---\nShe asks: "${q}"\n\nAnswer in plain conversational language. Include: (1) clear 2-3 sentence explanation, (2) source/basis, (3) one sentence she could say confidently on a panel. Tight and practical.`}]})});
-    const d=await r.json(); if(d.error) throw new Error(d.error.message);
+    const d=await callClaude({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:`Erika Harrison is co-founder of Eridion Glass, luxury glass subcontractor Dallas TX. She published:\n---\n${content}\n---\nShe asks: "${q}"\n\nAnswer in plain conversational language. Include: (1) clear 2-3 sentence explanation, (2) source/basis, (3) one sentence she could say confidently on a panel. Tight and practical.`}]},m=>{el.textContent=m;});
     const answer=d.content?.[0]?.text||'';
     el.textContent=answer; el.className='research-answer';
     researchHistory.unshift({question:q,answer});
     renderResearchHistory();
     document.getElementById('research-question').value='';
-  }catch(e){el.textContent='Research failed — try again.';el.className='research-answer';}
+  }catch(e){el.textContent='Research failed: '+e.message;el.className='research-answer';showToast('Research failed: '+e.message,'error');}
 }
 
 function readResearchAnswer(){
@@ -6186,9 +6235,7 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
   const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:900,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+    const data=await callClaude({model:MODEL_CREATIVE,max_tokens:900,messages:[{role:'user',content:prompt}]},m=>{resultsEl.innerHTML=`<div class="spin-loading">${escapeHTML(m)}</div>`;});
     const rawText=(data.content?.[0]?.text||'').trim();
     if(!rawText) throw new Error('Empty response');
 
@@ -6461,22 +6508,8 @@ For same-voice snippets, set cross_voice:false and bridge_from:null.
 For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Quinta & Co-voice snippets, ig_intro must be a 1-2 sentence channel intro per the rules above.`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:4000,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
-    const text=(data.content?.[0]?.text||'').trim();
-    // Extract JSON
-    let jsonText=text.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
-    let s=jsonText.indexOf('{'), e=-1, depth=0, inStr=false, esc=false;
-    for(let i=s;i<jsonText.length;i++){
-      const c=jsonText[i];
-      if(inStr){ if(esc)esc=false; else if(c==='\\')esc=true; else if(c==='"')inStr=false; }
-      else if(c==='"') inStr=true;
-      else if(c==='{') depth++;
-      else if(c==='}'){ depth--; if(depth===0){e=i;break;} }
-    }
-    if(s<0||e<0) throw new Error('No JSON in response');
-    const parsed=JSON.parse(jsonText.substring(s,e+1));
+    const data=await callClaude({model:MODEL_CREATIVE,max_tokens:4000,messages:[{role:'user',content:prompt}]},m=>{resultsEl.innerHTML=`<div class="spin-loading">${escapeHTML(m)}</div>`;});
+    const parsed=extractJSONFromResponse(data);
     const arr=Array.isArray(parsed.snippets)?parsed.snippets:[];
     if(!arr.length) throw new Error('No snippets returned');
 
@@ -6699,21 +6732,8 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"focus_keyword":"...","title_tag":"...","meta_description":"...","url_slug":"...","excerpt":"...","alt_text":"...","og_title":"...","og_description":"..."}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
-    const text=data.content?.[0]?.text||'';
-    let jsonText=text.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
-    let s=jsonText.indexOf('{'), e=-1, depth=0, inStr=false, esc=false;
-    for(let i=s;i<jsonText.length;i++){
-      const c=jsonText[i];
-      if(inStr){ if(esc)esc=false; else if(c==='\\')esc=true; else if(c==='"')inStr=false; }
-      else if(c==='"') inStr=true;
-      else if(c==='{') depth++;
-      else if(c==='}'){ depth--; if(depth===0){e=i;break;} }
-    }
-    if(s<0||e<0) throw new Error('No JSON object in response');
-    const parsed=JSON.parse(jsonText.substring(s,e+1));
+    const data=await callClaude({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]},m=>{if(statusEl)statusEl.textContent=m;});
+    const parsed=extractJSONFromResponse(data);
     currentSEO={};
     SEO_FIELDS.forEach(f=>{currentSEO[f]=String(parsed[f]||'').trim();});
     renderSEOPackage();
@@ -6897,21 +6917,8 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"headline":"...","subtitle":"...","email_preview":"...","alt_text":"...","tags":"...","subscribe_cta":"..."}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
-    const text=data.content?.[0]?.text||'';
-    let jsonText=text.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
-    let s=jsonText.indexOf('{'), e=-1, depth=0, inStr=false, esc=false;
-    for(let i=s;i<jsonText.length;i++){
-      const c=jsonText[i];
-      if(inStr){ if(esc)esc=false; else if(c==='\\')esc=true; else if(c==='"')inStr=false; }
-      else if(c==='"') inStr=true;
-      else if(c==='{') depth++;
-      else if(c==='}'){ depth--; if(depth===0){e=i;break;} }
-    }
-    if(s<0||e<0) throw new Error('No JSON object in response');
-    const parsed=JSON.parse(jsonText.substring(s,e+1));
+    const data=await callClaude({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]},m=>{if(statusEl)statusEl.textContent=m;});
+    const parsed=extractJSONFromResponse(data);
     currentSubstack={};
     SUB_FIELDS.forEach(f=>{currentSubstack[f]=String(parsed[f]||'').trim();});
     renderSubstackPackage();
@@ -8933,9 +8940,7 @@ ${days}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
 {"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":"","chart_headline":"","chart_title":"","chart_items":[],"chart_caption":"","carousel_slides":[]}]}`;
-  const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_CREATIVE,max_tokens:8000,messages:[{role:'user',content:prompt}]})});
-  const data=await res.json();
-  if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+  const data=await callClaude({model:MODEL_CREATIVE,max_tokens:8000,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
   const txt=(data.content?.[0]?.text||'');
   const jsonStr=extractJsonObject(txt);
   if(!jsonStr){
@@ -9596,21 +9601,8 @@ Return ONLY valid JSON. No preamble, no markdown fences. Shape:
 ]}`;
 
   try{
-    const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:1500,messages:[{role:'user',content:prompt}]})});
-    const data=await response.json();
-    if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
-    const resp=(data.content?.[0]?.text||'').trim();
-    let jsonText=resp.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
-    let s=jsonText.indexOf('{'), e=-1, depth=0, inStr=false, esc=false;
-    for(let i=s;i<jsonText.length;i++){
-      const c=jsonText[i];
-      if(inStr){ if(esc)esc=false; else if(c==='\\')esc=true; else if(c==='"')inStr=false; }
-      else if(c==='"') inStr=true;
-      else if(c==='{') depth++;
-      else if(c==='}'){ depth--; if(depth===0){e=i;break;} }
-    }
-    if(s<0||e<0) throw new Error('No JSON in response');
-    const parsed=JSON.parse(jsonText.substring(s,e+1));
+    const data=await callClaude({model:MODEL_UTILITY,max_tokens:1500,messages:[{role:'user',content:prompt}]},m=>{listEl.innerHTML=`<div class="ii-loading">${escapeHTML(m)}</div>`;});
+    const parsed=extractJSONFromResponse(data);
     const arr=Array.isArray(parsed.extracts)?parsed.extracts:[];
     if(!arr.length) throw new Error('No extracts returned');
     iiState.extracts=arr;
@@ -9866,14 +9858,8 @@ Context: ${brandContext}
 STAT OR QUOTE: ${text}
 
 Return ONLY valid JSON, no preamble: {"terms":["query one","query two","query three"]}`;
-  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:400,messages:[{role:'user',content:prompt}]})});
-  const data=await response.json();
-  if(data.error) throw new Error(data.error.message);
-  const resp=(data.content?.[0]?.text||'').trim();
-  let jsonText=resp.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/i,'');
-  const s=jsonText.indexOf('{'), e=jsonText.lastIndexOf('}');
-  if(s<0||e<0) throw new Error('No JSON');
-  const parsed=JSON.parse(jsonText.substring(s,e+1));
+  const data=await callClaude({model:MODEL_UTILITY,max_tokens:400,messages:[{role:'user',content:prompt}]},null);
+  const parsed=extractJSONFromResponse(data);
   return Array.isArray(parsed.terms)?parsed.terms.slice(0,3):[];
 }
 
@@ -9902,9 +9888,7 @@ DO / DON'T
 [One line each on what to lean into and what to avoid]
 
 Return the brief as plain text, no markdown fences.`;
-  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:800,messages:[{role:'user',content:prompt}]})});
-  const data=await response.json();
-  if(data.error) throw new Error(data.error.message);
+  const data=await callClaude({model:MODEL_UTILITY,max_tokens:800,messages:[{role:'user',content:prompt}]},null);
   return (data.content?.[0]?.text||'').trim();
 }
 
@@ -9921,9 +9905,7 @@ Context: ${brandContext} The image should feel purposeful — NOT corny stock im
 Write a single paragraph (80-150 words) that includes: subject matter, composition, lighting, materials/textures, mood, stylistic references, and aspect ratio note. The prompt should be ready to paste straight into any AI image tool.
 
 Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "Here's the prompt:" — just the prompt itself.`;
-  const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:MODEL_UTILITY,max_tokens:600,messages:[{role:'user',content:prompt}]})});
-  const data=await response.json();
-  if(data.error) throw new Error(data.error.message);
+  const data=await callClaude({model:MODEL_UTILITY,max_tokens:600,messages:[{role:'user',content:prompt}]},null);
   return (data.content?.[0]?.text||'').trim();
 }
 
