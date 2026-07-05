@@ -129,6 +129,7 @@
     </div>
     <div class="ed-foot">
       <button class="btn save" id="saveBtn" onclick="saveCurrent()">Save <span class="kbd">S</span></button>
+      <button class="btn ghost" onclick="downloadCurrent()" title="Download this photo at full resolution">⬇ Download <span class="kbd">D</span></button>
       <button class="btn ghost" onclick="closeEditor()">Close <span class="kbd">Esc</span></button>
       <span class="savestate" id="saveState"></span>
     </div>
@@ -289,6 +290,15 @@ function renderChips(){
   mk('grpFlags','flags',VOCAB.flags,false);
 }
 function closeEditor(){ document.getElementById('overlay').classList.remove('open'); curIdx=-1; }
+async function downloadCurrent(){
+  const a=view[curIdx]; if(!a) return;
+  const url=BASE+a.web;
+  try{
+    const r=await fetch(url); const b=await r.blob(); const u=URL.createObjectURL(b);
+    const link=document.createElement('a'); link.href=u; link.download=(a.filename||a.id); document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),1500);
+  }catch(e){ window.open(url,'_blank','noopener'); }
+}
 function step(d){
   if(curIdx<0)return;
   const ni=curIdx+d;
@@ -326,6 +336,7 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='ArrowLeft'){step(-1);e.preventDefault();}
   else if(e.key==='Escape'){closeEditor();}
   else if(e.key==='s'||e.key==='S'){saveCurrent();e.preventDefault();}
+  else if(e.key==='d'||e.key==='D'){downloadCurrent();e.preventDefault();}
 });
 
 // ---- settings ----

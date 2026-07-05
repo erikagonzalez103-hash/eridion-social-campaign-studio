@@ -8774,8 +8774,8 @@ function renderPromptPack(){
     const it=library.find(x=>x.id===e.itemId);
     const hasImg=it&&getItemImageUrls(it).length;
     const catStrip=(e.catalogMatches&&e.catalogMatches.length)?`<div style="margin:8px 0 10px">
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">📸 Real photos from your catalog that fit — click one to use it instead of generating:</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">${e.catalogMatches.map(a=>`<button onclick="useCatalogPhoto(${i},'${a.id}')" title="${escapeHTML(a.caption||a.filename||'')}" style="padding:0;border:2px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer;background:none;line-height:0"><img loading="lazy" src="${catalogUrl(a,true)}" style="width:104px;height:78px;object-fit:cover;display:block"></button>`).join('')}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">📸 Real photos from your catalog that fit — click to use as-is, or ⬇ to download &amp; upgrade in ChatGPT:</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">${e.catalogMatches.map(a=>`<div style="position:relative;line-height:0"><button onclick="useCatalogPhoto(${i},'${a.id}')" title="Use this real photo as-is" style="padding:0;border:2px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer;background:none;line-height:0"><img loading="lazy" src="${catalogUrl(a,true)}" style="width:104px;height:78px;object-fit:cover;display:block"></button><button onclick="downloadCatalogPhoto(${i},'${a.id}')" title="Download full-res + copy an upgrade prompt for ChatGPT" style="position:absolute;bottom:5px;right:5px;width:24px;height:24px;border:none;border-radius:5px;background:rgba(21,56,98,.85);color:#fff;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center">⬇</button></div>`).join('')}</div>
       </div>`:'';
     return `<div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;background:var(--surface)">
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
@@ -8820,6 +8820,29 @@ function useCatalogPhoto(i, assetId){
   attachImageToLibraryItem(e.itemId, catalogUrl(a,false), 'catalog', 'Eridion — real install'+(a.category?(' ('+a.category+')'):''));
   showToast(e.day+': real photo attached ✓','success');
   renderPromptPack();
+}
+// A ready-to-paste instruction for upgrading a REAL catalog photo in ChatGPT.
+function catalogUpgradePrompt(a){
+  return "Upgrade this real Eridion Glass job photo for a premium social post. Do NOT redraw, over-relight, or replace the actual installation — it must stay authentically this real job.\n"+
+    "Photo: "+((a.caption||a.filename||'').trim())+"\n"+
+    "Treatment:\n"+
+    "• Clean professional/DSLR shot → light touch: keep color true, lift exposure/contrast subtly, straighten the verticals, and CROP to a strong architectural composition (lead with a clean line, rule-of-thirds, negative space). Architectural-Digest editorial, never over-filtered.\n"+
+    "• iPhone/rough shot → do more: correct white balance and exposure, crop tighter to hero the glass, clean out clutter and distractions.\n"+
+    "• Crop for drama when it earns it — tight on an edge, hardware, or a reflection. Export a crisp 4:5 portrait (or 1:1) crop sized for LinkedIn/Instagram.\n"+
+    "Return the finished image only.";
+}
+// Download the full-res catalog photo + copy the upgrade prompt to the clipboard.
+async function downloadCatalogPhoto(i, assetId){
+  const e=promptPackEntries[i]; if(!e) return;
+  const a=(e.catalogMatches||[]).find(x=>x.id===assetId); if(!a) return;
+  const url=catalogUrl(a,false);
+  try{
+    const r=await fetch(url); const b=await r.blob(); const u=URL.createObjectURL(b);
+    const link=document.createElement('a'); link.href=u; link.download=(a.filename||a.id); document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),1500);
+  }catch(err){ window.open(url,'_blank','noopener'); }
+  try{ await navigator.clipboard.writeText(catalogUpgradePrompt(a)); showToast("Photo downloaded + upgrade prompt copied — paste both into ChatGPT",'success'); }
+  catch(err){ showToast("Photo downloaded — couldn't copy the prompt",'success'); }
 }
 // Library-led bonus posts: pull 1-2 of the best UNUSED real photos, draft an
 // Eridion caption grounded in each, and add them to the current week.
