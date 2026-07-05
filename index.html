@@ -5566,7 +5566,7 @@ async function generateImagePromptForItem(itemId, btn){
     showToast('No post copy to read — add some text first','error');
     return;
   }
-  const brandContext = (typeof IMAGE_CONTEXTS!=='undefined' && IMAGE_CONTEXTS[visualVoice]) || (IMAGE_CONTEXTS && IMAGE_CONTEXTS.eridion) || '';
+  const brandContext = (typeof BRAND_IMAGE_BRIEFS!=='undefined' && (BRAND_IMAGE_BRIEFS[visualVoice] || BRAND_IMAGE_BRIEFS.eridion || BRAND_IMAGE_BRIEFS.quinta)) || '';
   const voiceNote = isAmplifying
     ? `Note: This post is written by ${writingVoice.toUpperCase()} amplifying content originally from ${visualVoice.toUpperCase()}. The image should sit in ${visualVoice.toUpperCase()}'s visual world (the brand being amplified), not the reposter's.`
     : '';
