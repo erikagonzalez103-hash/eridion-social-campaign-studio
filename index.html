@@ -3320,10 +3320,11 @@ textarea { min-height: 80px; line-height: 1.6; }
         <div class="sched-modal" id="prompt-pack-modal">
           <div class="sched-modal-inner" style="max-width:760px;max-height:88vh;overflow-y:auto">
             <div class="sched-modal-title">🎟 Prompt Pack — render in your ChatGPT, drop the images back</div>
-            <div style="font-size:12px;color:var(--text-muted);margin:6px 0 16px;line-height:1.5">The tool picked a format and wrote a ready-to-paste prompt for each day. Copy each into your brand-loaded ChatGPT, then upload the finished image back here to attach it to that post.</div>
+            <div style="font-size:12px;color:var(--text-muted);margin:6px 0 16px;line-height:1.5">The tool picked a format for each day and, where a real job photo fits, offers matching shots from your catalog to use instead of generating. Copy any prompt into your brand-loaded ChatGPT and drop the finished image back — or click a real photo to attach it directly.</div>
             <div id="prompt-pack-body"></div>
-            <div style="display:flex;gap:10px;align-items:center;margin-top:16px">
+            <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap">
               <button class="action-btn" onclick="copyAllDayPrompts()">⧉ Copy all prompts</button>
+              <button class="action-btn" onclick="addLibraryLedPosts()" title="Pull 1–2 of your best real install photos and draft Eridion captions for them, added to this week">➕ Add real-photo posts</button>
               <button class="action-btn" onclick="closePromptPack()" style="margin-left:auto">Close</button>
             </div>
           </div>
@@ -8818,6 +8819,54 @@ function useCatalogPhoto(i, assetId){
   attachImageToLibraryItem(e.itemId, catalogUrl(a,false), 'catalog', 'Eridion — real install'+(a.category?(' ('+a.category+')'):''));
   showToast(e.day+': real photo attached ✓','success');
   renderPromptPack();
+}
+// Library-led bonus posts: pull 1-2 of the best UNUSED real photos, draft an
+// Eridion caption grounded in each, and add them to the current week.
+async function addLibraryLedPosts(){
+  if(!promptPackGroupKey){ showToast('Open a week first','error'); return; }
+  await loadCatalog();
+  const groupItems=library.filter(x=>(x.parent_id||x.id)===promptPackGroupKey);
+  const usedUrls=new Set(groupItems.flatMap(it=>getItemImageUrls(it)));
+  const pool=((CATALOG&&CATALOG.assets)||[]).filter(a=>
+    (a.grade==='hero'||(a.flags||[]).includes('showcase')) &&
+    !(a.flags||[]).includes('no-product') && !(a.flags||[]).includes('sales-sheet') &&
+    !(a.flags||[]).includes('duplicate') && !(a.flags||[]).includes('watermark') &&
+    !usedUrls.has(catalogUrl(a,false)));
+  if(!pool.length){ showToast('No unused hero/showcase photos to add','error'); return; }
+  pool.sort((a,b)=>(((b.flags||[]).includes('showcase')?1:0)-((a.flags||[]).includes('showcase')?1:0)));
+  const picks=[]; const seenCat=new Set();
+  for(const a of pool){ if(picks.length>=2) break; if(seenCat.has(a.category)) continue; seenCat.add(a.category); picks.push(a); }
+  const topic=(groupItems[0]&&groupItems[0].topic)||document.getElementById('topic-input').value.trim()||'Eridion Glass';
+  const bucket=(groupItems[0]&&groupItems[0].bucket)||undefined;
+  setStatus('Writing real-photo posts…',true);
+  let added=0;
+  try{
+    for(const a of picks){
+      const prompt=`Write ONE short LinkedIn caption for Eridion Glass — a master-glazier-led custom glass shop serving luxury homes over $1M in Dallas. Ground it ENTIRELY in this finished-job photo; invent no specifics beyond what's given.
+Photo: ${a.caption||a.filename}
+Product(s): ${(a.product||[]).join(', ')||'custom glass'}. Space: ${(a.space||[]).join(', ')||'residential'}.
+This week's theme (for continuity): ${topic}
+Voice: master tradesperson talking to a peer — precise, confident, specifics over adjectives (field-verify, set to spec, low-iron, frameless, fabricate). No hype, no "we pride ourselves", no world-class/cutting-edge, no emojis. 2-4 sentences. Return ONLY the caption text, nothing else.`;
+      const data=await callClaude({model:MODEL_CREATIVE,max_tokens:400,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
+      const cap=((data&&data.content&&data.content[0]&&data.content[0].text)||'').trim();
+      if(!cap) continue;
+      const entry=addToLibrary({ voice:'eridion', bucket, format:'linkedin', topic,
+        title:'Real install · '+(a.category||'Eridion')+' — '+topic.slice(0,30),
+        linkedin_text:cap, hashtags:[],
+        imageUrls:[catalogUrl(a,false)], imageSource:'catalog', imageCredit:'Eridion — real install' });
+      entry.parent_id=promptPackGroupKey;
+      entry.snippet_day='Bonus';
+      entry.snippet_angle='library-led';
+      persistLibrary();
+      promptPackEntries.push({ itemId:entry.id, day:'Bonus · real photo', voice:'eridion', format:'image',
+        prompt:'Real catalog photo already attached — no ChatGPT needed. The caption was drafted for you; edit it in the Library.', catalogMatches:[] });
+      added++;
+    }
+    if(typeof renderLibrary==='function') renderLibrary();
+    renderPromptPack();
+    showToast(added?('Added '+added+' real-photo post'+(added>1?'s':'')+' to this week ✓'):'Could not draft posts','error');
+  }catch(e){ showToast('Bonus posts failed: '+(e.message||e),'error'); }
+  finally{ setStatus('Ready',false); }
 }
 function closePromptPack(){ document.getElementById('prompt-pack-modal').classList.remove('open'); }
 
