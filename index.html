@@ -4103,13 +4103,22 @@ function highlightStep(step){
   });
 }
 function refreshSteps(){
-  const txt=id=>{const e=document.getElementById(id); if(!e) return ''; return (e.tagName==='INPUT'||e.tagName==='TEXTAREA')?(e.value||''):(e.textContent||''); };
+  // "done" = real content is present for THIS post. Guard against the empty-state
+  // placeholders ("…will appear here", 'Select "Blog…'). Images + Schedule are the
+  // final actions with no reliable per-post signal, so they never auto-check.
+  const real=(id,min)=>{
+    const e=document.getElementById(id); if(!e) return false;
+    const t=(e.textContent||'').trim();
+    if(t.length<min) return false;
+    if(/appear here/i.test(t) || /^select "blog/i.test(t)) return false;
+    return true;
+  };
+  const topic=document.getElementById('topic-input');
   const done={
-    setup: !!txt('topic-input').trim(),
-    research: txt('linkedin-output').trim().length>40,
-    linkedin: txt('linkedin-output').trim().length>40,
-    blog: txt('blog-output').trim().length>60,
-    calendar: (typeof library!=='undefined' && Array.isArray(library) && library.some(x=>x.status==='scheduled'))
+    setup: !!(topic && topic.value.trim()),
+    research: real('linkedin-output',40),
+    linkedin: real('linkedin-output',40),
+    blog: real('blog-output',60)
   };
   document.querySelectorAll('.step-chip').forEach(c=>{
     const s=c.getAttribute('data-step');
