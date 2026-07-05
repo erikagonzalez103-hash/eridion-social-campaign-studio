@@ -6572,7 +6572,9 @@ For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Quinta
     if(!arr.length) throw new Error('No snippets returned');
 
     spinWeekResults=arr.map((x,i)=>({
-      day:x.day||dayDefs[i]?.day||`Day ${i+1}`,
+      // Day is assigned by POSITION (snippet 1=Monday … 5=Friday, per dayDefs) —
+      // never the model's echoed x.day, which sometimes comes back all "Monday".
+      day:dayDefs[i]?.day||x.day||`Day ${i+1}`,
       voice:x.voice||dayDefs[i]?.voice||'eridion',
       angleKey:dayDefs[i]?.angleKey||'hook',
       angleLabel:x.angle_label||dayDefs[i]?.angleLabel||'',
