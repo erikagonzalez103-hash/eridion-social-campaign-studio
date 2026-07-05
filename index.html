@@ -2853,6 +2853,7 @@ textarea { min-height: 80px; line-height: 1.6; }
             <button class="aux-chip" data-step="today" onclick="switchTab('today')">☀️ Today</button>
             <button class="aux-chip" data-step="library" onclick="switchTab('library')">📚 Library</button>
             <button class="aux-chip" data-step="briefing" onclick="switchTab('briefing')">🎙 Briefing</button>
+            <button class="aux-chip" onclick="window.open('catalog.html','_blank','noopener')" title="Browse &amp; tag your real job photos (opens in a new tab)">📁 Catalog</button>
           </div>
         </div>
 
@@ -3191,7 +3192,7 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div class="panel-title">Images — Prompt Pack + real photos</div>
           <div style="background:#F0F4F8;border:1px solid #D9DEE5;border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.6;color:#2f3a45;margin-bottom:14px">
             Images are made through the <strong>Prompt Pack</strong> — spin a week (or open a saved post → <em>Build prompt pack</em>), render each ready-made prompt in your ChatGPT, then drop the finished image back on the post. Every photo prompt now tells ChatGPT how to treat a <strong>real job photo</strong>: light-touch filters + architectural crop for pro shots, heavier cleanup for iPhone shots, and crop-for-drama.
-            <div style="margin-top:10px"><button class="action-btn" onclick="switchTab('library')">📚 Go to Library → Build prompt pack</button></div>
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="action-btn" onclick="switchTab('library')">📚 Go to Library → Build prompt pack</button><button class="action-btn" onclick="window.open('catalog.html','_blank','noopener')">📁 Open the Asset Catalog</button></div>
           </div>
           <div class="panel-title" style="margin-top:8px">Or attach a real photo to the current post</div>
           <div class="upload-zone" onclick="document.getElementById('file-input').click()">
