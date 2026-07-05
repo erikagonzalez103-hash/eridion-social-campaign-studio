@@ -8688,7 +8688,48 @@ function buildPromptForDay(voice, format, spec, fallbackText){
     REAL_PHOTO_GUIDE;
 }
 const WEEKDAY_ORDER = {Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6,Sunday:7};
-let promptPackEntries=[]; // [{itemId, day, voice, format, prompt}]
+// ── Central image catalog (R2) — feed real job photos into the week's arc ──
+// Reads the PUBLIC manifest (no worker needed); /api/catalog is only for saving tags.
+const CATALOG_MANIFEST_URL='https://pub-17160ed212d74341a64e62d4f71d7c34.r2.dev/manifest.json';
+let CATALOG=null;
+async function loadCatalog(force){
+  if(CATALOG && !force) return CATALOG;
+  try{ if(!force){ const c=JSON.parse(localStorage.getItem('catalog_manifest')||'null'); if(c&&c.t&&Date.now()-c.t<21600000&&c.m){ CATALOG=c.m; return CATALOG; } } }catch(e){}
+  try{
+    const r=await fetch(CATALOG_MANIFEST_URL+'?t='+Date.now());
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    CATALOG=await r.json();
+    try{ localStorage.setItem('catalog_manifest', JSON.stringify({t:Date.now(), m:CATALOG})); }catch(e){}
+  }catch(e){ console.warn('Catalog load failed:', e.message); CATALOG=CATALOG||{base:'',assets:[]}; }
+  return CATALOG;
+}
+function catalogBase(){ let b=(CATALOG&&CATALOG.base)||''; if(b&&!b.endsWith('/'))b+='/'; return b; }
+function catalogUrl(a, thumb){ return catalogBase()+(thumb?a.thumb:a.web); }
+// Score catalog photos against a day's post + arc decision; return top n real matches.
+// Eridion glass photos naturally only score for Eridion posts (other voices → ~0 → generate).
+function matchCatalogPhotos(text, decision, n){
+  const assets=((CATALOG&&CATALOG.assets)||[]).filter(a=>
+    a.grade!=='skip' && !(a.flags||[]).includes('no-product') && !(a.flags||[]).includes('sales-sheet') &&
+    !(a.flags||[]).includes('duplicate') && !(a.flags||[]).includes('watermark'));
+  if(!assets.length) return [];
+  const d=decision||{};
+  const hay=((text||'')+' '+(d.image_prompt||'')+' '+(d.stock_query||'')+' '+(d.headline||'')+' '+(d.infographic_title||'')).toLowerCase();
+  const has=t=>{ const w=String(t).replace(/-/g,' '); return hay.includes(w)||hay.includes(t); };
+  const scored=assets.map(a=>{
+    let s=0;
+    (a.product||[]).forEach(t=>{ if(has(t)) s+=4; });
+    (a.space||[]).forEach(t=>{ if(has(t)) s+=2; });
+    (a.style||[]).forEach(t=>{ if(has(t)) s+=1; });
+    (a.caption||'').toLowerCase().split(/[^a-z]+/).forEach(w=>{ if(w.length>4 && hay.includes(w)) s+=0.4; });
+    if(a.grade==='hero') s+=1.5;
+    if((a.flags||[]).includes('showcase')) s+=1;
+    return {a,s};
+  }).filter(x=>x.s>=4).sort((x,y)=>y.s-x.s);
+  return scored.slice(0,n).map(x=>x.a);
+}
+
+let promptPackGroupKey=null;
+let promptPackEntries=[]; // [{itemId, day, voice, format, prompt, catalogMatches}]
 function openPromptPackFromLibrary(id){ const it=library.find(x=>x.id===id); if(!it){showToast('Post not found','error');return;} openPromptPackForGroup(it.parent_id||it.id); }
 async function openPromptPackForGroup(groupKey){
   if(!groupKey){ showToast('No week found','error'); return; }
@@ -8700,6 +8741,8 @@ async function openPromptPackForGroup(groupKey){
   document.getElementById('prompt-pack-modal').classList.add('open');
   setStatus("Reading the week's arc…",true);
   try{
+    promptPackGroupKey=groupKey;
+    await loadCatalog();
     const decisions=await evaluateArc(group.map(g=>({label:g.snippet_day||g.title||'', voice:g.voice, text:g.linkedin_text||g.blog_text||''})));
     promptPackEntries=group.map((g,i)=>{
       const d=decisions[i]||{};
@@ -8713,7 +8756,9 @@ async function openPromptPackForGroup(groupKey){
         chart_headline:d.chart_headline, chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
         carousel_slides:Array.isArray(d.carousel_slides)?d.carousel_slides:[]
       };
-      return { itemId:g.id, day:g.snippet_day||g.title||('Day '+(i+1)), voice:g.voice, format:fmt, prompt:buildPromptForDay(g.voice, fmt, spec, g.linkedin_text||g.blog_text) };
+      const isPhoto=(fmt==='image'||fmt==='stock');
+      const matches=isPhoto?matchCatalogPhotos(g.linkedin_text||g.blog_text||'', d, 3):[];
+      return { itemId:g.id, day:g.snippet_day||g.title||('Day '+(i+1)), voice:g.voice, format:fmt, prompt:buildPromptForDay(g.voice, fmt, spec, g.linkedin_text||g.blog_text), catalogMatches:matches };
     });
     renderPromptPack();
   }catch(e){
@@ -8726,12 +8771,18 @@ function renderPromptPack(){
   wrap.innerHTML=promptPackEntries.map((e,i)=>{
     const it=library.find(x=>x.id===e.itemId);
     const hasImg=it&&getItemImageUrls(it).length;
+    const catStrip=(e.catalogMatches&&e.catalogMatches.length)?`<div style="margin:8px 0 10px">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">📸 Real photos from your catalog that fit — click one to use it instead of generating:</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">${e.catalogMatches.map(a=>`<button onclick="useCatalogPhoto(${i},'${a.id}')" title="${escapeHTML(a.caption||a.filename||'')}" style="padding:0;border:2px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer;background:none;line-height:0"><img loading="lazy" src="${catalogUrl(a,true)}" style="width:104px;height:78px;object-fit:cover;display:block"></button>`).join('')}</div>
+      </div>`:'';
     return `<div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;background:var(--surface)">
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:.05em;color:var(--text-muted)">${escapeHTML(e.day)} · ${vLabel[e.voice]||e.voice}</span>
         <span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;color:var(--text)">${ASSET_FMT_LABEL[e.format]||e.format}</span>
         ${hasImg?'<span style="color:var(--success);font-size:11px;margin-left:auto">✓ image attached</span>':''}
       </div>
+      ${catStrip}
+      ${catStrip?'<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">…or generate one in ChatGPT with this prompt:</div>':''}
       <textarea readonly id="pp-text-${i}" style="width:100%;min-height:96px;font-family:var(--font-mono);font-size:11px;line-height:1.5;padding:9px;border:1px solid var(--border);border-radius:5px;background:var(--surface2);color:var(--text);resize:vertical">${escapeHTML(e.prompt)}</textarea>
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
         <button class="action-btn" onclick="copyDayPrompt(${i})">⧉ Copy prompt</button>
@@ -8760,6 +8811,13 @@ async function attachFinishedImage(event, i){
     renderPromptPack();
   }catch(err){ showToast('Attach failed: '+err.message,'error'); }
   finally{ setStatus('Ready',false); event.target.value=''; }
+}
+function useCatalogPhoto(i, assetId){
+  const e=promptPackEntries[i]; if(!e) return;
+  const a=(e.catalogMatches||[]).find(x=>x.id===assetId); if(!a) return;
+  attachImageToLibraryItem(e.itemId, catalogUrl(a,false), 'catalog', 'Eridion — real install'+(a.category?(' ('+a.category+')'):''));
+  showToast(e.day+': real photo attached ✓','success');
+  renderPromptPack();
 }
 function closePromptPack(){ document.getElementById('prompt-pack-modal').classList.remove('open'); }
 
