@@ -2655,6 +2655,23 @@ textarea { min-height: 80px; line-height: 1.6; }
   .tab { padding: 12px 12px !important; font-size: 10px !important; }
 }
 
+/* === NUMBERED WORKFLOW RAIL === */
+.step-rail{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.step-rail-steps{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.step-chip{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #D9DEE5;color:#5C6B7A;border-radius:22px;padding:7px 14px 7px 8px;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .12s;font-family:inherit}
+.step-chip:hover{border-color:#153862;color:#153862}
+.step-chip.active{background:#153862;border-color:#153862;color:#fff}
+.step-chip .step-n{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#EAEEF3;color:#153862;font-size:11px;font-weight:700;flex:none}
+.step-chip.active .step-n{background:rgba(255,255,255,.22);color:#fff}
+.step-chip.done .step-n{background:#32A200;color:#fff}
+.step-chip.done .step-n .n-num{display:none}
+.step-chip.done .step-n::after{content:'✓'}
+.step-rail-aux{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.aux-chip{background:transparent;border:1px solid #E6E8EC;color:#5C6B7A;border-radius:8px;padding:6px 11px;font-size:12px;cursor:pointer;font-family:inherit}
+.aux-chip:hover{border-color:#153862;color:#153862}
+.aux-chip.active{background:#EAEEF3;border-color:#153862;color:#153862;font-weight:600}
+@media(max-width:900px){.step-rail-aux{margin-left:0;width:100%}}
+
 </style>
 </head>
 <body>
@@ -2823,19 +2840,19 @@ textarea { min-height: 80px; line-height: 1.6; }
 
     <div>
       <div class="panel output-panel">
-        <div class="tabs-bar">
-          <label class="tabs-bar-lbl" for="main-tab-select">View:</label>
-          <div class="select-wrap tabs-bar-wrap">
-            <select id="main-tab-select" class="tabs-bar-select" onchange="switchTab(this.value)">
-              <option value="today">☀️ Today</option>
-              <option value="research">🔬 Research</option>
-              <option value="linkedin">💼 LinkedIn</option>
-              <option value="blog">📝 Blog Post</option>
-              <option value="library">📚 Library</option>
-              <option value="calendar">📆 Calendar</option>
-              <option value="image">🖼 Image</option>
-              <option value="briefing">🎙 Briefing</option>
-            </select>
+        <div class="tabs-bar step-rail">
+          <div class="step-rail-steps">
+            <button class="step-chip" data-step="setup" onclick="goStep('setup')" title="Fill topic + key points on the left"><span class="step-n"><span class="n-num">1</span></span> Set up</button>
+            <button class="step-chip" data-step="research" onclick="goStep('research')" title="Research, then generate the post"><span class="step-n"><span class="n-num">2</span></span> Draft</button>
+            <button class="step-chip" data-step="linkedin" onclick="goStep('linkedin')" title="Review + refine the LinkedIn copy"><span class="step-n"><span class="n-num">3</span></span> LinkedIn</button>
+            <button class="step-chip" data-step="blog" onclick="goStep('blog')" title="Blog copy + SEO package"><span class="step-n"><span class="n-num">4</span></span> Blog + SEO</button>
+            <button class="step-chip" data-step="image" onclick="goStep('image')" title="Prompt Pack + real photos"><span class="step-n"><span class="n-num">5</span></span> Images</button>
+            <button class="step-chip" data-step="calendar" onclick="goStep('calendar')" title="Schedule + push to Buffer"><span class="step-n"><span class="n-num">6</span></span> Schedule</button>
+          </div>
+          <div class="step-rail-aux">
+            <button class="aux-chip" data-step="today" onclick="switchTab('today')">☀️ Today</button>
+            <button class="aux-chip" data-step="library" onclick="switchTab('library')">📚 Library</button>
+            <button class="aux-chip" data-step="briefing" onclick="switchTab('briefing')">🎙 Briefing</button>
           </div>
         </div>
 
@@ -3171,7 +3188,12 @@ textarea { min-height: 80px; line-height: 1.6; }
 
         <!-- Image Tab -->
         <div class="tab-content" id="tab-image">
-          <div class="panel-title">Select or Upload Image</div>
+          <div class="panel-title">Images — Prompt Pack + real photos</div>
+          <div style="background:#F0F4F8;border:1px solid #D9DEE5;border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.6;color:#2f3a45;margin-bottom:14px">
+            Images are made through the <strong>Prompt Pack</strong> — spin a week (or open a saved post → <em>Build prompt pack</em>), render each ready-made prompt in your ChatGPT, then drop the finished image back on the post. Every photo prompt now tells ChatGPT how to treat a <strong>real job photo</strong>: light-touch filters + architectural crop for pro shots, heavier cleanup for iPhone shots, and crop-for-drama.
+            <div style="margin-top:10px"><button class="action-btn" onclick="switchTab('library')">📚 Go to Library → Build prompt pack</button></div>
+          </div>
+          <div class="panel-title" style="margin-top:8px">Or attach a real photo to the current post</div>
           <div class="upload-zone" onclick="document.getElementById('file-input').click()">
             <div class="upload-icon">📷</div>
             <p>Upload your own Eridion job photo</p>
@@ -3179,11 +3201,6 @@ textarea { min-height: 80px; line-height: 1.6; }
             <p style="margin-top:4px;font-size:11px;color:var(--text-muted)">Select several at once for a carousel (order = selection order)</p>
           </div>
           <input type="file" id="file-input" accept="image/*" multiple onchange="handleUpload(event)">
-          <div class="panel-title" style="margin-top:8px">Or Search Free Stock (Unsplash)</div>
-          <div class="image-search-row">
-            <input type="text" id="image-search" placeholder="e.g. luxury home glass windows Dallas" />
-            <button class="search-btn" onclick="searchImages()">Search</button>
-          </div>
           <img class="selected-image-preview" id="selected-preview" src="" alt="Selected image">
           <div class="image-credit" id="image-credit"></div>
           <div class="image-grid" id="image-grid"></div>
@@ -4031,6 +4048,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadKeys(); wireAutoSaveKeys(); loadKB(); renderBuckets(); updateIndicators();
   loadLibrary(); renderLibrary();
   calWeekStart = getWeekStart(new Date()); renderCalendar();
+  highlightStep('today'); refreshSteps();
 });
 
 function renderBuckets() {
@@ -4066,6 +4084,37 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');
   if(tab==='today') renderToday();
+  highlightStep(tab); refreshSteps();
+}
+
+// ── Numbered workflow rail: jump between steps + reflect progress ──
+function goStep(step){
+  if(step==='setup'){
+    const t=document.getElementById('topic-input');
+    if(t){ try{t.focus();}catch(e){} t.scrollIntoView({behavior:'smooth',block:'center'}); }
+    highlightStep('setup');
+    return;
+  }
+  switchTab(step);
+}
+function highlightStep(step){
+  document.querySelectorAll('.step-chip,.aux-chip').forEach(c=>{
+    c.classList.toggle('active', c.getAttribute('data-step')===step);
+  });
+}
+function refreshSteps(){
+  const txt=id=>{const e=document.getElementById(id); if(!e) return ''; return (e.tagName==='INPUT'||e.tagName==='TEXTAREA')?(e.value||''):(e.textContent||''); };
+  const done={
+    setup: !!txt('topic-input').trim(),
+    research: txt('linkedin-output').trim().length>40,
+    linkedin: txt('linkedin-output').trim().length>40,
+    blog: txt('blog-output').trim().length>60,
+    calendar: (typeof library!=='undefined' && Array.isArray(library) && library.some(x=>x.status==='scheduled'))
+  };
+  document.querySelectorAll('.step-chip').forEach(c=>{
+    const s=c.getAttribute('data-step');
+    c.classList.toggle('done', !!done[s] && !c.classList.contains('active'));
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -4614,7 +4663,6 @@ ${ctaFinal}`;
     else blogOut.textContent='Select "Blog + LinkedIn" format to generate a full blog post.';
 
     updateCharCount();
-    if(topic) document.getElementById('image-search').value=topic;
     logContent(topic,bucketLabel);
     const libEntry=addToLibrary({
       linkedin_text:generatedLinkedIn,
@@ -4942,7 +4990,6 @@ ${ctaFinal}`;
     else blogOut.textContent='Select "Blog + LinkedIn" format to generate a full blog post.';
 
     updateCharCount();
-    if(topic) document.getElementById('image-search').value=topic;
     logContent(topic+` [${pov.label}]`,bucketLabel);
     const libEntry=addToLibrary({
       linkedin_text:generatedLinkedIn,
@@ -6546,7 +6593,6 @@ function renderSpinWeekResults(){
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;padding-bottom:12px;border-bottom:1px solid var(--border)">
       <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--gold-dim)">5 SNIPPETS READY</span>
       <button class="action-btn primary" style="margin-left:auto" onclick="saveAllSpinWeek();openPromptPackForGroup(spinSource&&spinSource.id)" title="Save the week, then get a ready-to-paste image prompt per day to run in your ChatGPT">🎟 Save &amp; build prompt pack</button>
-      <button class="action-btn" onclick="autoBuildWeekAssets()" title="Generate every image in the tool instead (gpt-image-1)">🎨 Auto-build in tool</button>
       <button class="action-btn" onclick="saveAllSpinWeek()">+ Save All</button>
       <button class="action-btn" onclick="saveAndScheduleSpinWeek()">+ Save &amp; Schedule</button>
     </div>
@@ -7203,10 +7249,7 @@ function renderLibrary(){
             <div class="lib-menu-items">
               <button class="lib-menu-item" onclick="openSpinSnippetModal('${it.id}');closeLibMenus()">✦ Spin Snippet</button>
               <button class="lib-menu-item" onclick="openSpinWeekModal('${it.id}');closeLibMenus()">✦ Spin Week</button>
-              <button class="lib-menu-item" onclick="openImageIdeasModal('${it.id}');closeLibMenus()">🎨 Image Ideas</button>
               <button class="lib-menu-item" onclick="openPromptPackFromLibrary('${it.id}');closeLibMenus()">🎟 Build prompt pack (for ChatGPT)</button>
-              <button class="lib-menu-item" onclick="buildWeekImagesFromLibrary('${it.id}');closeLibMenus()">🪄 Auto-build week's images</button>
-              ${(it.blog_text&&it.blog_text.length>200)?`<button class="lib-menu-item" onclick="generateBlogHeroForItem('${it.id}');closeLibMenus()">🖼 Generate hero image</button>`:''}
             </div>
           </div>`:'<div class="lib-menu-spacer"></div>'}
           <div class="lib-menu">
@@ -8485,321 +8528,11 @@ async function _legacyPushWeekToBufferViaZapier(){
   showToast(`${success} pushed, ${failed} failed (Zapier legacy)`, failed?'error':'success');
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// ── IMAGE IDEAS: stat cards, pull quotes, Unsplash, briefs, AI prompts ──
-// ═══════════════════════════════════════════════════════════════════
-
-// Voice-specific visual design systems. Each voice has its own complete aesthetic —
-// not just a color swap. Fonts, composition, decorative elements all differ.
-const VOICE_STYLES = {
-  eridion: {
-    // On brand: deep navy ground, green accent, clean geometric sans (Avenir → Montserrat).
-    bg: '#0E2A47',
-    bgGradient: 'linear-gradient(135deg,#1B466F 0%,#0E2A47 100%)',
-    accent: '#32A200',       // brand green
-    accentBright: '#46C40E',
-    text: '#FFFFFF',
-    textDim: '#C4C4C4',      // brand gray
-    numFont: "'Archivo Expanded','Inter','Segoe UI',Helvetica,Arial,sans-serif",
-    numWeight: '700',
-    labelFont: "'Archivo Expanded','Inter','Segoe UI',Helvetica,Arial,sans-serif",
-    bodyFont: "'Inter','Segoe UI',Helvetica,Arial,sans-serif",
-    dividerColor: '#32A200',
-    decorPattern: 'gold-line',   // thin rule, drawn in accent (now green)
-    vibe: 'clean, modern, architectural; navy and green, structured and precise',
-  },
-  erika: {
-    // Warm editorial. Soft cream bg with rose-gold accent. More air.
-    bg: '#F5F0E8',
-    bgGradient: 'linear-gradient(135deg,#F5F0E8 0%,#EDE5D8 100%)',
-    accent: '#9E5E7E',       // deeper rose-gold for contrast on cream
-    accentBright: '#BF7E9E',
-    text: '#2A2520',
-    textDim: '#6B6560',
-    numFont: "'Cormorant Garamond', serif",
-    numWeight: '400',
-    labelFont: "'DM Mono', monospace",
-    bodyFont: "'Outfit', sans-serif",
-    dividerColor: '#BF7E9E',
-    decorPattern: 'rose-accent', // soft rose rule underline
-    vibe: 'warm editorial, magazine-soft, thoughtful',
-  },
-  quinta: {
-    // Plainspoken, high-contrast. Charcoal with green accent bar. Workshop-direct.
-    bg: '#1D2430',
-    bgGradient: 'linear-gradient(135deg,#242B37 0%,#1D2430 100%)',
-    accent: '#5FAD8A',       // green
-    accentBright: '#8FDBB8',
-    text: '#FFFFFF',
-    textDim: '#B8B4AE',
-    numFont: "'DM Mono', monospace",  // monospace numbers — workshop feel
-    numWeight: '500',
-    labelFont: "'DM Mono', monospace",
-    bodyFont: "'Outfit', sans-serif",
-    dividerColor: '#5FAD8A',
-    decorPattern: 'green-bar',    // thick green bar on left
-    vibe: 'plainspoken, utilitarian, honest',
-  },
-  practice: {
-    // Quiet editorial. Warm cream bg with sage accent. Fraunces italic for soul. Maximum restraint.
-    bg: '#FAFAF6',
-    bgGradient: 'linear-gradient(135deg,#FAFAF6 0%,#F5F2EA 100%)',
-    accent: '#4F6B5C',       // sage-deep
-    accentBright: '#6E8B7A',  // sage
-    text: '#20231F',
-    textDim: '#5A5E55',
-    numFont: "'Fraunces', serif",
-    numWeight: '300',
-    labelFont: "'Cinzel', serif",   // small caps tracked, matches brand wordmark
-    bodyFont: "'Fraunces', serif",
-    dividerColor: '#6E8B7A',
-    decorPattern: 'sage-rule',     // thin sage hairline
-    vibe: 'quiet, editorial, restrained, peaceful',
-  }
-};
-
-// ── SVG Renderers ──
-// Each returns a complete <svg>...</svg> string at the requested ratio.
-
-function renderStatCard(voice, number, label, ratio='square'){
-  const style=VOICE_STYLES[voice]||VOICE_STYLES.eridion;
-  const w = ratio==='landscape' ? 1200 : 1200;
-  const h = ratio==='landscape' ? 675  : 1200;
-  const numEscape=String(number||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const labelEscape=String(label||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-  // Gradient defs
-  const gradStops = cardGradStops(voice);
-
-  // Number sizing — auto-shrink long numbers
-  const numLen=numEscape.length;
-  const numSize = ratio==='landscape'
-    ? (numLen>8 ? 160 : numLen>5 ? 220 : 300)
-    : (numLen>8 ? 240 : numLen>5 ? 340 : 440);
-
-  // Label wrap and sizing
-  const labelLines=wrapText(labelEscape, ratio==='landscape' ? 44 : 30);
-  const labelSize = ratio==='landscape' ? 28 : 36;
-  const labelLineHeight = labelSize * 1.4;
-  const labelTotalH = labelLines.length * labelLineHeight;
-
-  // Layout math: stack number + gap + label as a single block, vertically centered
-  // Visual height of centered-baseline text ≈ numSize (glyph height slightly less than font size)
-  // We treat number height as numSize * 0.75 to visual baseline correction
-  const numVisualH = numSize * 0.75;
-  const gap = ratio==='landscape' ? 50 : 70;
-  const totalBlockH = numVisualH + gap + labelTotalH;
-
-  // Center the block in the canvas (nudge up slightly so it feels balanced with decor)
-  const blockTop = (h - totalBlockH) / 2 - (ratio==='landscape' ? 10 : 20);
-  const numY = blockTop + numVisualH * 0.5;           // dominant-baseline='middle' anchor
-  const labelStartY = blockTop + numVisualH + gap;    // top of first label line (we'll add line offset)
-
-  const cx = w/2;
-
-  // Decorative element per voice
-  let decor = '';
-  if(style.decorPattern==='gold-line'){
-    // Thin gold horizontal rule above the block
-    const lineY = blockTop - (ratio==='landscape' ? 40 : 60);
-    decor = `<line x1="${cx-60}" y1="${lineY}" x2="${cx+60}" y2="${lineY}" stroke="${style.accent}" stroke-width="1"/>`;
-  } else if(style.decorPattern==='rose-accent'){
-    // Rose underline BETWEEN number and label
-    const lineY = blockTop + numVisualH + (gap * 0.45);
-    decor = `<line x1="${cx-90}" y1="${lineY}" x2="${cx+90}" y2="${lineY}" stroke="${style.accent}" stroke-width="2" opacity="0.7"/>`;
-  } else if(style.decorPattern==='green-bar'){
-    // Green bar on the left, top to bottom
-    decor = `<rect x="0" y="0" width="14" height="${h}" fill="${style.accent}"/>`;
-  } else if(style.decorPattern==='sage-rule'){
-    // Hairline sage rule above the block — quiet, editorial
-    const lineY = blockTop - (ratio==='landscape' ? 36 : 56);
-    decor = `<line x1="${cx-40}" y1="${lineY}" x2="${cx+40}" y2="${lineY}" stroke="${style.accent}" stroke-width="0.5" opacity="0.8"/>`;
-  }
-
-  const labelSvg = labelLines.map((ln,i)=>
-    `<text x="${cx}" y="${labelStartY + (i+0.8)*labelLineHeight}" text-anchor="middle" font-family="${style.labelFont}" font-size="${labelSize}" font-weight="400" fill="${style.textDim}" letter-spacing="0.08em">${ln.toUpperCase()}</text>`
-  ).join('');
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
-  <defs>
-    <linearGradient id="bg-${voice}-${ratio}" x1="0%" y1="0%" x2="100%" y2="100%">${gradStops}</linearGradient>
-  </defs>
-  <rect width="${w}" height="${h}" fill="url(#bg-${voice}-${ratio})"/>
-  ${brandFrame(style,w,h,'stat-'+voice+'-'+ratio)}
-  ${decor}
-  <text x="${cx}" y="${numY}" text-anchor="middle" dominant-baseline="middle" font-family="${style.numFont}" font-size="${numSize}" font-weight="${style.numWeight}" fill="${style.accent}">${numEscape}</text>
-  ${labelSvg}
-</svg>`;
-}
-
-function renderQuoteCard(voice, quote, attribution='', ratio='square'){
-  const style=VOICE_STYLES[voice]||VOICE_STYLES.eridion;
-  const w = ratio==='landscape' ? 1200 : 1200;
-  const h = ratio==='landscape' ? 675  : 1200;
-  const quoteEscape=String(quote||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const attrEscape=String(attribution||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-  const gradStops = cardGradStops(voice);
-
-  // Quote text sizing — scale down for longer quotes
-  const qLen=quoteEscape.length;
-  const charsPerLine = ratio==='landscape' ? 44 : 26;
-  const fontSize = ratio==='landscape'
-    ? (qLen>180 ? 34 : qLen>120 ? 42 : qLen>60 ? 52 : 62)
-    : (qLen>180 ? 42 : qLen>120 ? 52 : qLen>60 ? 62 : 76);
-  const quoteLines=wrapText(quoteEscape, charsPerLine);
-  const lineHeight = fontSize * 1.3;
-  const totalHeight = quoteLines.length * lineHeight;
-
-  const cx = w/2;
-  const attrSize = ratio==='landscape' ? 22 : 26;
-  const attrGap = attrEscape ? attrSize * 3 : 0;
-  // Vertical center including optional attribution
-  const blockH = totalHeight + attrGap;
-  const blockTop = (h - blockH) / 2;
-  const quoteTop = blockTop;
-
-  // Prominent oversized opening quote mark, positioned above the quote
-  const markSize = ratio==='landscape' ? 220 : 320;
-  const markX = cx;
-  const markY = quoteTop - (ratio==='landscape' ? 20 : 40);
-  const quoteMark = `<text x="${markX}" y="${markY}" text-anchor="middle" dominant-baseline="middle" font-family="${style.numFont}" font-size="${markSize}" font-weight="${style.numWeight}" fill="${style.accent}" opacity="0.5">"</text>`;
-
-  let decor = '';
-  if(style.decorPattern==='green-bar'){
-    decor = `<rect x="0" y="0" width="14" height="${h}" fill="${style.accent}"/>`;
-  } else if(style.decorPattern==='gold-line'){
-    decor = `<line x1="${cx-80}" y1="${quoteTop + totalHeight + 40}" x2="${cx+80}" y2="${quoteTop + totalHeight + 40}" stroke="${style.accent}" stroke-width="1"/>`;
-  } else if(style.decorPattern==='rose-accent'){
-    decor = `<line x1="${cx-120}" y1="${quoteTop + totalHeight + 40}" x2="${cx+120}" y2="${quoteTop + totalHeight + 40}" stroke="${style.accent}" stroke-width="2" opacity="0.7"/>`;
-  } else if(style.decorPattern==='sage-rule'){
-    decor = `<line x1="${cx-40}" y1="${quoteTop + totalHeight + 40}" x2="${cx+40}" y2="${quoteTop + totalHeight + 40}" stroke="${style.accent}" stroke-width="0.5" opacity="0.8"/>`;
-  }
-
-  const quoteSvg = quoteLines.map((ln,i)=>
-    `<text x="${cx}" y="${quoteTop + (i+0.75)*lineHeight}" text-anchor="middle" font-family="${style.bodyFont}" font-size="${fontSize}" font-weight="300" fill="${style.text}">${ln}</text>`
-  ).join('');
-
-  const attrSvg = attrEscape ? `<text x="${cx}" y="${quoteTop + totalHeight + attrSize*2.2}" text-anchor="middle" font-family="${style.labelFont}" font-size="${attrSize}" fill="${style.textDim}" letter-spacing="0.12em">— ${attrEscape.toUpperCase()}</text>` : '';
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
-  <defs>
-    <linearGradient id="bgq-${voice}-${ratio}" x1="0%" y1="0%" x2="100%" y2="100%">${gradStops}</linearGradient>
-  </defs>
-  <rect width="${w}" height="${h}" fill="url(#bgq-${voice}-${ratio})"/>
-  ${brandFrame(style,w,h,'quote-'+voice+'-'+ratio)}
-  ${decor}
-  ${quoteMark}
-  ${quoteSvg}
-  ${attrSvg}
-</svg>`;
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// ── AUTO-BUILD WEEK ASSETS ──
-// One click on the spin-week results: read the whole week's arc, choose a
-// visual format per day (quote / stat / infographic / stock / generated image),
-// build every asset, stage them for review, and attach to each day on save.
-// Reuses VOICE_STYLES, renderStatCard/renderQuoteCard/renderInfographicCard,
-// svgToPNG, uploadImageToImgBB, Unsplash, and the worker's /api/image route.
-// ═══════════════════════════════════════════════════════════════════
-
-// /api/image lives on the same worker as /api/messages.
-const IMAGE_ENDPOINT = WORKER.replace(/\/api\/messages$/, '/api/image');
 const ASSET_FORMATS = ['quote','stat','infographic','chart','carousel','stock','image'];
 // Labels map to Eridion's five editorial archetypes (Editorial Photography, Editorial
 // Quote Card, Technical Diagram, Data Story, Narrative Carousel).
 const ASSET_FMT_LABEL = {quote:'Editorial quote card',stat:'Data story (stat)',infographic:'Technical diagram',chart:'Data story',carousel:'Narrative carousel',stock:'Editorial photography (stock)',image:'Editorial photography'};
 
-// Per-voice palettes for the code-rendered (exact) data chart. Light grounds, one
-// highlight color, brand fonts. Charts are drawn in SVG so bar heights are TRUE to
-// the numbers and text is never misspelled — gpt-image-1 can't do either.
-const CHART_PALETTES = {
-  eridion:{bg:'#F7F8FA',text:'#153862',sub:'#5C6B7A',highlight:'#32A200',base:'#C4C4C4',axis:'#153862',font:"'Archivo Expanded','Inter',sans-serif",labelFont:"'Inter',sans-serif"},
-  quinta:{bg:'#FAFAF6',text:'#20231F',sub:'#5A5E55',highlight:'#4F6B5C',base:'#C9D2C9',axis:'#20231F',font:"'Fraunces',serif",labelFont:"'Inter',sans-serif"},
-  practice:{bg:'#FAFAF6',text:'#20231F',sub:'#5A5E55',highlight:'#4F6B5C',base:'#C9D2C9',axis:'#20231F',font:"'Fraunces',serif",labelFont:"'Inter',sans-serif"},
-  erika:{bg:'#F5F0E8',text:'#2A2520',sub:'#6B6560',highlight:'#9E5E7E',base:'#C4C4C4',axis:'#2A2520',font:"'Fraunces',serif",labelFont:"'Inter',sans-serif"}
-};
-// Exact bar chart: heights proportional to the real values, labels/values as SVG text.
-function renderBarChartSVG(voice, data){
-  const p=CHART_PALETTES[voice]||CHART_PALETTES.eridion;
-  const w=1080,h=1080;
-  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const items=(data.items||[]).slice(0,4).filter(it=>it&&(it.label||it.value));
-  const vals=items.map(it=>{const n=parseFloat(String(it.value||'').replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n;});
-  const maxV=Math.max(...vals,1);
-  const hiIdx=vals.indexOf(Math.max(...vals));
-  const isPct=items.some(it=>/%/.test(String(it.value||'')));
-  const sorted=[...vals].sort((a,b)=>b-a);
-  const delta=(sorted.length>1)?Math.round((sorted[0]-sorted[1])*10)/10:0;
-  const deltaLabel=delta>0?('+'+delta+(isPct?' pts':'')):'';
-  const margin=96;
-  const corner=`<path d="M0 0 L132 0 L0 132 Z" fill="${p.highlight}"/>`;
-  // Eyebrow = the metric label (small, tracked caps)
-  const eyebrow=data.eyebrow?`<text x="${margin}" y="118" font-family="${p.labelFont}" font-size="25" font-weight="700" fill="${p.highlight}" letter-spacing="0.14em">${esc(String(data.eyebrow).toUpperCase())}</text>`:'';
-  // Headline = the hook that stops the scroll
-  const headLines=wrapText(esc(data.headline||data.eyebrow||''), 24);
-  const headSize=56, headLH=headSize*1.06, headTop=162;
-  const headH=headLines.length*headLH;
-  const headSvg=headLines.map((ln,i)=>`<text x="${margin}" y="${headTop+(i+0.82)*headLH}" font-family="${p.font}" font-size="${headSize}" font-weight="700" fill="${p.text}">${ln}</text>`).join('');
-  const ruleY=headTop+headH+14;
-  const rule=`<rect x="${margin}" y="${ruleY}" width="110" height="6" fill="${p.highlight}"/>`;
-  // Chart band
-  const baselineY=h-300;
-  const chartTop=ruleY+78;
-  const maxBarH=Math.max(120,(baselineY-chartTop)*0.86);
-  const n=items.length||1;
-  const slot=(w-2*margin)/n;
-  const barW=Math.min(slot*0.42,140);
-  let grid='';
-  for(let g=1;g<=4;g++){ const gy=baselineY-(maxBarH*g/4); grid+=`<line x1="${margin}" y1="${gy}" x2="${w-margin}" y2="${gy}" stroke="${p.sub}" stroke-width="1" opacity="0.12"/>`; }
-  const tops=[];
-  let bars='';
-  items.forEach((it,i)=>{
-    const cx=margin+slot*i+slot/2;
-    const bh=(vals[i]/maxV)*maxBarH;
-    const by=baselineY-bh; tops.push({cx,by});
-    const isHi=i===hiIdx;
-    bars+=`<rect x="${cx-barW/2}" y="${by}" width="${barW}" height="${bh}" fill="${isHi?p.highlight:p.base}"/>`;
-    bars+=`<text x="${cx}" y="${by-24}" text-anchor="middle" font-family="${p.font}" font-size="62" font-weight="700" fill="${isHi?p.highlight:p.text}">${esc(it.value||'')}</text>`;
-    wrapText(esc(it.label||'').toUpperCase(),16).forEach((ln,j)=>{
-      bars+=`<text x="${cx}" y="${baselineY+48+j*30}" text-anchor="middle" font-family="${p.labelFont}" font-size="25" font-weight="600" fill="${p.text}" letter-spacing="0.05em">${ln}</text>`;
-    });
-  });
-  // Anchored delta: a dashed reference at the shorter bar's top, with the gain labeled
-  // beside the taller bar — so "+N" clearly reads as "this much above the other."
-  let deltaSvg='';
-  if(deltaLabel && items.length===2){
-    const a=tops[0], b=tops[1];
-    const refY=Math.max(a.by,b.by);
-    const hiT=(a.by<b.by)?a:b;
-    const shorterIdx=(a.by>b.by)?0:1;
-    const shorterLabel=esc(String((items[shorterIdx]||{}).label||'').toUpperCase());
-    deltaSvg+=`<line x1="${Math.min(a.cx,b.cx)-barW/2}" y1="${refY}" x2="${hiT.cx+barW/2+150}" y2="${refY}" stroke="${p.sub}" stroke-width="2" stroke-dasharray="7 6" opacity="0.6"/>`;
-    const lx=hiT.cx+barW/2+24, ly=(refY+hiT.by)/2;
-    deltaSvg+=`<text x="${lx}" y="${ly+8}" font-family="${p.font}" font-size="34" font-weight="700" fill="${p.highlight}">${esc(deltaLabel)}</text>`;
-    if(shorterLabel) deltaSvg+=`<text x="${lx}" y="${ly+38}" font-family="${p.labelFont}" font-size="19" font-weight="600" fill="${p.sub}" letter-spacing="0.04em">VS ${shorterLabel}</text>`;
-  }
-  // Caption = prominent, two-tone (navy lead, green emphasis after an em dash)
-  const parts=String(data.caption||'').split(/\s*—\s*/);
-  const cap1=esc(parts[0]||''), cap2=esc(parts.slice(1).join(' — '));
-  const capSize=36; let cy=h-170; let capSvg='';
-  wrapText(cap1,40).forEach(ln=>{ capSvg+=`<text x="${margin}" y="${cy}" font-family="${p.labelFont}" font-size="${capSize}" font-weight="600" fill="${p.text}">${ln}</text>`; cy+=capSize*1.28; });
-  if(cap2) wrapText(cap2,40).forEach(ln=>{ capSvg+=`<text x="${margin}" y="${cy}" font-family="${p.labelFont}" font-size="${capSize}" font-weight="600" fill="${p.highlight}">${ln}</text>`; cy+=capSize*1.28; });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
-  <rect width="${w}" height="${h}" fill="${p.bg}"/>
-  ${corner}
-  ${eyebrow}
-  ${headSvg}${rule}
-  ${grid}
-  ${bars}
-  <line x1="${margin}" y1="${baselineY}" x2="${w-margin}" y2="${baselineY}" stroke="${p.axis}" stroke-width="2"/>
-  ${deltaSvg}
-  ${capSvg}
-</svg>`;
-}
-
-// The bar every generated image must clear. Prepended to every gpt-image-1 prompt.
 const QUALITY_BAR = "You are a senior graphic designer with 10+ years of experience, executing a social brief written by a digital strategist with 15+ years at a top-3 global agency. The result must look ART-DIRECTED and premium: confident visual hierarchy, deliberate asymmetry and composition, refined typography and spacing, depth and texture where it serves the idea, and ONE clear focal point. Never a flat, centered, 'default template' or clip-art look. Editorial, considered, scroll-stopping for the right reasons.\n\nMEET OR EXCEED current premium editorial social standards: design mobile-first — instantly legible at grid-thumbnail size and in bright sunlight (large, bold, wide type; NEVER thin or low-contrast — strong contrast is non-negotiable). Lead with one confident headline that reads at a glance. Render 1:1 square at high resolution, but compose for a vertical feed: keep all critical text and the key subject inside a generous centered safe zone with comfortable margins, so nothing is lost when the profile grid crops to a taller 3:4 frame or platform UI eats the edges. Crisp, clean export. A genuine thumb-stopper.\n\n";
 
 // Brand "style briefs" injected into gpt-image-1 prompts so generated images/infographics
@@ -8813,32 +8546,6 @@ const BRAND_IMAGE_BRIEFS = {
 
 // Generate a single on-brand HERO image for a blog post (no text in the image),
 // brand brief injected. Landscape, gpt-image-1 -> ImgBB.
-async function generateBlogHeroImage(voice, title, blog){
-  const brief=BRAND_IMAGE_BRIEFS[voice]||'';
-  const excerpt=String(blog||'').replace(/\s+/g,' ').slice(0,1200);
-  const p=(brief?brief+'\n\n':'')+
-    'Create ONE hero image for a blog post'+(title?(' titled "'+title+'"'):'')+'. Capture the post’s theme as a calm, on-brand photographic or hand-drawn illustrative scene. NO text, words, numbers, or letters anywhere in the image.\n\nBlog excerpt for context: '+excerpt;
-  return await generateImageViaWorker(p, 'landscape');
-}
-async function generateBlogHeroForItem(id){
-  const it=library.find(x=>x.id===id);
-  if(!it){ showToast('Post not found','error'); return; }
-  const blog=(it.blog_text||'').trim() || (it.linkedin_text||'').trim();
-  if(!blog){ showToast('No blog/post text to base a hero on','error'); return; }
-  if(!getImgBBKey()){ showToast('Add your ImgBB key in API Keys','error'); if(typeof toggleKeys==='function') toggleKeys(); return; }
-  const voice=it.voice||it.scheduled_account||'eridion';
-  setStatus('Generating hero image…',true);
-  showToast('Generating hero image — ~15s','success');
-  try{
-    const url=await generateBlogHeroImage(voice, it.title||'', blog);
-    attachImageToLibraryItem(id, url, 'auto-assets', 'AI-generated hero');
-    showToast('Hero image generated & attached','success');
-  }catch(e){ showToast('Hero failed: '+e.message,'error'); }
-  finally{ setStatus('Ready',false); }
-}
-
-// Build a gpt-image-1 prompt for a bespoke, on-brand INFOGRAPHIC (used for generative
-// brands like Quinta). Folds in the day's data so the rendered text/stats are right.
 function brandInfographicPrompt(voice, spec, fallbackText){
   spec=spec||{};
   const L=[QUALITY_BAR+(BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta)];
@@ -8854,72 +8561,6 @@ function brandInfographicPrompt(voice, spec, fallbackText){
   L.push("KEEP TEXT MINIMAL — every extra word risks a misspelling. Use only the few words given above, render EACH one EXACTLY and spelled correctly (double-check: LIGHT, frameless, antiqued, transmission), no invented words, no stray dashes before numbers. Lots of calm space. Output the finished card only — no UI, and no rendered logo/wordmark (a small hand-drawn sprout is fine for Quinta).");
   return L.join("\n");
 }
-
-// Gradient stops for all four voices (the existing stat/quote renderers omit practice).
-function cardGradStops(voice){
-  const m={
-    eridion:`<stop offset="0%" stop-color="#1B466F"/><stop offset="100%" stop-color="#0E2A47"/>`,
-    erika:`<stop offset="0%" stop-color="#F5F0E8"/><stop offset="100%" stop-color="#EDE5D8"/>`,
-    quinta:`<stop offset="0%" stop-color="#242B37"/><stop offset="100%" stop-color="#1D2430"/>`,
-    practice:`<stop offset="0%" stop-color="#FAFAF6"/><stop offset="100%" stop-color="#F5F2EA"/>`,
-  };
-  return m[voice]||m.eridion;
-}
-
-// Shared art-direction layer for every card: a soft vignette for depth, a faint
-// oversized brand circle (echoes the emblem) off the top-right, and editorial
-// corner brackets in the accent color. Pure decoration — sits above the bg,
-// below the text — so it never affects text layout. `id` must be unique per card.
-function brandFrame(style, w, h, id){
-  const a=style.accent, inset=46, leg=42, sw=2.5;
-  const L=(x,y,dx,dy)=>`<path d="M ${x+dx*leg} ${y} L ${x} ${y} L ${x} ${y+dy*leg}" fill="none" stroke="${a}" stroke-width="${sw}" stroke-linecap="square" opacity="0.85"/>`;
-  return `
-  <defs><radialGradient id="vig-${id}" cx="50%" cy="40%" r="78%">
-    <stop offset="52%" stop-color="#000000" stop-opacity="0"/>
-    <stop offset="100%" stop-color="#000000" stop-opacity="0.24"/>
-  </radialGradient></defs>
-  <rect width="${w}" height="${h}" fill="url(#vig-${id})"/>
-  <circle cx="${w*0.92}" cy="${h*0.12}" r="${w*0.46}" fill="none" stroke="${a}" stroke-width="2" opacity="0.06"/>
-  ${L(inset,inset,1,1)}${L(w-inset,inset,-1,1)}${L(inset,h-inset,1,-1)}${L(w-inset,h-inset,-1,-1)}`;
-}
-
-// Infographic card: a title + 2-4 value/label rows, brand-styled per voice.
-function renderInfographicCard(voice, title, points, ratio='square'){
-  const style=VOICE_STYLES[voice]||VOICE_STYLES.eridion;
-  const w=1200, h=ratio==='landscape'?675:1200;
-  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const cx=w/2;
-  const rows=(points||[]).slice(0,4).filter(p=>p&&(p.value||p.label));
-  const titleLines=wrapText(esc(title), ratio==='landscape'?40:26);
-  const titleSize=ratio==='landscape'?44:56;
-  const titleLH=titleSize*1.25;
-  const titleTop=ratio==='landscape'?70:120;
-  const titleBlockH=titleLines.length*titleLH;
-  const titleSvg=titleLines.map((ln,i)=>`<text x="${cx}" y="${titleTop+(i+0.8)*titleLH}" text-anchor="middle" font-family="${style.bodyFont}" font-size="${titleSize}" font-weight="600" fill="${style.text}">${ln}</text>`).join('');
-  const rowsTop=titleTop+titleBlockH+(ratio==='landscape'?40:80);
-  const rowsArea=h-rowsTop-(ratio==='landscape'?50:90);
-  const rowH=rows.length?rowsArea/rows.length:rowsArea;
-  const valSize=ratio==='landscape'?56:84;
-  const labSize=ratio==='landscape'?22:28;
-  const rowsSvg=rows.map((p,i)=>{
-    const yc=rowsTop+rowH*i+rowH/2;
-    const val=esc(p.value), lab=esc(p.label);
-    return `<text x="${cx}" y="${yc-labSize*0.3}" text-anchor="middle" dominant-baseline="middle" font-family="${style.numFont}" font-size="${valSize}" font-weight="${style.numWeight}" fill="${style.accent}">${val}</text>`
-      +`<text x="${cx}" y="${yc+valSize*0.55}" text-anchor="middle" font-family="${style.labelFont}" font-size="${labSize}" fill="${style.textDim}" letter-spacing="0.06em">${lab.toUpperCase()}</text>`
-      +(i<rows.length-1?`<line x1="${cx-120}" y1="${rowsTop+rowH*(i+1)}" x2="${cx+120}" y2="${rowsTop+rowH*(i+1)}" stroke="${style.accent}" stroke-width="0.5" opacity="0.3"/>`:'');
-  }).join('');
-  const decor = style.decorPattern==='green-bar'?`<rect x="0" y="0" width="14" height="${h}" fill="${style.accent}"/>`:'';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
-  <defs><linearGradient id="bgi-${voice}-${ratio}" x1="0%" y1="0%" x2="100%" y2="100%">${cardGradStops(voice)}</linearGradient></defs>
-  <rect width="${w}" height="${h}" fill="url(#bgi-${voice}-${ratio})"/>
-  ${brandFrame(style,w,h,'info-'+voice+'-'+ratio)}
-  ${decor}
-  ${titleSvg}
-  ${rowsSvg}
-</svg>`;
-}
-
-// Step 1 — read the whole week and decide a format + spec per day (one Opus call).
 async function evaluateArc(entries){
   const days=entries.map((r,i)=>`DAY ${i+1} — ${r.label||('Day '+(i+1))} (voice: ${r.voice})\n${r.text}`).join('\n\n---\n\n');
   const prompt=`You are an art director planning the visual asset for each day of a 5-day LinkedIn series. You see all five posts at once — treat them as one arc and give the week visual RHYTHM. Vary the VISUAL TREATMENT, not just the format: a premium feed leans on editorial PHOTOGRAPHY for a good share of days, then mixes in clean data/diagram pieces and typographic quote cards. Do NOT let every day read as the same kind of card (e.g. all diagrams, or all hand-drawn illustration). A rough target across the week: ~40% editorial photography, ~30% data/diagram, ~20% typographic quote, ~10% illustration.
@@ -8976,130 +8617,6 @@ function extractJsonObject(text){
   return null;
 }
 
-// base64 string -> Blob (for OpenAI image output)
-function b64ToBlob(b64, type='image/png'){
-  const bytes=atob(b64);
-  const arr=new Uint8Array(bytes.length);
-  for(let i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
-  return new Blob([arr],{type});
-}
-
-// Render an SVG card to PNG and host it on ImgBB -> public URL (Buffer-ready).
-async function svgToImgBBUrl(svg, w, h){
-  const blob=await svgToPNG(svg, w, h, 2);
-  const file=new File([blob],'card.png',{type:'image/png'});
-  const {url}=await uploadImageToImgBB(file);
-  return url;
-}
-
-// First Unsplash result for a query -> {url, credit}
-async function unsplashFirst(query){
-  const key=(document.getElementById('unsplash-key')?.value||localStorage.getItem('unsplash_key')||'').trim();
-  if(!key) throw new Error('Add your Unsplash key in API Keys');
-  const res=await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=squarish`,{headers:{Authorization:`Client-ID ${key}`}});
-  const data=await res.json();
-  const img=data.results&&data.results[0];
-  if(!img) throw new Error(`No stock photo for "${query}"`);
-  return {url:img.urls.regular, credit:`Photo by ${img.user.name} on Unsplash`};
-}
-
-// Generate an image via the worker's /api/image (OpenAI) -> hosted ImgBB URL.
-async function generateImageViaWorker(prompt, ratio){
-  const size = ratio==='landscape' ? '1536x1024' : '1024x1024';
-  let res;
-  try{
-    res=await fetch(IMAGE_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,size})});
-  }catch(_){ throw new Error('Could not reach the image endpoint — is the worker deployed?'); }
-  if(res.status===404) throw new Error('Image endpoint not deployed yet (add /api/image to your worker — see setup)');
-  const data=await res.json().catch(()=>null);
-  if(!data) throw new Error('No response from image endpoint');
-  if(data.error) throw new Error(typeof data.error==='string'?data.error:(data.error.message||'Image API error'));
-  const b64=data.b64||data.b64_json||(data.data&&data.data[0]&&data.data[0].b64_json);
-  if(!b64) throw new Error('Image endpoint returned no image data');
-  const file=new File([b64ToBlob(b64)],'generated.png',{type:'image/png'});
-  const {url}=await uploadImageToImgBB(file);
-  return url;
-}
-
-// ── Eridion brand card template (ported from the brand "infographic builder") ──
-// Fill-in template that renders an HTML card and rasterizes it via html2canvas.
-// Covers BOTH the stat card (benefits blank) and the hero infographic. Fonts:
-// Archivo Expanded (headings) + Inter (body). One green per layout: brand green
-// on navy, deep green on light. The Eridion default for stat/infographic in auto-build.
-const ERIDION_ICONS={
-  droplet:'<path d="M12 4 L6 13 a6.5 6.5 0 1 0 12 0 Z"/><line x1="8" y1="15" x2="13" y2="15"/>',
-  noslash:'<circle cx="12" cy="12" r="8.5"/><line x1="6" y1="6" x2="18" y2="18"/>',
-  shield:'<path d="M12 3 L19 6 V12 C19 17 12 21 12 21 C12 21 5 17 5 12 V6 Z"/>',
-  window:'<rect x="4" y="4" width="16" height="16"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="4" y1="12" x2="20" y2="12"/>',
-  diamond:'<path d="M12 3 L18 12 L12 21 L6 12 Z"/>',
-  check:'<path d="M4 12 L10 18 L20 6"/>',
-  ruler:'<rect x="3" y="8" width="18" height="8"/><line x1="8" y1="8" x2="8" y2="12"/><line x1="13" y1="8" x2="13" y2="12"/><line x1="18" y1="8" x2="18" y2="12"/>',
-  layers:'<path d="M4 6 H16 V18 H4 Z"/><path d="M8 10 H20 V22"/>'
-};
-const ERIDION_CARD_THEMES={
-  navy:{bg:'#153862',head:'#ffffff',sub:'#C4C4C4',green:'#32A200',bracket:'#ffffff',div:'rgba(255,255,255,.18)',stroke:'#ffffff',close:'#ffffff',bdr:'#153862'},
-  light:{bg:'#F7F8FA',head:'#153862',sub:'#5C6B7A',green:'#1E6B00',bracket:'#153862',div:'#E6E8EC',stroke:'#153862',close:'#000000',bdr:'#E6E8EC'}
-};
-function eridionCardHTML(f, theme){
-  const t=ERIDION_CARD_THEMES[theme]||ERIDION_CARD_THEMES.navy;
-  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const AX="font-family:'Archivo Expanded',sans-serif;", INT="font-family:'Inter',sans-serif;";
-  let cells='', first=true;
-  (f.benefits||[]).slice(0,5).forEach(b=>{
-    const lab=b&&b.label?String(b.label).trim():''; if(!lab) return;
-    const ic=ERIDION_ICONS[b.icon]?b.icon:'diamond';
-    if(!first) cells+='<div style="width:0.5px;background:'+t.div+'"></div>';
-    first=false;
-    cells+='<div style="flex:1;text-align:center;padding:0 4px">'+
-      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="'+t.stroke+'" stroke-width="1.8" stroke-linejoin="miter" stroke-linecap="square">'+ERIDION_ICONS[ic]+'</svg>'+
-      '<p style="'+AX+'font-weight:500;font-size:11px;letter-spacing:.04em;color:'+t.sub+';line-height:1.3;margin:8px 0 0">'+esc(lab)+'</p></div>';
-  });
-  const eyebrow=f.eyebrow?'<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:18px"><span style="width:26px;height:2px;background:'+t.green+'"></span><span style="'+AX+'font-weight:500;font-size:15px;letter-spacing:.22em;color:'+t.green+'">'+esc(f.eyebrow)+'</span><span style="width:26px;height:2px;background:'+t.green+'"></span></div>':'';
-  const headline=f.headline?'<div style="'+AX+'font-weight:700;font-size:21px;letter-spacing:.01em;color:'+t.head+';text-align:center;line-height:1.12">'+esc(f.headline)+'</div><div style="width:54px;height:2px;background:'+t.green+';margin:16px auto 18px"></div>':'';
-  const kicker=f.kicker?'<div style="'+AX+'font-weight:500;font-size:11px;letter-spacing:.2em;color:'+t.sub+';text-align:center;margin-bottom:10px">'+esc(f.kicker)+'</div>':'';
-  const hero=f.hero?'<div style="display:flex;align-items:stretch;justify-content:center;gap:12px;margin-bottom:10px"><span style="width:14px;border:2px solid '+t.bracket+';border-right:none"></span><span style="'+AX+'font-weight:700;font-size:34px;color:'+t.green+';line-height:1">'+esc(f.hero)+'</span><span style="width:14px;border:2px solid '+t.bracket+';border-left:none"></span></div>':'';
-  const sub=f.sub?'<div style="'+AX+'font-weight:500;font-size:11px;letter-spacing:.18em;color:'+t.head+';text-align:center;margin-bottom:22px">'+esc(f.sub)+'</div>':'';
-  const benefitsRow=cells?'<div style="display:flex;align-items:flex-start;justify-content:center;margin-bottom:22px">'+cells+'</div>':'';
-  const closing=(f.closeLine||f.closeEmph)?'<div style="width:100%;height:0.5px;background:'+t.div+';margin-bottom:16px"></div><p style="'+INT+'font-style:italic;font-size:13px;line-height:1.5;text-align:center;color:'+t.close+';margin:0">'+esc(f.closeLine||'')+(f.closeEmph?'<br><span style="color:'+t.green+';font-weight:500">'+esc(f.closeEmph)+'</span>':'')+'</p>':'';
-  return '<div id="eridionTheCard" style="width:420px;background:'+t.bg+';padding:28px 26px;border:0.5px solid '+t.bdr+'">'+eyebrow+headline+kicker+hero+sub+benefitsRow+closing+'</div>';
-}
-// Render the HTML card offscreen, rasterize with html2canvas, host on ImgBB -> URL.
-async function eridionCardToImgBBUrl(f, theme){
-  if(typeof html2canvas==='undefined') throw new Error('html2canvas not loaded yet — refresh and retry');
-  const host=document.createElement('div');
-  host.style.cssText='position:absolute;left:-99999px;top:0;background:#fff';
-  host.innerHTML=eridionCardHTML(f, theme||'navy');
-  document.body.appendChild(host);
-  const card=host.firstChild;
-  try{
-    if(document.fonts&&document.fonts.ready){ try{ await document.fonts.ready; }catch(_){} }
-    const w=card.offsetWidth||420;
-    const canvas=await html2canvas(card,{scale:1080/w, backgroundColor:null, useCORS:true});
-    const blob=await new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('toBlob failed')),'image/png'));
-    const file=new File([blob],'eridion-card.png',{type:'image/png'});
-    const {url}=await uploadImageToImgBB(file);
-    return url;
-  } finally { host.remove(); }
-}
-// Map an arc-evaluator spec onto the template's fields, with graceful fallbacks.
-function eridionCardFields(format, spec, fallbackText){
-  spec=spec||{};
-  const benefits=(spec.benefits&&spec.benefits.length)
-    ? spec.benefits
-    : (spec.infographic_points||[]).map(p=>({label:p.value||p.label||'', icon:'diamond'}));
-  return {
-    eyebrow: spec.eyebrow || 'GLASS',
-    headline: spec.headline || (format==='infographic'?spec.infographic_title:'') || '',
-    kicker: spec.kicker || '',
-    hero: spec.hero_stat || spec.stat_number || '',
-    sub: spec.sub_label || spec.stat_label || '',
-    benefits: benefits,
-    closeLine: spec.closing_line || '',
-    closeEmph: spec.closing_emphasis || '',
-  };
-}
-
-// Build a gpt-image-1 prompt for a bespoke, on-brand PULL-QUOTE card.
 function brandQuotePrompt(voice, spec, fallbackText){
   const L=[QUALITY_BAR+(BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta)];
   L.push("\nDesign ONE beautiful pull-quote social card (1:1 square) in this brand.");
@@ -9133,6 +8650,12 @@ function brandChartPrompt(voice, spec){
 }
 
 // Compose the ready-to-paste ChatGPT prompt for a day, based on its arc format.
+// Appended to photo-format prompts: how ChatGPT should treat a REAL job photo Erika
+// attaches (from the catalog or her phone) instead of generating one from scratch.
+const REAL_PHOTO_GUIDE = "\n\nIF I ATTACH A REAL JOB PHOTO to edit (instead of generating one):\n"+
+  "• Professional / DSLR shots — light touch only: keep color true to life, lift exposure/contrast subtly, straighten the verticals, and CROP to a strong architectural composition (lead with a clean line, rule-of-thirds, let negative space breathe). It should read like Architectural Digest, never over-filtered.\n"+
+  "• iPhone / rough shots — do more work: correct white balance and exposure, crop in tighter to hero the glass, and clean out clutter or distractions in the frame. Never redraw, over-relight, or replace the real installation — it must stay authentically the actual job.\n"+
+  "• Crop for drama when it earns it: go tight on an edge, a piece of hardware, or a reflection, and use a 4:5 portrait crop for feed impact.";
 function buildPromptForDay(voice, format, spec, fallbackText){
   spec=spec||{};
   if(format==='quote') return brandQuotePrompt(voice, spec, fallbackText);
@@ -9152,161 +8675,10 @@ function buildPromptForDay(voice, format, spec, fallbackText){
   return QUALITY_BAR+(brief?brief+'\n\n':'')+
     'Create ONE on-brand image (1:1 square) for this post — show the SPECIFIC subject it describes, EN SITU in a real luxury setting (wide enough to read the room), not a texture close-up. No text in the image.'+
     (scene?('\n\nSubject / art direction: '+scene):'')+
-    (ground?('\n\nPost context: '+ground):'');
+    (ground?('\n\nPost context: '+ground):'')+
+    REAL_PHOTO_GUIDE;
 }
-
-// Build one asset (any source) -> {url, credit} (or {urls} for a carousel). Shared by
-// the spin-week panel and the Content Library. ALL cards are bespoke, on-brand gpt-image-1
-// generations (brand brief injected) — the studio equivalent of Erika's brand-loaded
-// ChatGPT, for every voice. (The SVG renderers + Eridion HTML template remain defined
-// but are no longer the auto-build default.)
-async function produceAsset(format, spec, voice, fallbackText){
-  spec=spec||{}; const ratio='square';
-  if(format==='stock'){ const s=await unsplashFirst(spec.stock_query||(fallbackText||'').slice(0,40)); return {url:s.url, credit:s.credit}; }
-  // Data charts are rendered in code (exact bars + exact text), NOT generated.
-  if(format==='chart') return {url:await svgToImgBBUrl(renderBarChartSVG(voice,{headline:spec.chart_headline||spec.headline||'',eyebrow:spec.chart_title||spec.infographic_title||'',items:(spec.chart_items&&spec.chart_items.length?spec.chart_items:spec.infographic_points)||[],caption:spec.chart_caption||spec.closing_line||''}),1080,1080), credit:''};
-  // Carousel: generate a cohesive set of slides -> multi-image post.
-  if(format==='carousel'){
-    const slides=(spec.carousel_slides||[]).slice(0,8).filter(s=>s&&(s.slide_title||s.slide_body));
-    if(!slides.length) throw new Error('No carousel slides');
-    const urls=[];
-    for(let i=0;i<slides.length;i++){ urls.push(await generateImageViaWorker(brandSlidePrompt(voice, slides[i], i+1, slides.length), ratio)); }
-    return {url:urls[0], urls, credit:'AI-generated'};
-  }
-  // Eridion text cards -> code template (EXACT text, longevity-card quality). Generation
-  // garbles dense text, so text-bearing Eridion cards are rendered, not generated.
-  if(voice==='eridion' && (format==='stat'||format==='infographic')){
-    const theme=(spec.theme==='light')?'light':'navy';
-    return {url:await eridionCardToImgBBUrl(eridionCardFields(format, spec, fallbackText), theme), credit:''};
-  }
-  if(voice==='eridion' && format==='quote'){
-    const theme=(spec.theme==='light')?'light':'navy';
-    return {url:await eridionCardToImgBBUrl({eyebrow:'', headline:(spec.quote_text||(fallbackText||'').slice(0,160)), kicker:'', hero:'', sub:'', benefits:[], closeLine:(spec.attribution?('— '+String(spec.attribution)):''), closeEmph:''}, theme), credit:''};
-  }
-  if(format==='quote') return {url:await generateImageViaWorker(brandQuotePrompt(voice, spec, fallbackText), ratio), credit:'AI-generated'};
-  if(format==='stat'||format==='infographic') return {url:await generateImageViaWorker(brandInfographicPrompt(voice, spec, fallbackText), ratio), credit:'AI-generated'};
-  if(format==='image'){
-    const brief=BRAND_IMAGE_BRIEFS[voice]||'';
-    const ground=(fallbackText||'').replace(/\s+/g,' ').slice(0,400);
-    const scene=spec.image_prompt||'';
-    const p=QUALITY_BAR+(brief?brief+'\n\n':'')+
-      'Depict the SPECIFIC subject this post is about — show the actual thing it describes (the exact material, object, or place), not a generic stand-in:\n"'+ground+'"'+
-      (scene?('\n\nArt direction: '+scene):'')+
-      '\n\nShow the subject EN SITU — in its real room or setting, framed wide enough that a viewer can read the space (what room it is). Do NOT crop to an extreme texture close-up. Photographic or illustrative scene — no text, words, or letters in the image.';
-    return {url:await generateImageViaWorker(p, ratio), credit:'AI-generated'};
-  }
-  throw new Error('Unknown format: '+format);
-}
-
-// Spin-week panel: build one day's asset based on its chosen format.
-async function buildDayAsset(i){
-  const r=spinWeekResults[i]; if(!r) return;
-  r.assetStatus='building'; r.assetError=''; renderWeekAssetsGrid();
-  try{
-    const {url, urls, credit}=await produceAsset(r.assetFormat, r.assetSpec, r.voice, r.text);
-    if(!url) throw new Error('No asset produced');
-    r.imageUrl=url; r.imageUrls=(urls&&urls.length)?urls:[url]; r.imageCredit=credit; r.assetStatus='ready';
-  }catch(e){
-    r.imageUrl=''; r.imageUrls=[]; r.assetStatus='error'; r.assetError=e.message;
-  }
-  renderWeekAssetsGrid();
-}
-
-// Orchestrator — the button handler.
-async function autoBuildWeekAssets(){
-  if(!spinWeekResults.length){showToast('Generate the week first','error');return;}
-  if(!getImgBBKey()){showToast('Add your ImgBB key in API Keys — needed to host the cards','error');if(typeof toggleKeys==='function')toggleKeys();return;}
-  const wrap=document.getElementById('week-assets');
-  wrap.style.display='block';
-  wrap.innerHTML='<div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);padding:10px 0">Reading the week\'s arc…</div>';
-  setStatus('Evaluating the week\'s visual arc…',true);
-  try{
-    const decisions=await evaluateArc(spinWeekResults.map(r=>({label:r.day, voice:r.voice, text:r.text})));
-    decisions.forEach((d,i)=>{
-      if(!spinWeekResults[i]) return;
-      spinWeekResults[i].assetFormat=ASSET_FORMATS.includes(d.format)?d.format:'quote';
-      spinWeekResults[i].assetRationale=d.rationale||'';
-      spinWeekResults[i].assetSpec={
-        quote_text:d.quote_text, attribution:d.attribution,
-        stat_number:d.stat_number, stat_label:d.stat_label,
-        infographic_title:d.infographic_title, infographic_points:Array.isArray(d.infographic_points)?d.infographic_points:[],
-        image_prompt:d.image_prompt, stock_query:d.stock_query,
-        eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
-        benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
-        chart_headline:d.chart_headline, chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
-        carousel_slides:Array.isArray(d.carousel_slides)?d.carousel_slides:[],
-      };
-      spinWeekResults[i].assetStatus='pending';
-    });
-    renderWeekAssetsGrid();
-    setStatus('Building assets…',true);
-    // Sequential — gentler on ImgBB / image-API rate limits, and the grid updates per day.
-    for(let i=0;i<spinWeekResults.length;i++){ await buildDayAsset(i); }
-    const ok=spinWeekResults.filter(r=>r.assetStatus==='ready').length;
-    showToast(`${ok}/${spinWeekResults.length} assets built — review, then Save All`, ok?'success':'error');
-  }catch(e){
-    wrap.innerHTML=`<div style="color:var(--error);font-size:12px;padding:8px 0">Arc evaluation failed: ${escapeHTML(e.message)}</div>`;
-    showToast('Auto-build failed: '+e.message,'error');
-  }finally{
-    setStatus('Ready',false);
-  }
-}
-
-function regenerateDayAsset(i){ buildDayAsset(i); }
-function changeDayFormat(i, fmt){ if(!spinWeekResults[i])return; spinWeekResults[i].assetFormat=fmt; buildDayAsset(i); }
-
-// Content Library entry point — build the whole week's images for snippets that
-// are ALREADY saved (grouped by their source post), and attach each to its card.
-// Triggered from any one snippet's Transform menu; operates on all its siblings.
 const WEEKDAY_ORDER = {Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6,Sunday:7};
-async function buildWeekImagesFromLibrary(id){
-  const it=library.find(x=>x.id===id);
-  if(!it){ showToast('Post not found','error'); return; }
-  if(!getImgBBKey()){ showToast('Add your ImgBB key in API Keys — needed to host the cards','error'); if(typeof toggleKeys==='function') toggleKeys(); return; }
-  // The "week" = this item's snippet siblings (same source), or its children if it's the source.
-  const groupKey = it.parent_id || it.id;
-  const group = library
-    .filter(x => (x.parent_id||x.id)===groupKey && ((x.linkedin_text||x.blog_text||'').trim()))
-    .sort((a,b)=>(WEEKDAY_ORDER[a.snippet_day]||99)-(WEEKDAY_ORDER[b.snippet_day]||99));
-  if(!group.length){ showToast('No snippets found for this week','error'); return; }
-  setStatus(`Reading the week's arc (${group.length} posts)…`,true);
-  showToast(`Building images for ${group.length} posts — this runs in the background`,'success');
-  try{
-    const decisions=await evaluateArc(group.map(g=>({label:g.snippet_day||g.title||'', voice:g.voice, text:g.linkedin_text||g.blog_text||''})));
-    let ok=0;
-    for(let i=0;i<group.length;i++){
-      const d=decisions[i]||{};
-      const fmt=ASSET_FORMATS.includes(d.format)?d.format:'quote';
-      const spec={
-        quote_text:d.quote_text, attribution:d.attribution,
-        stat_number:d.stat_number, stat_label:d.stat_label,
-        infographic_title:d.infographic_title, infographic_points:Array.isArray(d.infographic_points)?d.infographic_points:[],
-        image_prompt:d.image_prompt, stock_query:d.stock_query,
-        eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
-        benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
-        chart_headline:d.chart_headline, chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
-        carousel_slides:Array.isArray(d.carousel_slides)?d.carousel_slides:[],
-      };
-      setStatus(`Building image ${i+1} of ${group.length}…`,true);
-      try{
-        const {url, urls, credit}=await produceAsset(fmt, spec, group[i].voice, group[i].linkedin_text||group[i].blog_text);
-        if(url && urls && urls.length>1){
-          const it2=library.find(x=>x.id===group[i].id);
-          if(it2){ it2.selectedImageUrl=urls[0]; it2.image_url=urls[0]; it2.imageUrls=urls; it2.imageSource='auto-assets'; it2.imageCredit=credit||''; persistLibrary(); }
-          ok++;
-        } else if(url){ attachImageToLibraryItem(group[i].id, url, 'auto-assets', credit); ok++; }
-      }catch(err){ console.warn('asset failed for', group[i].id, err); }
-    }
-    renderLibrary();
-    showToast(`${ok}/${group.length} images built & attached to your posts`, ok?'success':'error');
-  }catch(e){
-    showToast('Auto-build failed: '+e.message,'error');
-  }finally{
-    setStatus('Ready',false);
-  }
-}
-
-// ── Prompt Pack: hand the week's prompts to your ChatGPT, drop the images back ──
 let promptPackEntries=[]; // [{itemId, day, voice, format, prompt}]
 function openPromptPackFromLibrary(id){ const it=library.find(x=>x.id===id); if(!it){showToast('Post not found','error');return;} openPromptPackForGroup(it.parent_id||it.id); }
 async function openPromptPackForGroup(groupKey){
@@ -9383,553 +8755,6 @@ async function attachFinishedImage(event, i){
 function closePromptPack(){ document.getElementById('prompt-pack-modal').classList.remove('open'); }
 
 // Step 3 — the review grid.
-function renderWeekAssetsGrid(){
-  const wrap=document.getElementById('week-assets'); if(!wrap) return;
-  if(!spinWeekResults.some(r=>r.assetFormat)){ wrap.style.display='none'; return; }
-  wrap.style.display='block';
-  const vLabel={eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'};
-  const cards=spinWeekResults.map((r,i)=>{
-    const st=r.assetStatus||'pending';
-    let thumb;
-    if(st==='ready'&&r.imageUrl){
-      const nImg=(r.imageUrls&&r.imageUrls.length)||1;
-      const badge=nImg>1?`<span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;padding:2px 6px;border-radius:3px">▦ ${nImg}</span>`:'';
-      thumb=`<div style="position:relative"><img src="${r.imageUrl}" title="Click to enlarge${nImg>1?' (carousel — slide 1)':''}" onclick="openImageLightbox('${r.imageUrl}')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:zoom-in"/>${badge}</div>`;
-    }
-    else if(st==='building') thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-size:11px;color:var(--text-muted)">Building…</div>`;
-    else if(st==='error') thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;background:var(--surface2);border:1px solid var(--error);border-radius:4px;font-size:10px;color:var(--error)">⚠ ${escapeHTML(r.assetError||'Failed')}</div>`;
-    else thumb=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px dashed var(--border);border-radius:4px;font-size:18px;color:var(--text-muted)">—</div>`;
-    const opts=ASSET_FORMATS.map(f=>`<option value="${f}" ${r.assetFormat===f?'selected':''}>${ASSET_FMT_LABEL[f]}</option>`).join('');
-    return `<div style="border:1px solid var(--border);border-radius:6px;padding:10px;background:var(--surface)">
-      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:8px">${escapeHTML(r.day)} · ${vLabel[r.voice]||r.voice}</div>
-      ${thumb}
-      <div style="font-size:10px;color:var(--text-muted);margin:8px 0;line-height:1.5;min-height:28px">${escapeHTML(r.assetRationale||'')}</div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <select onchange="changeDayFormat(${i}, this.value)" style="flex:1;font-size:11px;padding:4px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--text)">${opts}</select>
-        <button class="action-btn" style="padding:4px 9px" onclick="regenerateDayAsset(${i})" title="Rebuild this day">↻</button>
-      </div>
-    </div>`;
-  }).join('');
-  const anyImage=spinWeekResults.some(r=>r.assetFormat==='image');
-  const note=anyImage?`<div style="font-size:10px;color:var(--text-muted);margin-top:10px;line-height:1.5">Generated-image days need your worker's <code>/api/image</code> endpoint. Quote / stat / infographic / stock work without it.</div>`:'';
-  wrap.innerHTML=`<div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--gold-dim);margin-bottom:10px">WEEK ASSETS · change format or ↻ to rebuild · Save All attaches them</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">${cards}</div>${note}`;
-}
-
-// Simple word-wrap helper — breaks at spaces, respects max chars per line
-function wrapText(text, maxChars){
-  if(!text) return [''];
-  const words=text.split(/\s+/);
-  const lines=[];
-  let current='';
-  words.forEach(w=>{
-    if((current+' '+w).trim().length<=maxChars){
-      current=(current?current+' ':'')+w;
-    } else {
-      if(current) lines.push(current);
-      current=w;
-    }
-  });
-  if(current) lines.push(current);
-  return lines.length?lines:[''];
-}
-
-// ── SVG → PNG conversion (browser canvas) ──
-function svgToPNG(svgString, width, height, scale=2){
-  return new Promise((resolve, reject)=>{
-    const canvas=document.createElement('canvas');
-    canvas.width = width * scale;
-    canvas.height = height * scale;
-    const ctx=canvas.getContext('2d');
-    const blob=new Blob([svgString],{type:'image/svg+xml;charset=utf-8'});
-    const url=URL.createObjectURL(blob);
-    const img=new Image();
-    img.onload=()=>{
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      canvas.toBlob(b=>{
-        if(b) resolve(b);
-        else reject(new Error('Canvas toBlob failed'));
-      }, 'image/png');
-    };
-    img.onerror=(e)=>{URL.revokeObjectURL(url); reject(new Error('SVG failed to load into image'));};
-    img.src=url;
-  });
-}
-
-function downloadBlob(blob, filename){
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=filename;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
-}
-
-function downloadSVG(svgString, filename){
-  const blob=new Blob([svgString],{type:'image/svg+xml;charset=utf-8'});
-  downloadBlob(blob, filename);
-}
-
-async function downloadPNG(svgString, width, height, filename){
-  try{
-    const blob=await svgToPNG(svgString, width, height, 2);
-    downloadBlob(blob, filename);
-  }catch(e){showToast('PNG export failed: '+e.message,'error');}
-}
-
-async function copyPNGToClipboard(svgString, width, height){
-  try{
-    const blob=await svgToPNG(svgString, width, height, 2);
-    if(!navigator.clipboard||!navigator.clipboard.write){
-      showToast('Clipboard image copy not supported — use Download instead','error');
-      return;
-    }
-    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-    showToast('✓ Image copied — paste into LinkedIn/Substack','success');
-  }catch(e){showToast('Copy failed: '+e.message,'error');}
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// ── IMAGE IDEAS MODAL STATE & ORCHESTRATION ──
-// ═══════════════════════════════════════════════════════════════════
-
-let iiState = {
-  sourceItem: null,
-  extracts: [],            // [{kind,text,number,label,note,rank}]
-  selectedExtract: null,   // the one the user's currently working with
-  voice: 'eridion',
-  ratio: 'square',
-  type: 'stat',            // 'stat' or 'quote'
-  unsplashTerms: [],
-  brief: '',
-  aiPrompt: '',
-  busy: false,
-};
-
-function openImageIdeasModal(libraryItemId){
-  const item=library.find(x=>x.id===libraryItemId);
-  const text=getSpinSourceText(item) || item?.linkedin_text || '';
-  if(!item||!text){showToast('This post has no text to extract from','error');return;}
-  iiState = {
-    sourceItem: item,
-    extracts: [],
-    selectedExtract: null,
-    voice: item.voice || 'eridion',
-    ratio: 'square',
-    type: 'stat',
-    unsplashTerms: [],
-    brief: '',
-    aiPrompt: '',
-    busy: false,
-  };
-  document.getElementById('ii-source-preview').innerHTML=`<strong>From:</strong> ${escapeHTML(item.title||'Untitled')}<br><br>${escapeHTML(text.slice(0,320))}${text.length>320?'…':''}`;
-  document.getElementById('ii-highlight-text').value='';
-  document.getElementById('ii-extract-list').innerHTML=`<div class="ii-empty"><p>Hit <strong style="color:var(--gold)">Analyze This Post</strong> to see which lines are worth turning into images.</p></div>`;
-  document.getElementById('ii-concepts-grid').innerHTML='';
-  document.getElementById('ii-selected-display').innerHTML='<em style="color:var(--text-muted)">No selection yet — pick from Auto-Suggest or Highlight Text.</em>';
-  // Reset voice chip visual state based on source item voice
-  iiUpdateChips();
-  iiSwitchTab('extract');
-  document.getElementById('image-ideas-modal').classList.add('open');
-}
-
-function closeImageIdeasModal(){
-  document.getElementById('image-ideas-modal').classList.remove('open');
-  const upEl=document.getElementById('ii-upload-picker');
-  if(upEl){upEl.innerHTML=''; upEl.removeAttribute('data-img-picker-item');}
-}
-
-function iiSwitchTab(tab){
-  const tabOrder=['extract','highlight','concepts','upload'];
-  const idx=tabOrder.indexOf(tab);
-  const tabEls=document.querySelectorAll('#image-ideas-modal .ii-tab');
-  tabEls.forEach((el,i)=>el.classList.toggle('active', i===idx));
-  document.querySelectorAll('#image-ideas-modal .ii-tab-content').forEach(c=>c.classList.remove('active'));
-  document.getElementById('ii-tab-'+tab).classList.add('active');
-  // Lazily render the upload picker when the tab is opened so the
-  // current library item state is reflected.
-  if(tab==='upload' && iiState.sourceItem){
-    renderImagePicker('ii-upload-picker', iiState.sourceItem.id);
-  }
-}
-
-function iiSetVoice(v){iiState.voice=v; iiUpdateChips(); iiRenderConcepts();}
-function iiSetRatio(r){iiState.ratio=r; iiUpdateChips(); iiRenderConcepts();}
-function iiSetType(t){iiState.type=t; iiUpdateChips(); iiRenderConcepts();}
-
-function iiUpdateChips(){
-  document.querySelectorAll('.ii-chip[data-voice]').forEach(el=>
-    el.classList.toggle('active', el.dataset.voice===iiState.voice));
-  document.querySelectorAll('.ii-chip[data-ratio]').forEach(el=>
-    el.classList.toggle('active', el.dataset.ratio===iiState.ratio));
-  document.querySelectorAll('.ii-chip[data-type]').forEach(el=>
-    el.classList.toggle('active', el.dataset.type===iiState.type));
-}
-
-// ── Tab 1: Auto-extract visual-worthy stats/quotes/claims from post ──
-async function runImageExtract(){
-  if(!iiState.sourceItem) return;
-  const btn=document.getElementById('ii-extract-btn');
-  btn.disabled=true;
-  const listEl=document.getElementById('ii-extract-list');
-  listEl.innerHTML='<div class="ii-loading">Analyzing post for visual-worthy moments…</div>';
-
-  const text=getSpinSourceText(iiState.sourceItem)||iiState.sourceItem.linkedin_text||'';
-  const prompt=`You are a visual content strategist helping turn a social media post into image assets. Extract the 3 MOST VISUAL-WORTHY moments from this post — things that would work as a scroll-stopping image card.
-
-POST TEXT:
----
-${text}
----
-
-RANKING CRITERIA — find a mix across these three kinds (aim for one of each if possible):
-1. STAT — a specific number, percentage, dollar figure, ratio, or quantity with real impact (e.g. "73% of luxury builders" or "$4M home"). Numbers that non-experts would find surprising or click-worthy rank highest.
-2. QUOTE — a short, quotable line (under 25 words) that could stand alone on its own as a pull quote — editorial, opinionated, or memorable.
-3. CLAIM — a bold confident assertion that makes a point strongly (e.g. "The best subs never need to sell.").
-
-For each extraction, also provide:
-- "number" (for STATs only): just the number/figure itself, extracted cleanly — e.g. "73%" or "$4M" or "25 years" or "3×"
-- "label" (for STATs): the short context line that explains it, ~6-12 words — e.g. "of luxury builders cite reliability as #1 constraint"
-- "text" (for QUOTEs and CLAIMs): the full pulled text
-- "note": ONE short sentence on why this specific moment would make a good image (1 sentence max, ~15 words)
-
-Return ONLY valid JSON. No preamble, no markdown fences. Shape:
-{"extracts":[
-  {"kind":"STAT","number":"73%","label":"of luxury builders cite reliability as #1","text":"73% of luxury builders cite reliability as their #1 scheduling constraint.","note":"Specific stat with clear audience — perfect stat-card material.","rank":1},
-  {"kind":"QUOTE","text":"...","note":"...","rank":2},
-  {"kind":"CLAIM","text":"...","note":"...","rank":3}
-]}`;
-
-  try{
-    const data=await callClaude({model:MODEL_UTILITY,max_tokens:1500,messages:[{role:'user',content:prompt}]},m=>{listEl.innerHTML=`<div class="ii-loading">${escapeHTML(m)}</div>`;});
-    const parsed=extractJSONFromResponse(data);
-    const arr=Array.isArray(parsed.extracts)?parsed.extracts:[];
-    if(!arr.length) throw new Error('No extracts returned');
-    iiState.extracts=arr;
-    iiRenderExtracts();
-  }catch(err){
-    console.error('Extract failed:',err);
-    listEl.innerHTML=`<div class="ii-empty"><p style="color:var(--error)">Extract failed: ${escapeHTML(err.message)}</p></div>`;
-    showToast('Extract failed: '+err.message,'error');
-  }finally{
-    btn.disabled=false;
-  }
-}
-
-function iiRenderExtracts(){
-  const listEl=document.getElementById('ii-extract-list');
-  if(!iiState.extracts.length){
-    listEl.innerHTML=`<div class="ii-empty"><p>No extracts yet.</p></div>`;
-    return;
-  }
-  listEl.innerHTML=iiState.extracts.map((x,i)=>{
-    const kind=(x.kind||'STAT').toUpperCase();
-    const displayText = kind==='STAT' && x.number
-      ? `<span style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold-bright);margin-right:8px">${escapeHTML(x.number)}</span>${escapeHTML(x.label||x.text||'')}`
-      : escapeHTML(x.text||'');
-    return `
-      <div class="ii-extract-card" onclick="iiSelectExtract(${i})" data-idx="${i}">
-        <div class="ii-extract-head">
-          <span class="ii-extract-kind ${kind}">${kind}</span>
-          <span class="ii-extract-rank">Rank ${x.rank||i+1}</span>
-          <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:0.12em">Click to use →</span>
-        </div>
-        <div class="ii-extract-text">${displayText}</div>
-        ${x.note?`<div class="ii-extract-note">${escapeHTML(x.note)}</div>`:''}
-      </div>
-    `;
-  }).join('');
-}
-
-function iiSelectExtract(idx){
-  const x=iiState.extracts[idx];
-  if(!x) return;
-  iiState.selectedExtract = x;
-  // Auto-set type based on kind
-  iiState.type = x.kind==='STAT' ? 'stat' : 'quote';
-  // Mark visually
-  document.querySelectorAll('.ii-extract-card').forEach((el,i)=>el.classList.toggle('selected', i===idx));
-  iiUpdateChips();
-  updateSelectedDisplay();
-  iiRenderConcepts();
-  iiSwitchTab('concepts');
-}
-
-function useHighlightedText(){
-  const text=document.getElementById('ii-highlight-text').value.trim();
-  if(!text){showToast('Paste text first','error');return;}
-  // Heuristic: if text contains a clear number pattern, treat as stat
-  const numMatch = text.match(/([0-9]+\.?[0-9]*%|\$[0-9]+[KMB]?|[0-9]+x|[0-9]{1,3}(?:,[0-9]{3})+|\b[0-9]+\b)/);
-  if(numMatch && text.length < 140){
-    // Treat as stat — extract number and label
-    const number=numMatch[0];
-    const label=text.replace(number,'').replace(/^[:\s,.-]+|[:\s,.-]+$/g,'').trim();
-    iiState.selectedExtract = {kind:'STAT', number, label, text, note:'User-highlighted.'};
-    iiState.type = 'stat';
-  } else {
-    iiState.selectedExtract = {kind:'QUOTE', text, note:'User-highlighted.'};
-    iiState.type = 'quote';
-  }
-  iiUpdateChips();
-  updateSelectedDisplay();
-  iiRenderConcepts();
-  iiSwitchTab('concepts');
-}
-
-function updateSelectedDisplay(){
-  const disp=document.getElementById('ii-selected-display');
-  const x=iiState.selectedExtract;
-  if(!x){disp.innerHTML='<em style="color:var(--text-muted)">No selection yet.</em>';return;}
-  const kind=x.kind||'STAT';
-  const contents = kind==='STAT' && x.number
-    ? `<strong style="color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:20px;margin-right:10px">${escapeHTML(x.number)}</strong> <span>${escapeHTML(x.label||x.text||'')}</span>`
-    : `<em>"${escapeHTML(x.text||'')}"</em>`;
-  disp.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:6px">Selected · ${kind}</div>${contents}`;
-}
-
-// ── Concepts rendering — all 5 concept types side-by-side ──
-async function iiRenderConcepts(){
-  const grid=document.getElementById('ii-concepts-grid');
-  const x=iiState.selectedExtract;
-  if(!x){
-    grid.innerHTML=`<div class="ii-empty" style="grid-column:1/-1"><p>Pick something from Auto-Suggest or Highlight Text first.</p></div>`;
-    return;
-  }
-  const voice=iiState.voice, ratio=iiState.ratio, type=iiState.type;
-  const w = ratio==='landscape' ? 1200 : 1200;
-  const h = ratio==='landscape' ? 675 : 1200;
-
-  // Concept 1: Rendered SVG card (stat or quote per type)
-  const svg = type==='stat'
-    ? renderStatCard(voice, x.number||x.text||'', x.label||'', ratio)
-    : renderQuoteCard(voice, x.text||x.label||'', x.attribution||'', ratio);
-
-  const filenameBase = `eridion-${voice}-${type}-${ratio}-${Date.now()}`;
-
-  // Store SVG for download handlers to access
-  iiState.currentSvg = svg;
-  iiState.currentW = w;
-  iiState.currentH = h;
-  iiState.currentFilename = filenameBase;
-
-  // Concept 2: Pull quote / alt card (show the OTHER type as bonus)
-  const altType = type==='stat' ? 'quote' : 'stat';
-  const altSvg = altType==='quote'
-    ? renderQuoteCard(voice, x.text||x.label||'', '', ratio)
-    : renderStatCard(voice, x.number||extractFirstNumber(x.text)||'', x.label||(x.text||'').slice(0,60), ratio);
-
-  const altFilenameBase = `eridion-${voice}-${altType}-${ratio}-${Date.now()}`;
-
-  // Render first 2 concept cards immediately (synchronous SVGs)
-  grid.innerHTML = `
-    <div class="ii-concept-card">
-      <div class="ii-concept-head">
-        <div class="ii-concept-title">${type==='stat'?'Stat Card':'Pull Quote'}</div>
-        <span class="ii-concept-badge">${voice} · ${ratio}</span>
-      </div>
-      <div class="ii-svg-preview ${ratio==='landscape'?'landscape':''}">${svg}</div>
-      <div class="ii-concept-actions">
-        <button class="ii-btn small" onclick="iiDownloadSVG()">⬇ SVG</button>
-        <button class="ii-btn small" onclick="iiDownloadPNG()">⬇ PNG @ 2×</button>
-        <button class="ii-btn small" onclick="iiCopyImageToClipboard()">📋 Copy Image</button>
-      </div>
-    </div>
-
-    <div class="ii-concept-card">
-      <div class="ii-concept-head">
-        <div class="ii-concept-title">${altType==='stat'?'Stat Variant':'Quote Variant'}</div>
-        <span class="ii-concept-badge">alt · ${voice} · ${ratio}</span>
-      </div>
-      <div class="ii-svg-preview ${ratio==='landscape'?'landscape':''}">${altSvg}</div>
-      <div class="ii-concept-actions">
-        <button class="ii-btn small" onclick="iiDownloadAltSVG()">⬇ SVG</button>
-        <button class="ii-btn small" onclick="iiDownloadAltPNG()">⬇ PNG @ 2×</button>
-      </div>
-    </div>
-
-    <div class="ii-concept-card">
-      <div class="ii-concept-head">
-        <div class="ii-concept-title">Unsplash Search</div>
-        <span class="ii-concept-badge">stock photos</span>
-      </div>
-      <div class="ii-concept-body" id="ii-unsplash-body">
-        <div class="ii-loading">Generating search terms…</div>
-      </div>
-    </div>
-
-    <div class="ii-concept-card">
-      <div class="ii-concept-head">
-        <div class="ii-concept-title">Designer / Canva Brief</div>
-        <span class="ii-concept-badge">copy-paste</span>
-      </div>
-      <div class="ii-concept-body scroll" id="ii-brief-body">
-        <div class="ii-loading">Writing design brief…</div>
-      </div>
-      <div class="ii-concept-actions">
-        <button class="ii-btn small" onclick="iiCopyBrief()">📋 Copy Brief</button>
-      </div>
-    </div>
-
-    <div class="ii-concept-card" style="grid-column:1/-1">
-      <div class="ii-concept-head">
-        <div class="ii-concept-title">AI Image Prompt</div>
-        <span class="ii-concept-badge">DALL-E / Midjourney / Firefly</span>
-      </div>
-      <div class="ii-concept-body scroll" id="ii-ai-body">
-        <div class="ii-loading">Writing AI prompt…</div>
-      </div>
-      <div class="ii-concept-actions">
-        <button class="ii-btn small" onclick="iiCopyAIPrompt()">📋 Copy Prompt</button>
-      </div>
-    </div>
-  `;
-
-  // Store alt svg for its download handlers
-  iiState.currentAltSvg = altSvg;
-  iiState.currentAltFilename = altFilenameBase;
-
-  // Fire off the 3 Claude calls in parallel (Unsplash terms, brief, AI prompt)
-  loadConceptsAsync(voice, x, type, ratio);
-}
-
-function extractFirstNumber(text){
-  const m = (text||'').match(/([0-9]+\.?[0-9]*%|\$[0-9]+[KMB]?|[0-9]+x|\b[0-9]+\b)/);
-  return m ? m[0] : '';
-}
-
-async function loadConceptsAsync(voice, extract, type, ratio){
-  const text = extract.text || `${extract.number||''} ${extract.label||''}`.trim();
-  const style = VOICE_STYLES[voice];
-  const voiceVibeLine = `${voice.toUpperCase()} voice — ${style.vibe}.`;
-
-  // Kick off all 3 in parallel
-  const [unsplashResult, briefResult, aiResult] = await Promise.allSettled([
-    genUnsplashTerms(text, voice),
-    genDesignBrief(voice, voiceVibeLine, text, type, ratio),
-    genAIPrompt(voice, voiceVibeLine, text, type),
-  ]);
-
-  // Render results as they come back
-  const unsplashEl=document.getElementById('ii-unsplash-body');
-  if(unsplashResult.status==='fulfilled'){
-    const terms=unsplashResult.value;
-    iiState.unsplashTerms = terms;
-    unsplashEl.innerHTML = `<div class="ii-unsplash-list">${terms.map(t=>`
-      <div class="ii-unsplash-row">
-        <span class="ii-unsplash-term">${escapeHTML(t)}</span>
-        <button class="ii-btn small" onclick="iiUseUnsplashTerm('${escapeHTML(t).replace(/'/g,"\\'")}')">Search →</button>
-      </div>
-    `).join('')}</div>`;
-  } else {
-    unsplashEl.innerHTML=`<p style="color:var(--error);font-size:12px">Failed: ${escapeHTML(unsplashResult.reason?.message||'unknown')}</p>`;
-  }
-
-  const briefEl=document.getElementById('ii-brief-body');
-  if(briefResult.status==='fulfilled'){
-    iiState.brief = briefResult.value;
-    briefEl.textContent = briefResult.value;
-  } else {
-    briefEl.innerHTML=`<p style="color:var(--error);font-size:12px">Failed: ${escapeHTML(briefResult.reason?.message||'unknown')}</p>`;
-  }
-
-  const aiEl=document.getElementById('ii-ai-body');
-  if(aiResult.status==='fulfilled'){
-    iiState.aiPrompt = aiResult.value;
-    aiEl.textContent = aiResult.value;
-  } else {
-    aiEl.innerHTML=`<p style="color:var(--error);font-size:12px">Failed: ${escapeHTML(aiResult.reason?.message||'unknown')}</p>`;
-  }
-}
-
-// ── Image generation brand contexts (voice-aware) ──
-const IMAGE_CONTEXTS = {
-  eridion: 'Eridion Glass — luxury custom glass and mirror subcontractor in Dallas TX. Visual lens: premium residential construction, glass installations, jobsites, modern architecture. Use this lens ONLY when the post itself is about Eridion, glass, construction, or the trade. For other topics, treat the lens as styling cues (clean lines, premium light, restrained palette) not as required subject matter. Avoid corny stock tropes (handshakes, thumbs-up, people pointing at charts).',
-  erika:   'Erika Harrison — co-founder of Eridion Glass and founder of Quinta & Co. She writes about leadership, women in business, founder life, and personal evolution. Visual lens: editorial, sophisticated, human — think Harvard Business Review, Atlantic, or The Cut magazine spreads. Soft natural light, neutral palettes, women at work in unguarded moments, modern uncluttered offices, considered composition, no overt product placement. Avoid: stock business clichés (handshakes, suits in a row, charts on screens), AI tropes (glowing brains, neon circuits), overly literal interpretations, anything that screams "LinkedIn headshot."',
-  quinta:  'Quinta & Co — business education and consulting brand for women entrepreneurs ("AI is a practice, not a purchase"). Visual lens: quiet, editorial, human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
-  practice:'The Practice — campaign platform of Quinta & Co. for women entrepreneurs. Visual lens: quiet, editorial, and human — soft morning light, cream and sage palette, hands on keyboards, coffee cups, neutral home offices, women in unguarded everyday work moments. Avoid AI tropes (glowing brains, robots, neon circuits, blue tech gradients), no shocked faces, no tech-bro aesthetic, no obvious "infographic" styling.',
-};
-
-async function genUnsplashTerms(text, voice){
-  const brandContext = IMAGE_CONTEXTS[voice] || IMAGE_CONTEXTS.eridion;
-  const prompt=`Generate 3 Unsplash search queries to find a stock photo that supports this social-post stat/quote. Queries should be 2-4 words each, concrete and visual (not abstract concepts).
-
-Context: ${brandContext}
-
-STAT OR QUOTE: ${text}
-
-Return ONLY valid JSON, no preamble: {"terms":["query one","query two","query three"]}`;
-  const data=await callClaude({model:MODEL_UTILITY,max_tokens:400,messages:[{role:'user',content:prompt}]},null);
-  const parsed=extractJSONFromResponse(data);
-  return Array.isArray(parsed.terms)?parsed.terms.slice(0,3):[];
-}
-
-async function genDesignBrief(voice, voiceVibe, text, type, ratio){
-  const prompt=`Write a concise design brief for a ${type==='stat'?'stat card':'pull quote card'} at ${ratio==='landscape'?'1200×675 (16:9 landscape)':'1200×1200 (1:1 square)'} for LinkedIn/Substack.
-
-The content is this ${type==='stat'?'statistic':'quote'}: "${text}"
-
-Target voice: ${voiceVibe}
-
-Write the brief in this exact format (keep it tight, no fluff — a designer should be able to mock this up in 10 min from this brief alone):
-
-COMPOSITION
-[2-3 sentences on layout — where the number/quote sits, negative space, visual hierarchy]
-
-TYPOGRAPHY
-[Specific font pairing suggestions — serif/sans/mono — and sizing relationships]
-
-COLOR
-[Primary bg, accent, text colors — be specific with feeling rather than hex codes unless it helps]
-
-MOOD / REFERENCE
-[2-3 visual references or mood words a designer would recognize — e.g. "Aesop product page", "Kinfolk magazine spread", "brutalist concrete hero"]
-
-DO / DON'T
-[One line each on what to lean into and what to avoid]
-
-Return the brief as plain text, no markdown fences.`;
-  const data=await callClaude({model:MODEL_UTILITY,max_tokens:800,messages:[{role:'user',content:prompt}]},null);
-  return (data.content?.[0]?.text||'').trim();
-}
-
-async function genAIPrompt(voice, voiceVibe, text, type){
-  const brandContext = IMAGE_CONTEXTS[voice] || IMAGE_CONTEXTS.eridion;
-  const prompt=`Write a polished AI image generation prompt (for DALL-E 3 / Midjourney / Adobe Firefly) to create a visual that supports this social-post ${type==='stat'?'stat':'quote'}:
-
-"${text}"
-
-Target voice: ${voiceVibe}
-
-Context: ${brandContext} The image should feel purposeful — NOT corny stock imagery, NOT obvious "infographic" styling, NOT human figures in the frame unless the brand context above explicitly invites them.
-
-Write a single paragraph (80-150 words) that includes: subject matter, composition, lighting, materials/textures, mood, stylistic references, and aspect ratio note. The prompt should be ready to paste straight into any AI image tool.
-
-Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "Here's the prompt:" — just the prompt itself.`;
-  const data=await callClaude({model:MODEL_UTILITY,max_tokens:600,messages:[{role:'user',content:prompt}]},null);
-  return (data.content?.[0]?.text||'').trim();
-}
-
-// ── Action handlers for concept cards ──
-function iiDownloadSVG(){downloadSVG(iiState.currentSvg, iiState.currentFilename+'.svg'); showToast('SVG downloaded','success');}
-function iiDownloadPNG(){downloadPNG(iiState.currentSvg, iiState.currentW, iiState.currentH, iiState.currentFilename+'.png'); showToast('PNG downloading…','success');}
-function iiDownloadAltSVG(){downloadSVG(iiState.currentAltSvg, iiState.currentAltFilename+'.svg'); showToast('SVG downloaded','success');}
-function iiDownloadAltPNG(){downloadPNG(iiState.currentAltSvg, iiState.currentW, iiState.currentH, iiState.currentAltFilename+'.png'); showToast('PNG downloading…','success');}
-function iiCopyImageToClipboard(){copyPNGToClipboard(iiState.currentSvg, iiState.currentW, iiState.currentH);}
-function iiCopyBrief(){
-  if(!iiState.brief){showToast('Brief not ready','error');return;}
-  navigator.clipboard.writeText(iiState.brief).then(()=>showToast('Brief copied','success'));
-}
-function iiCopyAIPrompt(){
-  if(!iiState.aiPrompt){showToast('Prompt not ready','error');return;}
-  navigator.clipboard.writeText(iiState.aiPrompt).then(()=>showToast('AI prompt copied','success'));
-}
-function iiUseUnsplashTerm(term){
-  // Close modal, jump to Image tab, load term
-  closeImageIdeasModal();
-  document.getElementById('image-search').value=term;
-  switchTab('image');
-  setTimeout(()=>searchImages(), 200);
-}
 
 
 
