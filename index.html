@@ -3326,6 +3326,7 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div style="display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap">
               <button class="action-btn" onclick="copyAllDayPrompts()">⧉ Copy all prompts</button>
               <button class="action-btn" onclick="addLibraryLedPosts()" title="Pull 1–2 of your best real install photos and draft Eridion captions for them, added to this week">➕ Add real-photo posts</button>
+              <button class="action-btn" onclick="fixWeekDays()" title="Renumber this week's posts Monday→Friday in the order shown (fixes days saved as all-Monday)">🗓 Fix days</button>
               <button class="action-btn" onclick="closePromptPack()" style="margin-left:auto">Close</button>
             </div>
           </div>
@@ -8813,6 +8814,22 @@ Voice: master tradesperson talking to a peer — precise, confident, specifics o
     showToast(added?('Added '+added+' real-photo post'+(added>1?'s':'')+' to this week ✓'):'Could not draft posts','error');
   }catch(e){ showToast('Bonus posts failed: '+(e.message||e),'error'); }
   finally{ setStatus('Ready',false); }
+}
+// One-time repair: renumber the current week's posts Monday→Friday in pack order
+// (fixes older weeks saved with every day as "Monday"). Skips library-led bonus posts.
+function fixWeekDays(){
+  const WD=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  let idx=0, n=0;
+  promptPackEntries.forEach((e)=>{
+    const it=library.find(x=>x.id===e.itemId);
+    if(!it || it.snippet_angle==='library-led') return;   // leave bonus real-photo posts as-is
+    const day=WD[idx]||('Day '+(idx+1));
+    it.snippet_day=day; e.day=day; idx++; n++;
+  });
+  if(!n){ showToast('No week posts to renumber','error'); return; }
+  persistLibrary();
+  renderPromptPack();
+  showToast('Renumbered '+n+' post'+(n>1?'s':'')+' Monday→Friday ✓','success');
 }
 function closePromptPack(){ document.getElementById('prompt-pack-modal').classList.remove('open'); }
 
