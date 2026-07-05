@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eridion Asset Catalog</title>
+<style>
+  :root{
+    --navy:#153862; --navy-deep:#0E2741; --green:#1E6B00; --green-bright:#32A200;
+    --bg:#F7F8FA; --wash:#EAEEF3; --white:#fff; --ink:#0d0d0d; --slate:#5C6B7A;
+    --hair:#E6E8EC; --border:#C4C4C4; --amber:#B45309; --amber-bg:#FEF3C7;
+    --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font);color:var(--ink);background:var(--bg);font-size:14px}
+  header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+  header h1{font-size:16px;margin:0;font-weight:700;letter-spacing:.02em}
+  .prog{flex:1;min-width:180px;max-width:420px}
+  .prog-bar{height:8px;background:rgba(255,255,255,.18);border-radius:6px;overflow:hidden}
+  .prog-fill{height:100%;background:var(--green-bright);width:0;transition:width .3s}
+  .prog-txt{font-size:11px;font-family:var(--mono);opacity:.85;margin-top:3px}
+  .conn{font-size:11px;font-family:var(--mono);padding:3px 8px;border-radius:5px;background:rgba(255,255,255,.12)}
+  .conn.ok{background:rgba(50,162,0,.3)} .conn.ro{background:rgba(180,83,9,.35)}
+  .gearbtn{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px}
+  .toolbar{position:sticky;top:53px;z-index:15;background:var(--white);border-bottom:1px solid var(--hair);padding:10px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .toolbar select,.toolbar input[type=text]{padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:var(--font);background:#fff}
+  .toolbar input[type=text]{min-width:180px}
+  .chk{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--slate);cursor:pointer;user-select:none}
+  .count-pill{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--slate)}
+  main{padding:16px 18px 80px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+  .card{background:#fff;border:1px solid var(--hair);border-radius:10px;overflow:hidden;cursor:pointer;position:relative;transition:box-shadow .15s,transform .1s}
+  .card:hover{box-shadow:0 6px 20px rgba(21,56,98,.14);transform:translateY(-2px)}
+  .card.reviewed{border-color:var(--green-bright)}
+  .card .thumb{width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--wash);display:block}
+  .card .meta{padding:7px 9px}
+  .card .cap{font-size:11px;line-height:1.35;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:28px}
+  .card .tagrow{margin-top:5px;display:flex;flex-wrap:wrap;gap:3px}
+  .minitag{font-size:9px;background:var(--wash);color:var(--navy);padding:1px 5px;border-radius:4px;font-family:var(--mono)}
+  .badges{position:absolute;top:6px;left:6px;display:flex;gap:4px;flex-wrap:wrap;max-width:80%}
+  .badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;color:#fff;font-family:var(--mono);text-transform:uppercase;letter-spacing:.03em}
+  .b-hero{background:var(--green-bright)} .b-skip{background:#9AA3AD} .b-showcase{background:#7C3AED}
+  .b-watermark{background:var(--amber)} .b-sales{background:#0369A1} .b-progress{background:#64748B}
+  .dot{position:absolute;top:6px;right:6px;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.1)}
+  .dot.reviewed{background:var(--green-bright)} .dot.unreviewed{background:#D1D5DB}
+  /* editor */
+  .overlay{position:fixed;inset:0;background:rgba(14,39,65,.55);z-index:40;display:none;align-items:stretch;justify-content:flex-end}
+  .overlay.open{display:flex}
+  .editor{background:#fff;width:min(560px,100%);height:100%;overflow-y:auto;box-shadow:-8px 0 30px rgba(0,0,0,.2);display:flex;flex-direction:column}
+  .ed-img{width:100%;background:#111;aspect-ratio:4/3;object-fit:contain;display:block}
+  .ed-body{padding:16px 18px 24px}
+  .ed-nav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .ed-nav .fn{font-family:var(--mono);font-size:11px;color:var(--slate);word-break:break-all;flex:1}
+  .navbtn{background:var(--wash);border:1px solid var(--hair);border-radius:6px;padding:5px 11px;cursor:pointer;font-size:14px;color:var(--navy)}
+  .grp{margin:14px 0}
+  .grp h4{margin:0 0 7px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--slate);font-weight:700}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:12px;padding:5px 11px;border-radius:16px;border:1px solid var(--border);background:#fff;color:var(--slate);cursor:pointer;user-select:none;transition:all .1s}
+  .chip:hover{border-color:var(--navy)}
+  .chip.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600}
+  .chip.on.single{background:var(--green);border-color:var(--green)}
+  .chip.flag.on{background:var(--amber);border-color:var(--amber)}
+  .cap-in{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px;font-family:var(--font);font-size:13px;resize:vertical;min-height:54px}
+  .ed-foot{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--hair);padding:12px 18px;display:flex;gap:10px;align-items:center}
+  .btn{border:0;border-radius:8px;padding:9px 18px;font-size:14px;cursor:pointer;font-weight:600}
+  .btn.save{background:var(--green-bright);color:#fff;flex:1}
+  .btn.save:disabled{opacity:.5;cursor:default}
+  .btn.ghost{background:var(--wash);color:var(--navy)}
+  .kbd{font-family:var(--mono);font-size:10px;background:var(--wash);border:1px solid var(--hair);border-radius:4px;padding:1px 5px;color:var(--slate)}
+  .savestate{font-size:11px;font-family:var(--mono);color:var(--slate)}
+  /* settings */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;display:none;align-items:center;justify-content:center}
+  .modal.open{display:flex}
+  .modal-in{background:#fff;border-radius:12px;padding:22px;width:min(460px,92%)}
+  .modal-in h3{margin:0 0 12px}
+  .modal-in label{display:block;font-size:12px;color:var(--slate);margin:10px 0 4px}
+  .modal-in input{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:var(--mono);font-size:12px}
+  .hint{font-size:11px;color:var(--slate);line-height:1.5;margin-top:8px}
+  .empty{text-align:center;color:var(--slate);padding:60px 20px;font-size:14px}
+  @media(max-width:560px){ .editor{width:100%} }
+</style>
+</head>
+<body>
+<header>
+  <h1>◧ Eridion Asset Catalog</h1>
+  <div class="prog">
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-txt" id="progTxt">loading…</div>
+  </div>
+  <span class="conn" id="conn">connecting…</span>
+  <button class="gearbtn" onclick="openSettings()">⚙</button>
+</header>
+
+<div class="toolbar">
+  <select id="fCategory" onchange="render()"><option value="">All categories</option></select>
+  <select id="fProduct" onchange="render()"><option value="">Any product</option></select>
+  <select id="fGrade" onchange="render()">
+    <option value="">Any grade</option><option value="hero">hero</option><option value="ok">ok</option><option value="skip">skip</option>
+  </select>
+  <select id="fFlag" onchange="render()">
+    <option value="">Any flag</option><option value="showcase">showcase</option><option value="watermark">watermark</option>
+    <option value="sales-sheet">sales-sheet</option><option value="in-progress">in-progress</option><option value="no-product">no-product</option>
+  </select>
+  <input type="text" id="fSearch" placeholder="Search caption / filename…" oninput="render()">
+  <label class="chk"><input type="checkbox" id="fUnreviewed" onchange="render()"> Unreviewed only</label>
+  <span class="count-pill" id="countPill"></span>
+</div>
+
+<main><div class="grid" id="grid"></div><div class="empty" id="empty" style="display:none">No images match these filters.</div></main>
+
+<!-- Editor drawer -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeEditor()">
+  <div class="editor" id="editor">
+    <img class="ed-img" id="edImg" alt="">
+    <div class="ed-body">
+      <div class="ed-nav">
+        <button class="navbtn" onclick="step(-1)" title="Previous (←)">←</button>
+        <button class="navbtn" onclick="step(1)" title="Next (→)">→</button>
+        <span class="fn" id="edFn"></span>
+      </div>
+      <div class="grp"><h4>Product <span style="font-weight:400;text-transform:none">(all visible)</span></h4><div class="chips" id="grpProduct"></div></div>
+      <div class="grp"><h4>Space</h4><div class="chips" id="grpSpace"></div></div>
+      <div class="grp"><h4>Style / material</h4><div class="chips" id="grpStyle"></div></div>
+      <div class="grp"><h4>Shot type <span style="font-weight:400;text-transform:none">(pick one)</span></h4><div class="chips" id="grpShot"></div></div>
+      <div class="grp"><h4>Grade <span style="font-weight:400;text-transform:none">(pick one)</span></h4><div class="chips" id="grpGrade"></div></div>
+      <div class="grp"><h4>Flags</h4><div class="chips" id="grpFlags"></div></div>
+      <div class="grp"><h4>Caption</h4><textarea class="cap-in" id="edCap" placeholder="One factual sentence…"></textarea></div>
+    </div>
+    <div class="ed-foot">
+      <button class="btn save" id="saveBtn" onclick="saveCurrent()">Save <span class="kbd">S</span></button>
+      <button class="btn ghost" onclick="closeEditor()">Close <span class="kbd">Esc</span></button>
+      <span class="savestate" id="saveState"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="modal" id="settings" onclick="if(event.target===this)closeSettings()">
+  <div class="modal-in">
+    <h3>Settings</h3>
+    <label>Worker base URL (for saving)</label>
+    <input id="setWorker" placeholder="https://frosty-base-f01e.erikagonzalez103.workers.dev">
+    <label>Catalog key (optional — only if you set CATALOG_KEY on the worker)</label>
+    <input id="setKey" placeholder="leave blank if not set">
+    <div class="hint">Reads come from your public manifest; saves go to the worker's <code>/api/catalog</code> route. If the route isn't deployed yet, you can still browse &amp; the tags show — saving is disabled until it's live.</div>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+      <button class="btn ghost" onclick="closeSettings()">Cancel</button>
+      <button class="btn save" style="flex:0" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- config ----
+const PUBLIC = 'https://pub-17160ed212d74341a64e62d4f71d7c34.r2.dev';
+const DEFAULT_WORKER = 'https://frosty-base-f01e.erikagonzalez103.workers.dev';
+let WORKER = localStorage.getItem('cat_worker') || DEFAULT_WORKER;
+let CKEY   = localStorage.getItem('cat_key') || '';
+
+// ---- vocabulary (mirrors VOCAB.md) ----
+const VOCAB = {
+  product:['shower-enclosure','shower-door','shower-wall','steam-shower','mirror','colorback-glass','backsplash','accent-wall','cabinet-glass','glass-railing','glass-partition','wine-room','storefront','shelving','tabletop','glass-marker-board'],
+  space:['primary-bath','powder-room','bathroom','kitchen','closet','office','staircase','balcony','pool','deck','living','wine-cellar','commercial','entry','interior','exterior'],
+  style:['low-iron','antiqued-mirror','fluted-reeded','frameless','framed','gridded','matte-black','brass','chrome','brushed-nickel','backlit','clear','tinted'],
+  shot:['install-wide','detail-macro','fabrication','crew-candid'],
+  grade:['hero','ok','skip'],
+  flags:['showcase','watermark','sales-sheet','in-progress','no-product'],
+};
+const MULTI = {product:1,space:1,style:1,flags:1};   // single: shot, grade
+
+let MANIFEST=null, ASSETS=[], BASE=PUBLIC+'/', canSave=false;
+let view=[], curIdx=-1, draft=null;
+
+// ---- load ----
+async function load(){
+  // try worker GET first (always fresh + confirms save path), fall back to public manifest
+  let data=null;
+  try{
+    const r=await fetch(WORKER.replace(/\/$/,'')+'/api/catalog',{headers:CKEY?{'X-Catalog-Key':CKEY}:{}});
+    if(r.ok){ data=await r.json(); canSave=true; }
+  }catch(e){}
+  if(!data){
+    canSave=false;
+    const r=await fetch(BASE+'manifest.json?t='+Date.now());
+    data=await r.json();
+  }
+  MANIFEST=data; ASSETS=data.assets||[]; BASE=(data.base||PUBLIC+'/');
+  if(!BASE.endsWith('/'))BASE+='/';
+  const c=document.getElementById('conn');
+  c.textContent=canSave?'● saving on':'● read-only'; c.className='conn '+(canSave?'ok':'ro');
+  buildFilters(); render();
+}
+
+function buildFilters(){
+  const cats=[...new Set(ASSETS.map(a=>a.category))].sort();
+  const cs=document.getElementById('fCategory');
+  cats.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c+' ('+ASSETS.filter(a=>a.category===c).length+')';cs.appendChild(o);});
+  const ps=document.getElementById('fProduct');
+  VOCAB.product.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;ps.appendChild(o);});
+}
+
+function isReviewed(a){ return !!a.reviewed; }
+function assetTags(a){ return {product:a.product||[],space:a.space||[],style:a.style||[],shot:a.shot||'',grade:a.grade||'',flags:a.flags||[],caption:a.caption||'',notes:a.notes||''}; }
+
+function render(){
+  const cat=document.getElementById('fCategory').value;
+  const prod=document.getElementById('fProduct').value;
+  const grade=document.getElementById('fGrade').value;
+  const flag=document.getElementById('fFlag').value;
+  const q=document.getElementById('fSearch').value.trim().toLowerCase();
+  const unrev=document.getElementById('fUnreviewed').checked;
+  view=ASSETS.filter(a=>{
+    if(cat&&a.category!==cat)return false;
+    if(prod&&!(a.product||[]).includes(prod))return false;
+    if(grade&&a.grade!==grade)return false;
+    if(flag&&!(a.flags||[]).includes(flag))return false;
+    if(unrev&&isReviewed(a))return false;
+    if(q&&!((a.caption||'').toLowerCase().includes(q)||(a.filename||'').toLowerCase().includes(q)))return false;
+    return true;
+  });
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  document.getElementById('empty').style.display=view.length?'none':'block';
+  const frag=document.createDocumentFragment();
+  view.forEach((a,i)=>{
+    const card=document.createElement('div');
+    card.className='card'+(isReviewed(a)?' reviewed':'');
+    const badges=[];
+    if((a.flags||[]).includes('showcase'))badges.push('<span class="badge b-showcase">suite</span>');
+    if((a.flags||[]).includes('watermark'))badges.push('<span class="badge b-watermark">mark</span>');
+    if((a.flags||[]).includes('sales-sheet'))badges.push('<span class="badge b-sales">sheet</span>');
+    if((a.flags||[]).includes('in-progress'))badges.push('<span class="badge b-progress">wip</span>');
+    if(a.grade==='hero')badges.push('<span class="badge b-hero">hero</span>');
+    if(a.grade==='skip')badges.push('<span class="badge b-skip">skip</span>');
+    const tags=(a.product||[]).slice(0,3).map(t=>'<span class="minitag">'+t+'</span>').join('');
+    card.innerHTML=
+      '<div class="badges">'+badges.join('')+'</div>'+
+      '<div class="dot '+(isReviewed(a)?'reviewed':'unreviewed')+'"></div>'+
+      '<img class="thumb" loading="lazy" src="'+BASE+a.thumb+'" alt="">'+
+      '<div class="meta"><div class="cap">'+(a.caption||'<span style="color:#aaa">— untagged —</span>')+'</div><div class="tagrow">'+tags+'</div></div>';
+    card.onclick=()=>openEditor(i);
+    frag.appendChild(card);
+  });
+  grid.appendChild(frag);
+  updateProgress();
+  document.getElementById('countPill').textContent=view.length+' shown';
+}
+
+function updateProgress(){
+  const done=ASSETS.filter(isReviewed).length, total=ASSETS.length;
+  document.getElementById('progFill').style.width=(total?100*done/total:0)+'%';
+  document.getElementById('progTxt').textContent=done+' / '+total+' reviewed';
+}
+
+// ---- editor ----
+function openEditor(viewIdx){
+  curIdx=viewIdx;
+  const a=view[curIdx]; if(!a)return;
+  draft=JSON.parse(JSON.stringify(assetTags(a)));
+  document.getElementById('edImg').src=BASE+a.web;
+  document.getElementById('edFn').textContent=a.filename+'  ·  '+a.category+'  ·  '+(a.orientation||'');
+  renderChips();
+  document.getElementById('edCap').value=draft.caption;
+  document.getElementById('saveState').textContent='';
+  document.getElementById('overlay').classList.add('open');
+}
+function renderChips(){
+  const mk=(grpId,key,list,single)=>{
+    const el=document.getElementById(grpId); el.innerHTML='';
+    list.forEach(v=>{
+      const on = single ? draft[key]===v : (draft[key]||[]).includes(v);
+      const c=document.createElement('div');
+      c.className='chip'+(on?' on':'')+(single?' single':'')+(key==='flags'?' flag':'');
+      c.textContent=v;
+      c.onclick=()=>{
+        if(single){ draft[key]= draft[key]===v ? '' : v; }
+        else{ draft[key]=draft[key]||[]; const j=draft[key].indexOf(v); j>=0?draft[key].splice(j,1):draft[key].push(v); }
+        renderChips();
+      };
+      el.appendChild(c);
+    });
+  };
+  mk('grpProduct','product',VOCAB.product,false);
+  mk('grpSpace','space',VOCAB.space,false);
+  mk('grpStyle','style',VOCAB.style,false);
+  mk('grpShot','shot',VOCAB.shot,true);
+  mk('grpGrade','grade',VOCAB.grade,true);
+  mk('grpFlags','flags',VOCAB.flags,false);
+}
+function closeEditor(){ document.getElementById('overlay').classList.remove('open'); curIdx=-1; }
+function step(d){
+  if(curIdx<0)return;
+  const ni=curIdx+d;
+  if(ni<0||ni>=view.length)return;
+  openEditor(ni);
+}
+async function saveCurrent(){
+  if(curIdx<0)return;
+  const a=view[curIdx];
+  draft.caption=document.getElementById('edCap').value.trim();
+  const patch={...draft, reviewed:true};
+  const ss=document.getElementById('saveState');
+  if(!canSave){ ss.textContent='⚠ read-only — deploy the worker route to save'; ss.style.color='var(--amber)'; return; }
+  ss.textContent='saving…'; ss.style.color='var(--slate)';
+  document.getElementById('saveBtn').disabled=true;
+  try{
+    const r=await fetch(WORKER.replace(/\/$/,'')+'/api/catalog',{
+      method:'POST',headers:{'Content-Type':'application/json',...(CKEY?{'X-Catalog-Key':CKEY}:{})},
+      body:JSON.stringify({id:a.id,patch})
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status+' '+(await r.text()).slice(0,120));
+    Object.assign(a,patch);                 // update local
+    ss.textContent='✓ saved'; ss.style.color='var(--green)';
+    render();
+    setTimeout(()=>{ if(curIdx>=0 && curIdx<view.length-1) step(1); else if(document.getElementById('fUnreviewed').checked) closeEditor(); },250);
+  }catch(e){ ss.textContent='✕ '+e.message; ss.style.color='#c0392b'; }
+  document.getElementById('saveBtn').disabled=false;
+}
+
+// ---- keyboard ----
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('overlay').classList.contains('open'))return;
+  if(e.target.tagName==='TEXTAREA')return;
+  if(e.key==='ArrowRight'){step(1);e.preventDefault();}
+  else if(e.key==='ArrowLeft'){step(-1);e.preventDefault();}
+  else if(e.key==='Escape'){closeEditor();}
+  else if(e.key==='s'||e.key==='S'){saveCurrent();e.preventDefault();}
+});
+
+// ---- settings ----
+function openSettings(){ document.getElementById('setWorker').value=WORKER; document.getElementById('setKey').value=CKEY; document.getElementById('settings').classList.add('open'); }
+function closeSettings(){ document.getElementById('settings').classList.remove('open'); }
+function saveSettings(){
+  WORKER=document.getElementById('setWorker').value.trim()||DEFAULT_WORKER;
+  CKEY=document.getElementById('setKey').value.trim();
+  localStorage.setItem('cat_worker',WORKER); localStorage.setItem('cat_key',CKEY);
+  closeSettings(); load();
+}
+
+load();
+</script>
+</body>
+</html>
