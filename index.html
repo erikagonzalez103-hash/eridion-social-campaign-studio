@@ -3230,6 +3230,7 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div class="now-reading" id="now-reading" style="margin-top:12px">Generate content first, then hit the button below to create your audio briefing.</div>
           </div>
           <button class="generate-btn" id="briefing-gen-btn" onclick="generateBriefing()" style="margin-bottom:16px">🎙 Generate Audio Briefing</button>
+          <div style="margin:-6px 0 16px"><button class="action-btn" id="briefing-save-btn" onclick="saveCurrentBriefing()" disabled title="Save this briefing to your library">💾 Save this briefing</button></div>
           <div class="panel-title">Briefing Script</div>
           <div class="briefing-script" id="briefing-script">Your spoken briefing will appear here after generation.</div>
           <div class="panel-title">Your Talking Points</div>
@@ -3248,6 +3249,9 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div class="research-answer" id="research-answer">Your answer will appear here. Hit 🔊 to hear it read aloud.</div>
           </div>
           <div id="research-history"></div>
+          <div class="panel-title" style="margin-top:24px">📚 Saved Briefings</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Your saved briefings — click Load to bring one back into the player, ready to replay.</div>
+          <div id="briefing-library"></div>
         </div>
 
         <!-- Calendar Tab -->
@@ -3972,6 +3976,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadLibrary(); renderLibrary();
   calWeekStart = getWeekStart(new Date()); renderCalendar();
   highlightStep('today'); refreshSteps();
+  renderBriefingLibrary();
 });
 
 function renderBuckets() {
@@ -5953,7 +5958,7 @@ function logContent(topic,bucket){
 }
 
 // ── Briefing ──
-let briefingText='',ttsPlaying=false,ttsSpeed=1,briefingSentences=[],currentSentenceIndex=0,researchHistory=[];
+let briefingText='',ttsPlaying=false,ttsSpeed=1,briefingSentences=[],currentSentenceIndex=0,researchHistory=[],briefingTopic='',briefingTalkingPoints=[];
 
 async function generateBriefing(){
   const content=generatedBlog||generatedLinkedIn;
@@ -5988,6 +5993,9 @@ ${content}
     document.getElementById('talking-points').innerHTML=tpLines.length
       ?tpLines.map((t,i)=>`<div class="talking-point"><span class="tp-number">0${i+1}</span><span>${t.replace(/^TP:\s*/,'')}</span></div>`).join('')
       :'<div class="talking-point"><span class="tp-number">—</span><span>No talking points generated.</span></div>';
+    briefingTopic=topic||'Content Briefing';
+    briefingTalkingPoints=tpLines.map(t=>t.replace(/^TP:\s*/,'').trim());
+    const _sb=document.getElementById('briefing-save-btn'); if(_sb) _sb.disabled=false;
     briefingSentences=briefingText.match(/[^.!?]+[.!?]+/g)||[briefingText];
     currentSentenceIndex=0;
     document.getElementById('play-btn').disabled=false;
@@ -5996,6 +6004,59 @@ ${content}
     setStatus('Ready',false);
   }catch(e){showToast('Briefing failed: '+e.message,'error');setStatus('Ready',false);}
   finally{btn.disabled=false;btn.textContent='🎙 Generate Audio Briefing';}
+}
+
+// ── Briefing library (saved briefings, in localStorage) ──
+const BRIEFING_LIB_KEY='briefing_library';
+function loadBriefingLib(){ try{ return JSON.parse(localStorage.getItem(BRIEFING_LIB_KEY)||'[]'); }catch(e){ return []; } }
+function saveBriefingLib(arr){ try{ localStorage.setItem(BRIEFING_LIB_KEY, JSON.stringify(arr)); }catch(e){ showToast('Could not save (storage full?)','error'); } }
+function saveCurrentBriefing(){
+  if(!briefingText){ showToast('Generate a briefing first','error'); return; }
+  const arr=loadBriefingLib();
+  arr.unshift({ id:'brf_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    topic:briefingTopic||'Content Briefing', script:briefingText,
+    talkingPoints:(briefingTalkingPoints||[]).slice(), created_at:Date.now() });
+  saveBriefingLib(arr);
+  renderBriefingLibrary();
+  showToast('Briefing saved to library ✓','success');
+}
+function renderBriefingLibrary(){
+  const wrap=document.getElementById('briefing-library'); if(!wrap) return;
+  const arr=loadBriefingLib();
+  if(!arr.length){ wrap.innerHTML='<div style="font-size:12px;color:var(--text-muted);padding:8px 0">No saved briefings yet. Generate one and hit “💾 Save this briefing.”</div>'; return; }
+  wrap.innerHTML=arr.map(b=>{
+    const d=new Date(b.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const words=Math.round((b.script||'').split(/\s+/).filter(Boolean).length);
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <div style="font-weight:600;font-size:14px;color:var(--text)">${escapeHTML(b.topic||'Content Briefing')}</div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">${d} · ${(b.talkingPoints||[]).length} talking points · ${words} words</div>
+      </div>
+      <button class="action-btn" onclick="loadBriefing('${b.id}')">▶ Load</button>
+      <button class="action-btn" onclick="deleteBriefing('${b.id}')" title="Delete this briefing" style="color:var(--error)">✕</button>
+    </div>`;
+  }).join('');
+}
+function loadBriefing(id){
+  const b=loadBriefingLib().find(x=>x.id===id); if(!b){ showToast('Briefing not found','error'); return; }
+  briefingText=b.script; briefingTopic=b.topic||'Content Briefing'; briefingTalkingPoints=(b.talkingPoints||[]).slice();
+  document.getElementById('briefing-script').textContent=briefingText;
+  document.getElementById('briefing-topic-title').textContent=briefingTopic;
+  document.getElementById('talking-points').innerHTML=(b.talkingPoints&&b.talkingPoints.length)
+    ? b.talkingPoints.map((t,i)=>`<div class="talking-point"><span class="tp-number">0${i+1}</span><span>${escapeHTML(t)}</span></div>`).join('')
+    : '<div class="talking-point"><span class="tp-number">—</span><span>No talking points.</span></div>';
+  briefingSentences=briefingText.match(/[^.!?]+[.!?]+/g)||[briefingText];
+  currentSentenceIndex=0;
+  const pb=document.getElementById('play-btn'); if(pb) pb.disabled=false;
+  const sb=document.getElementById('briefing-save-btn'); if(sb) sb.disabled=false;
+  const nr=document.getElementById('now-reading'); if(nr) nr.textContent='Loaded — hit ▶ to listen.';
+  switchTab('briefing');
+  showToast('Briefing loaded — hit ▶','success');
+}
+function deleteBriefing(id){
+  saveBriefingLib(loadBriefingLib().filter(x=>x.id!==id));
+  renderBriefingLibrary();
+  showToast('Briefing deleted','success');
 }
 
 function togglePlay(){if(!briefingText)return;ttsPlaying?pauseBriefing():playBriefing();}
