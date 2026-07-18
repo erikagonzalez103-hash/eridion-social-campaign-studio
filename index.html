@@ -3843,7 +3843,7 @@ const HOUSE_STYLE = `
 ① SOUND LIKE A PERSON, NOT A CONTENT MODEL.
 Do NOT use these worn AI phrasings, or anything within spitting distance of them:
 "stopped me in my tracks," "stopped me cold," "this stopped me," "made me stop scrolling," "let that sink in," "read that again," "sit with that," "here's the thing," "here's the kicker," "the truth is," "let's be honest," "let's dive in," "buckle up," "spoiler," "plot twist," "game-changer," "needle-mover," "hits different," "chef's kiss," "a masterclass in," "That's it. That's the post," "full stop," "and honestly?," "the part nobody talks about," "nobody talks about this," "say the quiet part out loud," "in today's fast-paced world," "in an ever-evolving landscape," "now more than ever," "it's not just X — it's Y," "this isn't about X, it's about Y," "the result?," "the best part?," "at the end of the day," "when it comes to," "navigating the world of," "unlock," "supercharge," "elevate," "delve," "tapestry," "testament to," "treasure trove," "look no further," "rest assured," "in a world where," "imagine a...," "said something I keep coming back to," "said something that stuck with me," "something I keep thinking about," "I haven't stopped thinking about," "it got me thinking," "that really stuck with me," "a conversation that changed how I think about..."
-NEVER narrate your own reaction as drama. Any construction where the writer performs being moved — "stopped me cold," "wrecked me," "I felt that," "gave me goosebumps," "I had to sit with that" — is banned in ALL its variants, not just the exact phrases listed above. State what the thing was and why it matters; skip the performance of reacting to it.
+NEVER narrate your own reaction as drama. Any construction where the writer performs being moved OR performs rumination — "stopped me cold," "wrecked me," "I felt that," "gave me goosebumps," "I had to sit with that," "what I keep coming back to," "I keep coming back to," "can't shake it," "still thinking about it," "it hit a nerve" — is banned in ALL its variants, not just the exact phrases listed above. State what the thing was and why it matters; skip the performance of reacting to or dwelling on it.
 Also drop the AI CADENCE, not just the words: rule-of-three on every sentence; an em-dash dramatic reveal on every line; stacks of one-line "mic-drop" paragraphs; and rhetorical-question transitions ("The result? ...", "The catch? ...").
 NEVER tease a meaningful moment instead of delivering it. If you open on a person, give the CONCRETE thing they actually said or did, in their words, right away — don't write "a woman in our studio said something I keep coming back to" and then make the reader wait. The specific quote or moment IS the opener; the windup is the tell.
 Instead: vary sentence length, let plain sentences be plain, cut throat-clearing, and never reach for a metaphor you've already seen in a LinkedIn post. If a line sounds like it could open any post on any topic, rewrite it to be about THIS one.
@@ -3931,6 +3931,65 @@ function findSearchTerms(text){
   return [...new Set(hits)];
 }
 
+// ── AI-tell detector ──
+// The HOUSE_STYLE ban list is a prompt instruction — the model usually obeys,
+// sometimes doesn't. This is the mechanical backstop: flag known AI-tell
+// phrasing in generated copy at review time so it never ships. Regexes so the
+// variants get caught too ("stopped me cold", "stops me in my tracks",
+// "what I keep coming back to"). Extend freely as new tells show up.
+const AI_TELL_PATTERNS=[
+  [/stop(?:s|ped)? me (?:cold|in my tracks)/i,'stopped me cold/in my tracks'],
+  [/keeps? coming back to/i,'keep coming back to'],
+  [/(?:haven't|can't|couldn't) stop thinking about/i,"can't stop thinking about"],
+  [/keep thinking about/i,'keep thinking about'],
+  [/(?:stuck|stays|stayed) with me/i,'stuck with me'],
+  [/got me thinking/i,'got me thinking'],
+  [/hit a nerve/i,'hit a nerve'],
+  [/wrecked me/i,'wrecked me'],
+  [/goosebumps/i,'goosebumps'],
+  [/\bI felt that[.!]/i,'I felt that.'],
+  [/sit(?:ting)? with (?:that|it)\b/i,'sit with that'],
+  [/let that sink in/i,'let that sink in'],
+  [/read that again/i,'read that again'],
+  [/hits? different/i,'hits different'],
+  [/chef'?s kiss/i,"chef's kiss"],
+  [/masterclass in/i,'masterclass in'],
+  [/that'?s it\.? that'?s the/i,"that's it, that's the…"],
+  [/full stop\b/i,'full stop'],
+  [/nobody (?:talks|is talking) about/i,'nobody talks about'],
+  [/quiet part out loud/i,'quiet part out loud'],
+  [/here'?s the (?:thing|kicker)\b/i,"here's the thing/kicker"],
+  [/the truth is\b/i,'the truth is'],
+  [/game.?chang/i,'game-changer'],
+  [/in today'?s fast/i,"in today's fast-paced world"],
+  [/ever.?evolving/i,'ever-evolving'],
+  [/now more than ever/i,'now more than ever'],
+  [/it'?s not (?:just )?(?:about )?\w[^.!?]{0,50}?[—–] it'?s (?:about )?/i,"it's not X — it's Y"],
+  [/\bunlock(?:s|ed|ing)?\b/i,'unlock'],
+  [/\bsupercharg/i,'supercharge'],
+  [/\bdelve\b/i,'delve'],
+  [/\btapestry\b/i,'tapestry'],
+  [/testament to/i,'testament to'],
+  [/treasure trove/i,'treasure trove'],
+  [/look no further/i,'look no further'],
+  [/rest assured/i,'rest assured'],
+  [/in a world where/i,'in a world where'],
+  [/at the end of the day/i,'at the end of the day'],
+  [/navigating the world of/i,'navigating the world of'],
+];
+function findAiTells(text){
+  if(!text) return [];
+  const hits=[];
+  for(const [re,label] of AI_TELL_PATTERNS){ if(re.test(text)) hits.push(label); }
+  return [...new Set(hits)];
+}
+// Warning line for a spin card (or '' when clean). Kept as a persistent element
+// (display:none when clean) so updateSpinResult can refresh it on inline edits.
+function aiTellWarnHTML(text, context, idx){
+  const tells=findAiTells(text);
+  return `<div id="ai-warn-${context}-${idx}" style="color:var(--error);font-size:11px;margin:2px 0 4px;${tells.length?'':'display:none'}">⚠ AI-tell phrasing: ${tells.join(' · ')} — edit or reroll</div>`;
+}
+
 // Paint the readout under the hashtags: which audience search terms this post will surface for.
 function renderKeywordReadout(text){
   const el=document.getElementById('keyword-readout');
@@ -3941,6 +4000,10 @@ function renderKeywordReadout(text){
     el.innerHTML='<span class="kw-label">Will surface in search for:</span>'+hits.map(h=>`<span class="kw-chip">${h}</span>`).join('');
   } else {
     el.innerHTML='<span class="kw-label kw-warn">⚠ No audience search terms detected — consider naming the role, location, or service once.</span>';
+  }
+  const tells=findAiTells(text);
+  if(tells.length){
+    el.innerHTML+='<span class="kw-label kw-warn" style="display:block;margin-top:4px">⚠ AI-tell phrasing: '+tells.join(' · ')+' — run De-AI or edit</span>';
   }
 }
 
@@ -6190,7 +6253,7 @@ let spinWeekResults = [];        // last results from week spin
 const SPIN_ANGLES = {
   hook:     {label:'Hook + tease',     instruction:'Write a LinkedIn post that teases the key insight of the blog without giving it all away. Open with a specific, concrete line that states the actual angle (not a generic "scroll-stopping" opener), sketch the thesis in 2-3 short paragraphs, then end with something like "Full breakdown in my latest post →" so readers are drawn to click through.'},
   data:     {label:'Data pull',        instruction:'Pull the single most compelling data point, stat, or factual finding from the blog and build a short LinkedIn post around it. Lead with the number/fact, explain in 2-3 sentences why it matters for builders, land on the implication. No "read more" hook needed — this post stands on its own.'},
-  personal: {label:'Personal take',    instruction:'Write a reflective, personal-voice LinkedIn post riffing on one idea from the blog. Opens with an observation or memory ("Was thinking about this today..." or "Had a conversation last week that..."), draws out one insight, ends with a light reflection — no hard CTA, no link-to-blog push.'},
+  personal: {label:'Personal take',    instruction:'Write a first-person LinkedIn post taking a position on one idea from the blog. Open with the concrete observation, moment, or job detail itself — what happened or what the writer noticed, stated plainly — NEVER with the act of reflecting ("Was thinking about...", "What I keep coming back to...", "Something stuck with me..."). Draw out one insight, end with a light reflection — no hard CTA, no link-to-blog push.'},
   question: {label:'Question to audience', instruction:'Write an engagement-focused LinkedIn post that poses a real question the blog answered — asking the audience their view BEFORE revealing the blog\'s answer. Open with framing context (2 sentences), then the question. Short, punchy, designed to drive comments.'},
   bold:     {label:'Bold claim',       instruction:'Pull a strong, confident statement from the blog and defend it in a short LinkedIn post. Make the claim in the first sentence, give 2-3 sentences of why it\'s true, land with confidence. Not preachy — just direct and opinionated.'},
   didyouknow: {label:'Did You Know',   instruction:'Write a "Did you know?" style LinkedIn post — short, punchy, educational. Open with "Did you know" and a surprising fact from the blog. Explain why it matters to builders in 2-3 sentences. Close with a subtle CTA if appropriate for the voice.'},
@@ -6293,10 +6356,10 @@ The bridge is NOT a formatted credit line. NEVER use "↳", "Re:", "Reposting:",
 Voice-natural bridge patterns (cadence reference only — never copy verbatim):
   • Eridion → Erika: "Erika wrote something last week about [X]. From the business side, the line that matters most to builders is..."
   • Eridion → Quinta & Co: "Something from the Quinta & Co side this week — [paraphrase]. Translated for the builder audience, here's why it matters on a jobsite..."
-  • Erika → Eridion: "Our team published a piece on [X] this week. The part I keep coming back to as a founder is..."
-  • Erika → Quinta & Co: "A practitioner over at Quinta & Co wrote about [paraphrase] this week. It hit a nerve because..."
-  • Quinta & Co → Eridion: "The Eridion team put out a piece on [X] this week. Reading it as a practitioner of the same craft elsewhere, here's the parallel I keep seeing..."
-  • Quinta & Co → Erika: "Erika wrote something earlier on [X]. Sitting with it from the practice side: the part that lands is..."`:'';
+  • Erika → Eridion: "Our team published a piece on [X] this week. From the founder's seat, the line that matters is..."
+  • Erika → Quinta & Co: "A practitioner over at Quinta & Co wrote about [paraphrase] this week. I see the same pattern on the construction side: ..."
+  • Quinta & Co → Eridion: "The Eridion team put out a piece on [X] this week. Reading it as a practitioner of the same craft elsewhere, the parallel is hard to miss: ..."
+  • Quinta & Co → Erika: "Erika wrote something earlier on [X]. From the practice side, the useful piece is..."`:'';
 
   // IG channel intro — only for Erika/Quinta & Co voices (since their content cross-posts to @eridion handle)
   const igIntroRule=(voice!=='eridion')?`
@@ -6371,6 +6434,15 @@ function updateSpinResult(idx, field, value, context){
     const charEl = card.querySelector('.spin-edit-charcount');
     if(charEl) charEl.textContent = (arr[idx].text||'').length + ' chars';
   }
+  // Live-refresh the AI-tell warning as she edits the body
+  if(field === 'text'){
+    const warnEl = document.getElementById(`ai-warn-${context}-${idx}`);
+    if(warnEl){
+      const tells = findAiTells(value||'');
+      if(tells.length){ warnEl.style.display=''; warnEl.textContent='⚠ AI-tell phrasing: '+tells.join(' · ')+' — edit or reroll'; }
+      else warnEl.style.display='none';
+    }
+  }
 }
 function renderSpinSnippetResult(){
   const resultsEl=document.getElementById('spin-snippet-results');
@@ -6393,6 +6465,7 @@ function renderSpinSnippetResult(){
         <span class="spin-result-label">${r.angle}</span>
         <span class="lib-card-date spin-edit-charcount" style="margin-left:auto">${r.text.length} chars</span>
       </div>
+      ${aiTellWarnHTML(r.text,'snippet',0)}
       <span class="spin-edit-lbl">Post body</span>
       <textarea class="spin-edit-body" oninput="updateSpinResult(0, 'text', this.value, 'snippet')">${escapeHTML(r.text)}</textarea>
       <span class="spin-edit-lbl">Hashtags</span>
@@ -6520,10 +6593,10 @@ The bridge is NOT a header or formatted credit line. It's part of the post — f
 Voice-natural bridge examples (study the cadence — these are PATTERNS, never copy them word-for-word):
   • Eridion picking up Erika: "Erika wrote something last week about [X]. From the business side, the line that matters most to builders is..."
   • Eridion picking up Quinta & Co: "Something from the Quinta & Co side this week — [paraphrase]. Translated for the builder audience, here's why it matters on a jobsite..."
-  • Erika picking up Eridion: "Our team published a piece on [X] this week. The part I keep coming back to as a founder is..."
-  • Erika picking up Quinta & Co: "A practitioner over at Quinta & Co wrote about [paraphrase] this week. It hit a nerve because..."
-  • Quinta & Co picking up Eridion: "The Eridion team put out a piece on [X] this week. Reading it as a practitioner of the same craft elsewhere, here's the parallel I keep seeing..."
-  • Quinta & Co picking up Erika: "Erika wrote something earlier on [X]. Sitting with it from the practice side: the part that lands is..."
+  • Erika picking up Eridion: "Our team published a piece on [X] this week. From the founder's seat, the line that matters is..."
+  • Erika picking up Quinta & Co: "A practitioner over at Quinta & Co wrote about [paraphrase] this week. I see the same pattern on the construction side: ..."
+  • Quinta & Co picking up Eridion: "The Eridion team put out a piece on [X] this week. Reading it as a practitioner of the same craft elsewhere, the parallel is hard to miss: ..."
+  • Quinta & Co picking up Erika: "Erika wrote something earlier on [X]. From the practice side, the useful piece is..."
 
 For SAME-VOICE snippets (voice === ${sourceVoice.toUpperCase()}): NO bridge. Open directly with the angle. Treat the source as your own prior thinking — don't credit yourself.
 
@@ -6663,6 +6736,7 @@ function renderSpinWeekResults(){
           <span class="lib-card-bucket">· ${escapeHTML(r.angleLabel||'')}</span>
           <span class="lib-card-date spin-edit-charcount" style="margin-left:auto">${r.text.length} chars</span>
         </div>
+        ${aiTellWarnHTML(r.text,'week',i)}
         <span class="spin-edit-lbl">Post body</span>
         <textarea class="spin-edit-body" oninput="updateSpinResult(${i}, 'text', this.value, 'week')">${escapeHTML(r.text)}</textarea>
         <span class="spin-edit-lbl">Hashtags</span>
