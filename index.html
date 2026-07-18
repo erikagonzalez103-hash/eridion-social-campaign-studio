@@ -3801,6 +3801,18 @@ BRAND VOICE: Warm, direct, plainspoken. Takes a stand. Honest about tradeoffs �
 TAGLINE: "AI is a practice, not a purchase."
 SECONDARY: "The practical answers they don't teach you in business school."
 
+THE REGISTER, IN EVIDENCE — these are real published Quinta & Co lines. This is the voice. Study what they do; write NEW lines that could sit beside them (never reuse these verbatim):
+- "So the '$0' is real. It's just the doorway, not the room."
+- "If you hand a tool your whole job and then spend your day checking whether it lied to you, you haven't saved anything. You've added a shift."
+- "It's for you. It's just been badly introduced."
+- "Not enterprise contracts. The price of a couple of coffees."
+- "Match the tool to the task. That's the whole game."
+- "So the practice isn't 'avoid the registered agent.' It's 'buy the registered agent, skip the markup.'"
+- "Cancel 24+ hours before for a full refund. Inside 24 hours I can't refund — the spot's held and the prep is done — but if something real comes up, email me. I'm a person, not a policy."
+Notice the pattern: short declaratives where the second sentence lands the twist; opinions stated as plain fact; concrete nouns and real dollar amounts; the joke is dry and arrives without being announced.
+
+BITE IS REQUIRED. Boring is this brand's failure mode, not spiciness. Every piece needs at least one line with actual edge — an opinion a reader could disagree with, a dry aside, or a number doing something surprising. If a draft reads like a polite summary, it is wrong: find the one thing in the material worth being wry or blunt about, and lead with it. Quiet does not mean flat — Quinta is quiet the way a raised eyebrow is quiet. Erika would rather soften one slightly-too-bold line than read five safe ones.
+
 AUDIENCE: Women business owners — primarily beginners with AI and no-code tools. Solo operators, founders, small-business owners who feel behind on the AI conversation and are tired of being talked down to or upsold.
 
 NEVER: Hype, urgency, "AI will change everything" energy; bro-speak ("leverage," "10x," "unlock," "game-changer," "supercharge"); guru framing — no "I figured out the secret"; promises of transformation (sell relief, not transformation); mentioning AI tool names in marketing without showing actual practice with them.
@@ -3830,7 +3842,11 @@ NEVER: Hype, urgency, "AI will change everything" energy; bro-speak ("leverage,"
 
 ALWAYS: Real stories over hypothetical ones (use Practitioners' actual situations); show the seams (what broke, what didn't work, what was hard); frame AI as a practice — "show up," "begin," "return to it"; The Practice owns its own world: practitioners, open studio, field notes, the practice; restraint, white space, quiet over loud.
 
-REGISTER: A smart friend explaining over coffee — warm, plain, confident, a little dry. Name the why and the tradeoffs. No jargon, no condescension. Short italic phrases are the signature beat — use sparingly.`
+REGISTER: A smart friend explaining over coffee — warm, plain, confident, a little dry. Name the why and the tradeoffs. No jargon, no condescension. Short italic phrases are the signature beat — use sparingly.
+
+THE REGISTER, IN EVIDENCE — real published lines in this voice; write NEW lines that could sit beside them (never reuse verbatim): "So the '$0' is real. It's just the doorway, not the room." / "Match the tool to the task. That's the whole game." / "It's for you. It's just been badly introduced." / "Not enterprise contracts. The price of a couple of coffees." The pattern: short declaratives where the second sentence lands the twist; dry humor that arrives unannounced; real numbers over adjectives.
+
+BITE IS REQUIRED. Boring is the failure mode. Every piece needs one line with actual edge — an opinion someone could disagree with, a dry aside, or a surprising number. A polite summary is a failed draft: find the one thing worth being wry or blunt about and lead with it.`
 };
 
 // ── House Writing Standards ──
@@ -6439,7 +6455,7 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
   const wordRange=crossVoice?'90-220 words total (allowance for the narrative bridge)':'80-200 words total';
   const igOutputRule=(voice!=='eridion')?`\n\n✦ OUTPUT FORMAT:\nReturn the post text + hashtags FIRST. Then on a new line, the literal separator "===IG_INTRO===" followed by the 1-2 sentence IG channel intro. No other commentary anywhere.`:'';
 
-  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(voice)}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
+  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(voice)}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. A snippet is NOT a summary of the source — it is the single most interesting claim in it, picked out and sharpened. Deliver the surprise in line one; make the reader feel smarter by line three. If your draft reads like a book report of the post, start over from the post's best sentence.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
 
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:900,messages:[{role:'user',content:prompt}]},m=>{resultsEl.innerHTML=`<div class="spin-loading">${escapeHTML(m)}</div>`;});
