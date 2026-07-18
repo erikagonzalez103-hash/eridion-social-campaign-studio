@@ -3812,6 +3812,8 @@ WRITING RULES:
 - Short paragraphs. White space. Trust the reader to slow down.
 - Plain words. If a business-school word would work, use the everyday one instead.
 - Concrete over abstract. A specific tool used for a specific task beats "AI strategy."
+- Register check: a smart friend explaining over coffee — warm, plain, confident, a little dry. Name the why and the tradeoffs. No jargon, no condescension, no "first let me explain transformers" energy.
+- Short italic phrases are the signature beat — use sparingly.
 - The brand is the practice, not the founder. Erika may show up as a voice, but the world is bigger than her — practitioners drive most of the stories.
 - A CTA, when it appears, is invitational, not coercive. "Come to open studio." "Try this for a week." Never "limited time."`,
 
@@ -3826,7 +3828,9 @@ AUDIENCE: Women business owners — primarily beginners with AI and no-code tool
 
 NEVER: Hype, urgency, "AI will change everything" energy; bro-speak ("leverage," "10x," "unlock," "game-changer," "supercharge"); guru framing — no "I figured out the secret"; promises of transformation (sell relief, not transformation); mentioning AI tool names in marketing without showing actual practice with them.
 
-ALWAYS: Real stories over hypothetical ones (use Practitioners' actual situations); show the seams (what broke, what didn't work, what was hard); frame AI as a practice — "show up," "begin," "return to it"; The Practice owns its own world: practitioners, open studio, field notes, the practice; restraint, white space, quiet over loud.`
+ALWAYS: Real stories over hypothetical ones (use Practitioners' actual situations); show the seams (what broke, what didn't work, what was hard); frame AI as a practice — "show up," "begin," "return to it"; The Practice owns its own world: practitioners, open studio, field notes, the practice; restraint, white space, quiet over loud.
+
+REGISTER: A smart friend explaining over coffee — warm, plain, confident, a little dry. Name the why and the tradeoffs. No jargon, no condescension. Short italic phrases are the signature beat — use sparingly.`
 };
 
 // ── House Writing Standards ──
@@ -3852,6 +3856,47 @@ Instead: vary sentence length, let plain sentences be plain, cut throat-clearing
 ③ SURFACE THE SEARCH TERMS THE AUDIENCE TYPES.
 LinkedIn (and Google) ranks copy on the literal words in it. Work the natural search phrase your audience would type into the post at least once — role + location + specialty. Illustrative: Eridion → "custom home builders in Dallas," "frameless shower enclosures," "luxury glass and glazing"; Erika → "women founders in construction," "marketing-to-construction career"; Quinta/Practice → "AI for small business owners," "no-code tools for founders." Pick what fits the topic. ONE clean, natural mention beats five forced ones — never keyword-stuff.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+// ── GEO Content Playbook (July 2026) ──
+// "Write the answer, not the post." AI answer engines (ChatGPT, Perplexity,
+// Copilot via Bing) lift clear, sourced, quotable answers — these rules make
+// every piece liftable. Injected after HOUSE_STYLE in every post-generation
+// prompt. The structural rules are universal across streams; the link + entity
+// rules are stream-aware (a quintaand.co/go/ link belongs in Quinta & Co
+// content only — never in an Eridion Glass post). Pass 'week' when one prompt
+// generates snippets in multiple voices (Spin Week). Voice always wins: these
+// shape STRUCTURE, never tone.
+function buildGEO(stream){
+  const LINK_RULES={
+    eridion:'Weave ONE link naturally into a sentence — eridionglass.com or erika@eridionglass.com, per the CTA rules. Never a quintaand.co link in Eridion content.',
+    erika:'Weave ONE link naturally into a sentence. If the post touches Quinta & Co, AI education, or women-founder topics, use a quintaand.co/go/ short link (go/start, go/morewomen, …; default go/start). Construction/Eridion topics link eridionglass.com instead. Never "click here."',
+    quinta:'Weave ONE quintaand.co/go/ short link naturally into a sentence (go/start, go/morewomen, …; default to go/start when nothing fits better). Never "click here." In a blog, ALSO weave one internal link to a class page into a sentence — the conversion path is reader → answer → class.',
+  };
+  LINK_RULES.practice=LINK_RULES.quinta;
+  const link = stream==='week'
+    ? 'Per snippet, by its assigned voice — ERIDION: '+LINK_RULES.eridion+' · ERIKA: '+LINK_RULES.erika+' · QUINTA & CO / PRACTICE: '+LINK_RULES.quinta
+    : (LINK_RULES[stream]||LINK_RULES.eridion);
+  return `
+━━━ GEO PLAYBOOK — write the answer, not the post ━━━
+AI answer engines (ChatGPT, Perplexity, Copilot) quote clear, sourced, standalone answers. Every piece must survive being lifted out of context. Apply these ON TOP of the voice — they shape structure, never tone.
+
+① ANSWER FIRST. Line one of a LinkedIn post — and the first two sentences of a blog — state the answer to the question the piece exists to answer. The hook and the answer are the same sentence. No warm-up, no scene-setting.
+Anti-example (engines skip): "In today's fast-moving world, many entrepreneurs are wondering about AI..."
+Good (engines quote): "You don't need to understand AI to use it. You need to know where to start."
+
+② ONE STAT, SOURCE NAMED IN THE TEXT. Every piece carries one statistic with its source and year named in the copy itself — e.g. "74% said they'd adopt with clearer proof (Reimagine Main Street/PayPal, 2025)". Never "studies show" or "research says." Use only real figures from the provided sources or key points — NEVER invent a number. If no real stat is available, use a concrete named fact instead (a building code, a standard, a named program): unsourced numbers are invisible to engines and banned here.
+
+③ ONE QUOTABLE LINE. Each piece contains exactly one short, opinionated, standalone sentence that works lifted on its own ("AI is a practice, not a purchase" is the register). One — more dilutes.
+
+④ QUESTION-SHAPED HEADLINES. A blog title is either the exact question the reader would type into a search box, or its answer stated boldly ("You Don't Need to Understand AI to Use It"). Every section heading must make sense quoted out of context.
+
+⑤ LINKEDIN ENDS WITH A QUESTION. Close every LinkedIn post with one genuine question to the reader — comments extend reach, and reach extends indexing. The question may carry the CTA; don't stack a separate CTA line after it.
+
+⑥ LINK: ${link}
+
+⑦ INSTAGRAM (when a caption or channel intro is produced): caption line one = the answer. For Quinta & Co content, say "Quinta & Co" in the caption — entity reinforcement for brand search.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+}
 
 // ── Audience search terms ──
 // Phrases the audience actually types into LinkedIn/Google search. renderKeywordReadout()
@@ -3904,17 +3949,19 @@ function renderKeywordReadout(text){
 function buildCTA(stream){
   const eridion=`\n\nCTA RULES — APPLY TO ALL FORMATS:
 - Every post must include at least one subtle CTA mid-content, framed as a concrete next step (e.g. "If you're speccing glass for a project, send us the elevations and we'll flag anything that affects lead time." or "We're glad to walk through your specs.")
-- Every post must end with a clear, specific CTA — never manufactured urgency or scarcity (e.g. "If you want a second set of eyes on the glass package, reach us at erika@eridionglass.com or eridionglass.com." Do NOT use countdown pressure like "before Q3 fills up" or "now is the time.")
+- On LinkedIn, the closing question (GEO PLAYBOOK ⑤) carries the closing CTA — a genuine question that invites a builder next step (e.g. "Speccing a glass package this fall? Send the elevations to erika@eridionglass.com — what's the one detail that always slows yours down?"). Never manufactured urgency or scarcity — no countdown pressure like "before Q3 fills up" or "now is the time."
+- In a blog, keep a clear closing CTA paragraph (email, website, or "let's talk")
 - CTAs should read as a natural next step, never salesy or pushy — always builder-focused`;
   const erika=`\n\nCTA RULES:
 - Include one soft mid-content CTA (e.g. invite to connect, comment, or DM)
-- End with a clear strong CTA (e.g. "I'd love to hear how you're navigating this — drop a comment or connect with me." or "If you're building something in Dallas, let's talk.")`;
+- The closing question (GEO PLAYBOOK ⑤) doubles as the closing CTA (e.g. "How are you navigating this — and what would change it for you?" or "If you're building something in Dallas — what's in your way? Let's talk.")`;
   const quinta=`\n\nCTA RULES FOR QUINTA & CO:
 - A CTA is invitational, not coercive. Story-driven or observational posts can stand without one.
 - When a CTA fits, frame it as an invitation to practice — e.g. "Come to open studio next week," "Try this for seven days and tell me what shifts," or "If this rings true, the next module starts in two weeks."
 - Direct mentions of the brand (Quinta & Co), the campaign (The Practice), open studio, or upcoming modules are fine. Avoid urgency, superlatives, scarcity tactics, or anything that reads like a sales page.
-- Default to NO CTA. Add one only when it deepens the invitation; if the post is just a field note or a manifesto, let it breathe.`;
-  return stream==='eridion' ? eridion : (stream==='quinta' ? quinta : erika);
+- Default to NO CTA. Add one only when it deepens the invitation; if the post is just a field note or a manifesto, let it breathe.
+- The GEO closing question (GEO PLAYBOOK ⑤) is NOT a CTA — a quiet, genuine question to the reader fits Quinta's register and still closes every LinkedIn post.`;
+  return stream==='eridion' ? eridion : ((stream==='quinta'||stream==='practice') ? quinta : erika);
 }
 
 // ── POV Sets: four angles per topic category ──
@@ -4528,22 +4575,23 @@ async function generateContent() {
   let fmtInstr='';
   const ctaFinal = buildCTA(currentStream);
 
-  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Open with a specific, concrete first line — the actual point or observation, not a generic "scroll-stopping" hook. One subtle mid-post CTA. Strong closing CTA. Also generate 3-5 relevant hashtags (aim for 3-4 specific ones; never more than 5).${ctaFinal}`;
+  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Line one = the answer to the question this post exists to answer — specific and concrete, not a generic "scroll-stopping" hook. One subtle mid-post CTA. Close with one genuine question to the reader (per GEO PLAYBOOK ⑤ — it can carry the CTA). Also generate 3-5 relevant hashtags (aim for 3-4 specific ones; never more than 5).${ctaFinal}`;
   else if(format==='blog+linkedin') fmtInstr=`Generate BOTH a full blog post AND a LinkedIn snippet.
 
 BLOG POST (1000-1400 words):
-- SEO-optimized title
-- Strong opening that speaks directly to the builder's reality
-- 3-4 sections with subheadings
-- Specific data points with sources cited by name
+- Title: question-shaped — the exact question a reader would type into a search box — or its answer stated boldly (per GEO PLAYBOOK ④)
+- The answer in the first two sentences — no warm-up
+- 3-4 sections with subheadings that each stand alone quoted out of context
+- One stat with its source and year named in the text per section, where the material supports it — never "studies show"
+- One quotable standalone line somewhere in the post
 - 2 subtle inline CTAs woven naturally into the body (not forced — tied to the point being made)
 - Strong closing CTA paragraph — clear and direct, never manufactured urgency
 - Final line: a direct action statement (email, website, or "let's talk")
 
 LINKEDIN SNIPPET (150-300 words):
-- Key insight from blog
+- Line one = the answer (the key insight from the blog, stated plainly)
 - One mid-post soft CTA
-- Ends with "Read the full post → [link]" as placeholder
+- Ends with "Read the full post → [link]" as placeholder, then one genuine question to the reader
 
 FORMAT EXACTLY:
 ===BLOG===
@@ -4553,10 +4601,10 @@ FORMAT EXACTLY:
 ===HASHTAGS===
 [3-5 hashtags, one per line — aim for 3-4, never more than 5]
 ${ctaFinal}`;
-  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post about a glass, glazing, or building code requirement. Start with "Did you know?" then the surprising fact, why it matters to builders, Eridion's expertise connection. End with a CTA to reach out or learn more. 100-200 words. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
-  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post. Warm, genuine, not promotional. Celebrate the subject's story and one key insight. End with a soft CTA to connect or follow. 150-250 words. Also 3-5 hashtags (aim for 3-4; never more than 5).${buildCTA('erika')}`;
+  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post about a glass, glazing, or building code requirement. Start with "Did you know?" then the surprising fact, why it matters to builders, Eridion's expertise connection. End with a question to builders (it can carry the CTA to reach out). 100-200 words. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
+  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post. Warm, genuine, not promotional. Celebrate the subject's story and one key insight. End with a soft question inviting readers to connect or share their own story. 150-250 words. Also 3-5 hashtags (aim for 3-4; never more than 5).${buildCTA('erika')}`;
 
-  const prompt=`${voice}\n${HOUSE_STYLE}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment)'}\nTONE: ${tone}\n\n${fmtInstr}`;
+  const prompt=`${voice}\n${HOUSE_STYLE}\n${buildGEO(currentStream)}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment)'}\nTONE: ${tone}\n\n${fmtInstr}`;
 
   // Use higher token limit for blog format
   const maxTokens = format==='blog+linkedin' ? 4000 : 1000;
@@ -4847,21 +4895,22 @@ async function draftFromResearch(){
   const ctaFinal=buildCTA(currentStream);
 
   let fmtInstr='';
-  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Strong opening hook. One subtle mid-post CTA. Strong closing CTA. Also 3-5 relevant hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
+  if(format==='linkedin') fmtInstr=`Generate a LinkedIn post only (150-300 words). Line one = the answer to the question this post exists to answer. One subtle mid-post CTA. Close with one genuine question to the reader (per GEO PLAYBOOK ⑤ — it can carry the CTA). Also 3-5 relevant hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
   else if(format==='blog+linkedin') fmtInstr=`Generate BOTH a full blog post AND a LinkedIn snippet.
 
 BLOG POST (1000-1400 words):
-- SEO-optimized title
-- Strong opening that speaks to the builder's reality
-- 3-4 sections with subheadings
-- Cite the curated sources by name inline (e.g. "according to NAHB..." or "per ASTM C1048...")
+- Title: question-shaped — the exact question a reader would type — or its answer stated boldly (per GEO PLAYBOOK ④)
+- The answer in the first two sentences — no warm-up
+- 3-4 sections with subheadings that each stand alone quoted out of context
+- Cite the curated sources by name inline with the year (e.g. "according to NAHB (2025)..." or "per ASTM C1048...") — at least one stat per section where the sources support it
+- One quotable standalone line somewhere in the post
 - 2 subtle inline CTAs woven naturally
 - Strong closing CTA paragraph
 
 LINKEDIN SNIPPET (150-300 words):
-- Key insight from blog
+- Line one = the answer (the key insight from the blog, stated plainly)
 - One mid-post soft CTA
-- Ends with "Read the full post → [link]"
+- Ends with "Read the full post → [link]", then one genuine question to the reader
 
 FORMAT EXACTLY:
 ===BLOG===
@@ -4871,8 +4920,8 @@ FORMAT EXACTLY:
 ===HASHTAGS===
 [3-5 hashtags, one per line — aim for 3-4, never more than 5]
 ${ctaFinal}`;
-  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post (100-200 words). Start with "Did you know?" then the surprising fact from the sources, why it matters to builders, Eridion's angle, CTA. Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
-  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post (150-250 words). Warm, genuine, not promotional. End with soft CTA. Also 3-5 hashtags (aim for 3-4; never more than 5).${buildCTA('erika')}`;
+  else if(format==='didyouknow') fmtInstr=`Generate a "Did You Know?" LinkedIn post (100-200 words). Start with "Did you know?" then the surprising fact from the sources, why it matters to builders, Eridion's angle. End with a question to builders (it can carry the CTA). Also 3-5 hashtags (aim for 3-4; never more than 5).${ctaFinal}`;
+  else if(format==='spotlight') fmtInstr=`Generate a Women in Business spotlight post (150-250 words). Warm, genuine, not promotional. End with a soft question inviting readers to connect. Also 3-5 hashtags (aim for 3-4; never more than 5).${buildCTA('erika')}`;
 
   const povInstruction=`\n\n✦ ANGLE / POINT OF VIEW FOR THIS PIECE — FOLLOW THIS CONSISTENTLY THROUGHOUT:\n${pov.modifier}\n\nDo not hedge against the chosen angle. Stay consistent. Every section should reinforce this lean.`;
 
@@ -4882,7 +4931,7 @@ ${ctaFinal}`;
 - Do NOT invent or fabricate specific statistics or studies beyond what's in the curated list
 - If you need a supporting claim not in the sources, phrase it generally ("industry practice," "commonly observed") rather than attributing to a specific source`;
 
-  const prompt=`${voice}\n${HOUSE_STYLE}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\n✦ CURATED SOURCE MATERIAL (the writer has reviewed and selected these — use them):\n\n${sourcesBlock}${sourceRule}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment from sources)'}\nTONE: ${tone}${povInstruction}\n\n${fmtInstr}`;
+  const prompt=`${voice}\n${HOUSE_STYLE}\n${buildGEO(currentStream)}\n\nBUSINESS FACTS — ALWAYS TRUE — NEVER CONTRADICT THESE:\n${getKB()}\n\n✦ CURATED SOURCE MATERIAL (the writer has reviewed and selected these — use them):\n\n${sourcesBlock}${sourceRule}\n\nCONTENT BUCKET: ${bucketLabel}\nTOPIC: ${topic}\nKEY POINTS:\n${bullets||'(use best judgment from sources)'}\nTONE: ${tone}${povInstruction}\n\n${fmtInstr}`;
 
   const maxTokens=format==='blog+linkedin'?4000:1200;
 
@@ -6265,14 +6314,15 @@ Voice-natural patterns (study cadence — never copy verbatim):
   • Or skip the intro and open straight into the first line — direct beats announcement every time`:`• "From Quinta & Co —"
   • "A note from The Practice:"
   • "Quinta & Co. Field note:"
-  • Or open straight into the observation with no intro at all — quiet beats announcement`}
+  • Or open straight into the observation with no intro at all — quiet beats announcement
+  • GEO entity rule: the finished caption must say "Quinta & Co" by name somewhere — if the post body already names it, skipping the intro is fine; otherwise the intro carries the name`}
 
 NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The intro must read as natural opening flow, not a tag.`:'';
 
   const wordRange=crossVoice?'90-220 words total (allowance for the narrative bridge)':'80-200 words total';
   const igOutputRule=(voice!=='eridion')?`\n\n✦ OUTPUT FORMAT:\nReturn the post text + hashtags FIRST. Then on a new line, the literal separator "===IG_INTRO===" followed by the 1-2 sentence IG channel intro. No other commentary anywhere.`:'';
 
-  const prompt=`${voicePrompt}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
+  const prompt=`${voicePrompt}\n${buildGEO(voice)}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
 
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:900,messages:[{role:'user',content:prompt}]},m=>{resultsEl.innerHTML=`<div class="spin-loading">${escapeHTML(m)}</div>`;});
@@ -6485,7 +6535,7 @@ Snippets in non-Eridion voices may cross-post to the @eridion Instagram handle, 
 
 Voice-natural patterns (cadence reference only — never copy verbatim):
   • Erika: "Erika Harrison. One of the people building this:" / "From me, not the brand —" / "Erika here. Quick thought before the calls start:" / "I'll keep this brief:" / (or no intro — open straight into the first line; direct beats announcement)
-  • Quinta & Co: "From Quinta & Co —" / "A note from The Practice:" / "Quinta & Co. Field note:" / (or no intro — open straight into the observation; quiet beats announcement)
+  • Quinta & Co: "From Quinta & Co —" / "A note from The Practice:" / "Quinta & Co. Field note:" / (or no intro — open straight into the observation; quiet beats announcement). GEO entity rule: the finished caption must say "Quinta & Co" by name somewhere — if the post body already names it, no intro is fine; otherwise the intro carries the name.
 
 For ERIDION-voice snippets: set ig_intro to empty string "" (the voice already matches the channel).`;
 
@@ -6497,6 +6547,7 @@ ${getKB()}
 VOICE REFERENCE (follow strictly for each snippet's assigned voice):
 ${voiceRef}
 ${HOUSE_STYLE}
+${buildGEO('week')}
 
 SOURCE POST (originally written in the ${sourceVoice.toUpperCase()} voice):
 ---
@@ -6533,6 +6584,7 @@ ${i+1}. ${d.day} · Voice: ${d.voice.toUpperCase()} · ${spinMode==='sections'?`
 
 RULES FOR EVERY SNIPPET:
 - 80-200 words each (cross-voice snippets can run to 220 to accommodate the bridge)
+- Apply the GEO PLAYBOOK above to each snippet: line one = the answer (for cross-voice snippets, the bridge IS line one, so make the bridge deliver the answer, not tease it); one stat with its source named in the text where the source post provides one; end with one genuine question to the reader; use the link rule for the snippet's assigned voice
 - Stay factually consistent with the source — no invented data
 - Match the assigned voice precisely (different voices have different CTA rules: Eridion = direct CTA, Erika = soft CTA, Quinta & Co = usually NO CTA at all)
 - Include 3-5 relevant hashtags per snippet (aim for 3-4; never more than 5). Vary them across the 5 days — do not repeat the same hashtag on more than 2 of the days
@@ -8565,7 +8617,7 @@ For each day pick ONE format and fill only that format's fields:
 - "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars). ALSO fill the Eridion brand-card fields: eyebrow (one word, e.g. "GLASS"), hero_stat (the number itself), sub_label (UPPERCASE, <=30 chars, what it measures), and optionally closing_line + closing_emphasis (a two-part italic sign-off; closing_emphasis is the punchy second half).
 - "infographic": the day lists 2-5 discrete points/standards/benefits. Fields: infographic_title (<=50 chars), infographic_points = array of 2-5 {"value","label"}. ALSO fill the Eridion brand-card fields: eyebrow (one word), headline (UPPERCASE, <=30 chars — the claim), kicker (short UPPERCASE lead-in, e.g. "DESIGNED FOR"), hero_stat (the single biggest number/phrase, e.g. "20+ YEARS"), sub_label (UPPERCASE), benefits = array of 2-5 {"label" (1-2 words, UPPERCASE), "icon"} where icon is one of: droplet, noslash, shield, window, diamond, check, ruler, layers (pick the closest meaning — droplet=water/non-porous, noslash=resistant/anti-X, shield=protection, window=glass/panel, diamond=quality/durability, check=verified, ruler=precision/measure, layers=panels), and optionally closing_line + closing_emphasis.
 - "chart": the day compares 2-4 numbers (e.g. 91% vs 83% light transmission, or a before/after). PREFER this over stat/infographic whenever the point is a quantitative comparison — it's rendered as a real, accurate bar chart. Fields: chart_headline (the SCROLL-STOPPING hook/takeaway, <=8 words — the story, NOT the metric name; e.g. "The clarity the high end now notices"), chart_title (the small metric label/eyebrow, e.g. "Visible light transmitted", <=30 chars), chart_items = array of 2-4 {"label","value"} (value like "91%" or "20 yrs"; label 1-3 words), chart_caption (one supporting sentence — the "so what"; put the punchiest half after an em dash "—" for emphasis).
-- "carousel": the day tells a LONGER story worth multiple slides — a step-by-step, a before/after, a 3-part argument. Carousels earn more clicks, so use one when a day genuinely has a sequence (not every day). Fields: carousel_slides = array of 3-6 {"slide_title" (<=8 words), "slide_body" (<=20 words)}, building a clear narrative across slides.
+- "carousel": the day tells a LONGER story worth multiple slides — a step-by-step, a before/after, a 3-part argument. Carousels earn more clicks, so use one when a day genuinely has a sequence (not every day). Fields: carousel_slides = array of 3-6 {"slide_title" (<=8 words), "slide_body" (<=20 words)}, building a clear narrative across slides. For Quinta & Co / Practice voice days, shape the carousel as Q&A pairs (GEO playbook): slide 1 poses the question the post answers, slide 2 states the answer plainly, later slides deepen it.
 - "stock": a real-world photograph fits better than anything generated. Fields: stock_query (2-4 concrete words, searchable on Unsplash).
 - "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid and SPECIFIC — name the concrete subject, material, object, or place the post is actually about, e.g. "antiqued mirror panels installed on a coffered ceiling," not just "a ceiling"; photographic or illustrative; NO text on screen).
 
