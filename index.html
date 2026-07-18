@@ -8735,7 +8735,15 @@ function brandInfographicPrompt(voice, spec, fallbackText){
 }
 async function evaluateArc(entries){
   const days=entries.map((r,i)=>`DAY ${i+1} — ${r.label||('Day '+(i+1))} (voice: ${r.voice})\n${r.text}`).join('\n\n---\n\n');
-  const prompt=`You are an art director planning the visual asset for each day of a 5-day LinkedIn series. You see all five posts at once — treat them as one arc and give the week visual RHYTHM. Vary the VISUAL TREATMENT, not just the format: a premium feed leans on editorial PHOTOGRAPHY for a good share of days, then mixes in clean data/diagram pieces and typographic quote cards. Do NOT let every day read as the same kind of card (e.g. all diagrams, or all hand-drawn illustration). A rough target across the week: ~40% editorial photography, ~30% data/diagram, ~20% typographic quote, ~10% illustration.
+  const prompt=`You are an art director planning the visual asset for each day of a 5-day LinkedIn series. You see all five posts at once — treat them as one arc and give the week visual RHYTHM.
+
+HARD RULES FOR THE WEEK'S MIX (check your picks against these before answering):
+- Use at least 3 DIFFERENT formats across the 5 days. Never the same format more than 2 days.
+- At most 2 photographic days ("stock" + "image" combined). Photography is a strong accent, not the default — but most weeks SHOULD include 1-2 photographic days where a post suits one (real installs and real scenes keep the feed human; don't drop photography to zero unless no day fits it).
+- Any day whose post centers on a number, a comparison, or a list of points/standards MUST get a data format ("chart", "stat", or "infographic") — a stat-driven post paired with a plain photo is a wasted asset.
+- A day whose post hands you one sharp standalone line is usually a "quote" card.
+- Hand-drawn illustration stays rare (about 1 in 10 across weeks), never the default treatment.
+The goal is a premium feed that MIXES editorial photography with clean data pieces (charts, stat cards, technical diagrams), typographic quote cards, and the occasional carousel — never five of the same kind of card.
 
 For each day pick ONE format and fill only that format's fields:
 - "quote": a single sharp line from the post works as a pull-quote card. Fields: quote_text (<=180 chars, drawn from the post), attribution (the author/brand name, or "").
@@ -8909,7 +8917,14 @@ async function openPromptPackForGroup(groupKey){
     const decisions=await evaluateArc(group.map(g=>({label:g.snippet_day||g.title||'', voice:g.voice, text:g.linkedin_text||g.blog_text||''})));
     promptPackEntries=group.map((g,i)=>{
       const d=decisions[i]||{};
-      const fmt=ASSET_FORMATS.includes(d.format)?d.format:'image';
+      // Normalize the model's format string before validating — "Photo",
+      // "photography", "photograph" etc. should land on a real format instead
+      // of silently falling back to a plain generated image.
+      const FMT_SYNONYMS={photo:'stock',photography:'stock',photograph:'stock',picture:'image',illustration:'image',graphic:'infographic',diagram:'infographic',data:'chart'};
+      let rawFmt=String(d.format||'').toLowerCase().trim();
+      rawFmt=FMT_SYNONYMS[rawFmt]||rawFmt;
+      const fmt=ASSET_FORMATS.includes(rawFmt)?rawFmt:'image';
+      if(fmt==='image'&&rawFmt!=='image') console.warn(`Arc returned unknown format "${d.format}" for ${g.snippet_day||i+1} — fell back to image`);
       const spec={
         quote_text:d.quote_text, attribution:d.attribution, stat_number:d.stat_number, stat_label:d.stat_label,
         infographic_title:d.infographic_title, infographic_points:Array.isArray(d.infographic_points)?d.infographic_points:[],
@@ -8923,6 +8938,13 @@ async function openPromptPackForGroup(groupKey){
       const matches=isPhoto?matchCatalogPhotos(g.linkedin_text||g.blog_text||'', d, 3):[];
       return { itemId:g.id, day:g.snippet_day||g.title||('Day '+(i+1)), voice:g.voice, format:fmt, prompt:buildPromptForDay(g.voice, fmt, spec, g.linkedin_text||g.blog_text), catalogMatches:matches };
     });
+    // Variety backstop: the arc prompt caps photography at 2 of 5 days — if the
+    // model blew past that anyway, tell her so she can close and reopen the
+    // Prompt Pack (each open re-runs the arc) instead of shrugging at 5 photos.
+    const photoDays=promptPackEntries.filter(e=>e.format==='image'||e.format==='stock').length;
+    if(promptPackEntries.length>=4 && photoDays>=promptPackEntries.length-1){
+      showToast(`Arc came back photo-heavy (${photoDays} of ${promptPackEntries.length} days) — close and reopen the Prompt Pack to redraw the mix`,'error');
+    }
     renderPromptPack();
   }catch(e){
     document.getElementById('prompt-pack-body').innerHTML='<div style="color:var(--error);font-size:12px;padding:12px">Arc failed: '+escapeHTML(e.message)+'</div>';
