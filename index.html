@@ -8733,6 +8733,29 @@ function brandInfographicPrompt(voice, spec, fallbackText){
   L.push("KEEP TEXT MINIMAL — every extra word risks a misspelling. Use only the few words given above, render EACH one EXACTLY and spelled correctly (double-check: LIGHT, frameless, antiqued, transmission), no invented words, no stray dashes before numbers. Lots of calm space. Output the finished card only — no UI, and no rendered logo/wordmark (a small hand-drawn sprout is fine for Quinta).");
   return L.join("\n");
 }
+// Per-format field definitions + the day-spec JSON shape — shared by the
+// weekly arc prompt AND the per-day format-override prompt so they never drift.
+const ARC_FORMAT_DEFS=`- "quote": a single sharp line from the post works as a pull-quote card. Fields: quote_text (<=180 chars, drawn from the post), attribution (the author/brand name, or "").
+- "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars). ALSO fill the Eridion brand-card fields: eyebrow (one word, e.g. "GLASS"), hero_stat (the number itself), sub_label (UPPERCASE, <=30 chars, what it measures), and optionally closing_line + closing_emphasis (a two-part italic sign-off; closing_emphasis is the punchy second half).
+- "infographic": the day lists 2-5 discrete points/standards/benefits. Fields: infographic_title (<=50 chars), infographic_points = array of 2-5 {"value","label"}. ALSO fill the Eridion brand-card fields: eyebrow (one word), headline (UPPERCASE, <=30 chars — the claim), kicker (short UPPERCASE lead-in, e.g. "DESIGNED FOR"), hero_stat (the single biggest number/phrase, e.g. "20+ YEARS"), sub_label (UPPERCASE), benefits = array of 2-5 {"label" (1-2 words, UPPERCASE), "icon"} where icon is one of: droplet, noslash, shield, window, diamond, check, ruler, layers (pick the closest meaning — droplet=water/non-porous, noslash=resistant/anti-X, shield=protection, window=glass/panel, diamond=quality/durability, check=verified, ruler=precision/measure, layers=panels), and optionally closing_line + closing_emphasis.
+- "chart": the day compares 2-4 numbers (e.g. 91% vs 83% light transmission, or a before/after). PREFER this over stat/infographic whenever the point is a quantitative comparison — it's rendered as a real, accurate bar chart. Fields: chart_headline (the SCROLL-STOPPING hook/takeaway, <=8 words — the story, NOT the metric name; e.g. "The clarity the high end now notices"), chart_title (the small metric label/eyebrow, e.g. "Visible light transmitted", <=30 chars), chart_items = array of 2-4 {"label","value"} (value like "91%" or "20 yrs"; label 1-3 words), chart_caption (one supporting sentence — the "so what"; put the punchiest half after an em dash "—" for emphasis).
+- "carousel": the day tells a LONGER story worth multiple slides — a step-by-step, a before/after, a 3-part argument. Carousels earn more clicks, so use one when a day genuinely has a sequence (not every day). Fields: carousel_slides = array of 3-6 {"slide_title" (<=8 words), "slide_body" (<=20 words)}, building a clear narrative across slides. For Quinta & Co / Practice voice days, shape the carousel as Q&A pairs (GEO playbook): slide 1 poses the question the post answers, slide 2 states the answer plainly, later slides deepen it.
+- "stock": a real-world photograph fits better than anything generated. Fields: stock_query (2-4 concrete words, searchable on Unsplash).
+- "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid and SPECIFIC — name the concrete subject, material, object, or place the post is actually about, e.g. "antiqued mirror panels installed on a coffered ceiling," not just "a ceiling"; photographic or illustrative; NO text on screen).`;
+const ARC_DAY_JSON='{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":"","chart_headline":"","chart_title":"","chart_items":[],"chart_caption":"","carousel_slides":[]}';
+// Map a model day-decision object to the spec buildPromptForDay expects.
+function specFromDecision(d){
+  d=d||{};
+  return {
+    quote_text:d.quote_text, attribution:d.attribution, stat_number:d.stat_number, stat_label:d.stat_label,
+    infographic_title:d.infographic_title, infographic_points:Array.isArray(d.infographic_points)?d.infographic_points:[],
+    image_prompt:d.image_prompt, stock_query:d.stock_query,
+    eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
+    benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
+    chart_headline:d.chart_headline, chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
+    carousel_slides:Array.isArray(d.carousel_slides)?d.carousel_slides:[]
+  };
+}
 async function evaluateArc(entries){
   const days=entries.map((r,i)=>`DAY ${i+1} — ${r.label||('Day '+(i+1))} (voice: ${r.voice})\n${r.text}`).join('\n\n---\n\n');
   const prompt=`You are an art director planning the visual asset for each day of a 5-day LinkedIn series. You see all five posts at once — treat them as one arc and give the week visual RHYTHM.
@@ -8746,13 +8769,7 @@ HARD RULES FOR THE WEEK'S MIX (check your picks against these before answering):
 The goal is a premium feed that MIXES editorial photography with clean data pieces (charts, stat cards, technical diagrams), typographic quote cards, and the occasional carousel — never five of the same kind of card.
 
 For each day pick ONE format and fill only that format's fields:
-- "quote": a single sharp line from the post works as a pull-quote card. Fields: quote_text (<=180 chars, drawn from the post), attribution (the author/brand name, or "").
-- "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars). ALSO fill the Eridion brand-card fields: eyebrow (one word, e.g. "GLASS"), hero_stat (the number itself), sub_label (UPPERCASE, <=30 chars, what it measures), and optionally closing_line + closing_emphasis (a two-part italic sign-off; closing_emphasis is the punchy second half).
-- "infographic": the day lists 2-5 discrete points/standards/benefits. Fields: infographic_title (<=50 chars), infographic_points = array of 2-5 {"value","label"}. ALSO fill the Eridion brand-card fields: eyebrow (one word), headline (UPPERCASE, <=30 chars — the claim), kicker (short UPPERCASE lead-in, e.g. "DESIGNED FOR"), hero_stat (the single biggest number/phrase, e.g. "20+ YEARS"), sub_label (UPPERCASE), benefits = array of 2-5 {"label" (1-2 words, UPPERCASE), "icon"} where icon is one of: droplet, noslash, shield, window, diamond, check, ruler, layers (pick the closest meaning — droplet=water/non-porous, noslash=resistant/anti-X, shield=protection, window=glass/panel, diamond=quality/durability, check=verified, ruler=precision/measure, layers=panels), and optionally closing_line + closing_emphasis.
-- "chart": the day compares 2-4 numbers (e.g. 91% vs 83% light transmission, or a before/after). PREFER this over stat/infographic whenever the point is a quantitative comparison — it's rendered as a real, accurate bar chart. Fields: chart_headline (the SCROLL-STOPPING hook/takeaway, <=8 words — the story, NOT the metric name; e.g. "The clarity the high end now notices"), chart_title (the small metric label/eyebrow, e.g. "Visible light transmitted", <=30 chars), chart_items = array of 2-4 {"label","value"} (value like "91%" or "20 yrs"; label 1-3 words), chart_caption (one supporting sentence — the "so what"; put the punchiest half after an em dash "—" for emphasis).
-- "carousel": the day tells a LONGER story worth multiple slides — a step-by-step, a before/after, a 3-part argument. Carousels earn more clicks, so use one when a day genuinely has a sequence (not every day). Fields: carousel_slides = array of 3-6 {"slide_title" (<=8 words), "slide_body" (<=20 words)}, building a clear narrative across slides. For Quinta & Co / Practice voice days, shape the carousel as Q&A pairs (GEO playbook): slide 1 poses the question the post answers, slide 2 states the answer plainly, later slides deepen it.
-- "stock": a real-world photograph fits better than anything generated. Fields: stock_query (2-4 concrete words, searchable on Unsplash).
-- "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid and SPECIFIC — name the concrete subject, material, object, or place the post is actually about, e.g. "antiqued mirror panels installed on a coffered ceiling," not just "a ceiling"; photographic or illustrative; NO text on screen).
+${ARC_FORMAT_DEFS}
 
 Choose the format that best fits each day's actual content. Prefer quote/stat/infographic when the post hands you a line, a number, or a list — they're cleaner and on-brand. Use stock for real scenes, image only when a made image truly beats the alternatives.
 
@@ -8760,7 +8777,7 @@ THE WEEK:
 ${days}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"days":[{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":"","chart_headline":"","chart_title":"","chart_items":[],"chart_caption":"","carousel_slides":[]}]}`;
+{"days":[${ARC_DAY_JSON}]}`;
   const data=await callClaude({model:MODEL_CREATIVE,max_tokens:8000,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
   const txt=(data.content?.[0]?.text||'');
   const jsonStr=extractJsonObject(txt);
@@ -8925,15 +8942,7 @@ async function openPromptPackForGroup(groupKey){
       rawFmt=FMT_SYNONYMS[rawFmt]||rawFmt;
       const fmt=ASSET_FORMATS.includes(rawFmt)?rawFmt:'image';
       if(fmt==='image'&&rawFmt!=='image') console.warn(`Arc returned unknown format "${d.format}" for ${g.snippet_day||i+1} — fell back to image`);
-      const spec={
-        quote_text:d.quote_text, attribution:d.attribution, stat_number:d.stat_number, stat_label:d.stat_label,
-        infographic_title:d.infographic_title, infographic_points:Array.isArray(d.infographic_points)?d.infographic_points:[],
-        image_prompt:d.image_prompt, stock_query:d.stock_query,
-        eyebrow:d.eyebrow, headline:d.headline, kicker:d.kicker, hero_stat:d.hero_stat, sub_label:d.sub_label,
-        benefits:Array.isArray(d.benefits)?d.benefits:[], closing_line:d.closing_line, closing_emphasis:d.closing_emphasis,
-        chart_headline:d.chart_headline, chart_title:d.chart_title, chart_items:Array.isArray(d.chart_items)?d.chart_items:[], chart_caption:d.chart_caption,
-        carousel_slides:Array.isArray(d.carousel_slides)?d.carousel_slides:[]
-      };
+      const spec=specFromDecision(d);
       const isPhoto=(fmt==='image'||fmt==='stock');
       const matches=isPhoto?matchCatalogPhotos(g.linkedin_text||g.blog_text||'', d, 3):[];
       return { itemId:g.id, day:g.snippet_day||g.title||('Day '+(i+1)), voice:g.voice, format:fmt, prompt:buildPromptForDay(g.voice, fmt, spec, g.linkedin_text||g.blog_text), catalogMatches:matches };
@@ -8963,7 +8972,9 @@ function renderPromptPack(){
     return `<div style="border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;background:var(--surface)">
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:.05em;color:var(--text-muted)">${escapeHTML(e.day)} · ${vLabel[e.voice]||e.voice}</span>
-        <span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;color:var(--text)">${ASSET_FMT_LABEL[e.format]||e.format}</span>
+        <select id="pp-fmt-${i}" onchange="overridePromptPackFormat(${i}, this.value)" title="Override the art director's format pick — rewrites this day's prompt in the format you choose" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:11px;color:var(--text);cursor:pointer">
+          ${ASSET_FORMATS.map(f=>`<option value="${f}" ${f===e.format?'selected':''}>${ASSET_FMT_LABEL[f]||f}</option>`).join('')}
+        </select>
         ${hasImg?'<span style="color:var(--success);font-size:11px;margin-left:auto">✓ image attached</span>':''}
       </div>
       ${catStrip}
@@ -8976,6 +8987,49 @@ function renderPromptPack(){
       </div>
     </div>`;
   }).join('');
+}
+// ── Per-day format override ──
+// The dropdown on each Prompt Pack card. The arc only fills spec fields for
+// the format it chose, so switching a day to e.g. "chart" needs one model call
+// to write that format's spec (chart items, headline, …) from the post text —
+// then the day's ChatGPT prompt is rebuilt in the chosen format.
+async function overridePromptPackFormat(idx, newFmt){
+  const e=promptPackEntries[idx];
+  if(!e||!ASSET_FORMATS.includes(newFmt)||newFmt===e.format) return;
+  const item=library.find(x=>x.id===e.itemId);
+  const text=(item&&(item.linkedin_text||item.blog_text))||'';
+  if(!text.trim()){ showToast('No post text found for this day','error'); renderPromptPack(); return; }
+  const sel=document.getElementById(`pp-fmt-${idx}`);
+  if(sel) sel.disabled=true;
+  setStatus(`Rebuilding ${e.day} as ${ASSET_FMT_LABEL[newFmt]||newFmt}…`,true);
+  const prompt=`You are an art director preparing the visual asset spec for ONE LinkedIn post. The author has chosen the format "${newFmt}" — use EXACTLY that format; do not pick a different one.
+
+Format definitions (fill ONLY the fields for "${newFmt}"; leave every other field as an empty string/array):
+${ARC_FORMAT_DEFS}
+
+THE POST (voice: ${e.voice}, day: ${e.day}):
+---
+${text}
+---
+
+Return ONLY valid JSON, no preamble, no markdown fences:
+${ARC_DAY_JSON}`;
+  try{
+    const data=await callClaude({model:MODEL_CREATIVE,max_tokens:2000,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
+    const d=extractJSONFromResponse(data);
+    const spec=specFromDecision(d);
+    e.format=newFmt;
+    e.prompt=buildPromptForDay(e.voice,newFmt,spec,text);
+    e.catalogMatches=(newFmt==='image'||newFmt==='stock')?matchCatalogPhotos(text,d,3):[];
+    renderPromptPack();
+    showToast(`${e.day} rebuilt as ${ASSET_FMT_LABEL[newFmt]||newFmt}`,'success');
+  }catch(err){
+    console.error('Format override failed:',err);
+    showToast('Format change failed: '+err.message,'error');
+    renderPromptPack(); // resets the dropdown to the entry's real format
+  }finally{
+    setStatus('Ready',false);
+  }
 }
 function copyDayPrompt(i){ const e=promptPackEntries[i]; if(!e)return; navigator.clipboard.writeText(e.prompt).then(()=>showToast('Prompt copied','success')); }
 function copyOpenChatGPT(i){ const e=promptPackEntries[i]; if(!e)return; navigator.clipboard.writeText(e.prompt).then(()=>{ showToast('Copied — paste into ChatGPT','success'); window.open('https://chatgpt.com/','_blank','noopener'); }); }
