@@ -5552,7 +5552,17 @@ function renderImagePicker(containerId, itemId){
       <div class="img-picker-actions">
         <input type="file" id="${fileInputId}" accept="image/*" multiple style="display:none" onchange="handleImagePickerUpload(event,'${itemId}','${containerId}')">
         <button class="img-picker-btn primary" onclick="document.getElementById('${fileInputId}').click()">${hasImg?'＋ Add Images':'📷 Upload Image(s)'}</button>
-        <button class="img-picker-btn" onclick="generateImagePromptForItem('${itemId}', this)" style="border-color:var(--gold-dim);color:var(--gold)">✦ Image Prompt</button>
+        <select id="${containerId}-fmt" class="img-picker-btn" title="What kind of visual the prompt should build — Auto reads the post and decides" style="cursor:pointer">
+          <option value="auto">✦ Auto (post decides)</option>
+          <option value="chart">Bar chart</option>
+          <option value="infographic">Infographic</option>
+          <option value="stat">Stat card</option>
+          <option value="quote">Quote card</option>
+          <option value="carousel">Carousel</option>
+          <option value="stock">Stock photo</option>
+          <option value="image">Generated image</option>
+        </select>
+        <button class="img-picker-btn" onclick="generateImagePromptForItem('${itemId}', this, document.getElementById('${containerId}-fmt')?.value)" style="border-color:var(--gold-dim);color:var(--gold)">✦ Image Prompt</button>
         ${hasImg?`<button class="img-picker-btn danger" onclick="removeImageFromLibraryItem('${itemId}')">Remove All</button>`:''}
       </div>
       <div class="img-picker-progress" id="${progressId}"></div>
@@ -5590,9 +5600,15 @@ function closeImageLightbox(){ const ov=document.getElementById('img-lightbox');
 // polished AI image prompt (DALL·E / Midjourney / Firefly compatible),
 // copies it to clipboard. Voice-specific brand context is included so the
 // generated image actually fits Eridion vs. Erika vs. Quinta aesthetics.
-async function generateImagePromptForItem(itemId, btn){
+// fmt: 'auto' (default — the freeform conceptual-image path below) or one of
+// ASSET_FORMATS ('chart', 'infographic', …) chosen in the picker dropdown —
+// those route through the same spec + brand builders as the Prompt Pack.
+async function generateImagePromptForItem(itemId, btn, fmt){
   const it = library.find(x => x.id === itemId);
   if(!it){ showToast('Post not found','error'); return; }
+  if(fmt && fmt!=='auto' && ASSET_FORMATS.includes(fmt)){
+    return generateFormattedImagePrompt(it, btn, fmt);
+  }
   const writingVoice = it.voice || it.scheduled_account || 'eridion';
   // If this post is amplifying another voice's content (cross-voice repost),
   // the IMAGE should follow the source voice's brand lens — not the writer's.
@@ -5647,6 +5663,43 @@ Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "He
     showToast('✦ Image prompt copied — paste into ChatGPT/DALL·E','success');
   }catch(e){
     showToast('Image prompt failed: ' + e.message, 'error');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = originalLabel; }
+  }
+}
+
+// The formatted branch of "✦ Image Prompt": one model call writes the chosen
+// format's spec (chart bars, infographic points, …) from the post copy, then
+// the same brand builders as the Prompt Pack assemble the ready-to-paste
+// ChatGPT prompt. Honors the same amplified-voice lens as the auto path.
+async function generateFormattedImagePrompt(it, btn, fmt){
+  const writingVoice = it.voice || it.scheduled_account || 'eridion';
+  const isAmplifying = !!(it.cross_voice || it.bridge_from);
+  const visualVoice = isAmplifying ? (it.bridge_from || writingVoice) : writingVoice;
+  const text = (it.blog_text || it.linkedin_text || it.title || '').slice(0, 1500);
+  if(!text.trim()){ showToast('No post copy to read — add some text first','error'); return; }
+  const originalLabel = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = '✦ Building…'; }
+  const prompt = `You are an art director preparing the visual asset spec for ONE LinkedIn post. The author has chosen the format "${fmt}" — use EXACTLY that format; do not pick a different one.
+
+Format definitions (fill ONLY the fields for "${fmt}"; leave every other field as an empty string/array):
+${ARC_FORMAT_DEFS}
+
+THE POST (voice: ${visualVoice}):
+---
+${text}
+---
+
+Return ONLY valid JSON, no preamble, no markdown fences:
+${ARC_DAY_JSON}`;
+  try{
+    const data = await callClaude({model:MODEL_CREATIVE,max_tokens:2000,messages:[{role:'user',content:prompt}]}, btn?(m=>{btn.textContent=m;}):null);
+    const d = extractJSONFromResponse(data);
+    const finalPrompt = buildPromptForDay(visualVoice, fmt, specFromDecision(d), text);
+    await navigator.clipboard.writeText(finalPrompt);
+    showToast(`✦ ${ASSET_FMT_LABEL[fmt]||fmt} prompt copied — paste into ChatGPT`,'success');
+  }catch(e){
+    showToast('Image prompt failed: ' + e.message,'error');
   }finally{
     if(btn){ btn.disabled = false; btn.textContent = originalLabel; }
   }
