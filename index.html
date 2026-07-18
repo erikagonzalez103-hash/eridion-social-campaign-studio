@@ -3842,7 +3842,8 @@ const HOUSE_STYLE = `
 
 ① SOUND LIKE A PERSON, NOT A CONTENT MODEL.
 Do NOT use these worn AI phrasings, or anything within spitting distance of them:
-"stopped me in my tracks," "made me stop scrolling," "let that sink in," "here's the thing," "here's the kicker," "the truth is," "let's be honest," "let's dive in," "buckle up," "spoiler," "plot twist," "game-changer," "needle-mover," "in today's fast-paced world," "in an ever-evolving landscape," "now more than ever," "it's not just X — it's Y," "this isn't about X, it's about Y," "the result?," "the best part?," "at the end of the day," "when it comes to," "navigating the world of," "unlock," "supercharge," "elevate," "delve," "tapestry," "testament to," "treasure trove," "look no further," "rest assured," "in a world where," "imagine a...," "said something I keep coming back to," "said something that stuck with me," "something I keep thinking about," "I haven't stopped thinking about," "it got me thinking," "that really stuck with me," "a conversation that changed how I think about..."
+"stopped me in my tracks," "stopped me cold," "this stopped me," "made me stop scrolling," "let that sink in," "read that again," "sit with that," "here's the thing," "here's the kicker," "the truth is," "let's be honest," "let's dive in," "buckle up," "spoiler," "plot twist," "game-changer," "needle-mover," "hits different," "chef's kiss," "a masterclass in," "That's it. That's the post," "full stop," "and honestly?," "the part nobody talks about," "nobody talks about this," "say the quiet part out loud," "in today's fast-paced world," "in an ever-evolving landscape," "now more than ever," "it's not just X — it's Y," "this isn't about X, it's about Y," "the result?," "the best part?," "at the end of the day," "when it comes to," "navigating the world of," "unlock," "supercharge," "elevate," "delve," "tapestry," "testament to," "treasure trove," "look no further," "rest assured," "in a world where," "imagine a...," "said something I keep coming back to," "said something that stuck with me," "something I keep thinking about," "I haven't stopped thinking about," "it got me thinking," "that really stuck with me," "a conversation that changed how I think about..."
+NEVER narrate your own reaction as drama. Any construction where the writer performs being moved — "stopped me cold," "wrecked me," "I felt that," "gave me goosebumps," "I had to sit with that" — is banned in ALL its variants, not just the exact phrases listed above. State what the thing was and why it matters; skip the performance of reacting to it.
 Also drop the AI CADENCE, not just the words: rule-of-three on every sentence; an em-dash dramatic reveal on every line; stacks of one-line "mic-drop" paragraphs; and rhetorical-question transitions ("The result? ...", "The catch? ...").
 NEVER tease a meaningful moment instead of delivering it. If you open on a person, give the CONCRETE thing they actually said or did, in their words, right away — don't write "a woman in our studio said something I keep coming back to" and then make the reader wait. The specific quote or moment IS the opener; the windup is the tell.
 Instead: vary sentence length, let plain sentences be plain, cut throat-clearing, and never reach for a metaphor you've already seen in a LinkedIn post. If a line sounds like it could open any post on any topic, rewrite it to be about THIS one.
@@ -6322,7 +6323,7 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
   const wordRange=crossVoice?'90-220 words total (allowance for the narrative bridge)':'80-200 words total';
   const igOutputRule=(voice!=='eridion')?`\n\n✦ OUTPUT FORMAT:\nReturn the post text + hashtags FIRST. Then on a new line, the literal separator "===IG_INTRO===" followed by the 1-2 sentence IG channel intro. No other commentary anywhere.`:'';
 
-  const prompt=`${voicePrompt}\n${buildGEO(voice)}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
+  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(voice)}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. Punchy. Scroll-stopping.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
 
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:900,messages:[{role:'user',content:prompt}]},m=>{resultsEl.innerHTML=`<div class="spin-loading">${escapeHTML(m)}</div>`;});
@@ -6670,6 +6671,7 @@ function renderSpinWeekResults(){
         <div class="spin-result-actions">
           <button class="action-btn" onclick="saveOneSpinWeek(${i})">+ Save This One</button>
           <button class="action-btn" onclick="copyOneSpinWeek(${i})">Copy</button>
+          <button class="action-btn spin-reroll-btn" onclick="rerollSpinDay(${i})" title="Trash this snippet and regenerate the day from a different part of the source">↻ Reroll</button>
         </div>
       </div>
     `;
@@ -6681,6 +6683,55 @@ function copyOneSpinWeek(i){
   const r=spinWeekResults[i]; if(!r) return;
   const ht=r.hashtags.join(' ');
   navigator.clipboard.writeText(ht?`${r.text}\n\n${ht}`:r.text).then(()=>showToast(`${r.day} copied`,'success'));
+}
+
+// ── Reroll one day of a spun week ──
+// For when a day's snippet misses entirely: trash it and regenerate JUST that
+// day, pulling from a DIFFERENT part of the source than the rejected snippet
+// did — and steering clear of what the other four days already used. Keeps the
+// day's voice; keeps the angle only if the new material suits it.
+async function rerollSpinDay(idx){
+  const r=spinWeekResults[idx];
+  if(!r){showToast('Snippet not found','error');return;}
+  if(!spinSource){showToast('Source post no longer loaded — re-open Spin Week from the library','error');return;}
+
+  const card=document.getElementById(`spin-card-week-${idx}`);
+  const btn=card?card.querySelector('.spin-reroll-btn'):null;
+  if(btn){btn.disabled=true;btn.textContent='Rerolling…';}
+  setStatus(`Rerolling ${r.day}…`,true);
+
+  const sourceVoice=spinSource.voice||'eridion';
+  const voicePrompt=voicePrompts[r.voice]||voicePrompts.eridion;
+  const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',quinta:'Quinta & Co (business education brand for women entrepreneurs)',practice:'The Practice (campaign platform under Quinta & Co)'};
+  const sourceDisplay=VOICE_DISPLAY_NAMES[sourceVoice]||sourceVoice;
+  const othersBlock=spinWeekResults.filter((x,i)=>i!==idx).map(x=>`${x.day} (${x.voice.toUpperCase()}): ${x.text}`).join('\n\n');
+  const direction=(document.getElementById('spin-week-direction')?.value||'').trim();
+
+  const bridgeRule=r.crossVoice?`\n- CROSS-VOICE: open with a 1-2 sentence voice-natural narrative bridge crediting ${sourceDisplay} — by name or relationship, never a formal citation, never "↳"/"Re:"/"Reposting:", never quoting the original verbatim. The bridge IS line one, so it must deliver the new snippet's answer, not tease it.`:`\n- SAME-VOICE: no bridge — treat the source as your own prior thinking; don't credit yourself.`;
+  const igRule=(r.voice!=='eridion')?`\n- Also return "ig_intro": 1-2 voice-natural sentences establishing ${VOICE_DISPLAY_NAMES[r.voice]||r.voice} as the speaker when this cross-posts to the @eridion Instagram handle — natural opening flow, never a "↳ From:"/"Posted by:" tag.${(r.voice==='quinta'||r.voice==='practice')?' GEO entity rule: the finished caption must say "Quinta & Co" by name somewhere — in the intro or the body.':''}`:`\n- Return "ig_intro" as an empty string "" (the voice already matches the channel).`;
+
+  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(r.voice)}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nThis source was spun into a 5-day week of LinkedIn snippets. The author REJECTED the ${r.day} snippet and wants a fresh one.\n\nREJECTED SNIPPET (do NOT reuse its angle, opening, or factual pull):\n---\n${r.text}\n---\n\nTHE OTHER DAYS (already keeping these — do NOT overlap with their content, openings, or factual pulls):\n${othersBlock||'(none)'}\n\n✦ YOUR TASK:\nWrite ONE replacement LinkedIn snippet for ${r.day} in the ${r.voice.toUpperCase()} voice.\n- Pull from a DIFFERENT part of the source than the rejected snippet did — a different section, claim, number, or story beat.\n- The day's original rhetorical angle was "${r.angleLabel||'open'}" — keep it only if the new material suits it; otherwise take the strongest natural approach for the new pull.\n- 80-200 words${r.crossVoice?' (up to 220 with the bridge)':''}. Stay factually consistent with the source — no invented data.${bridgeRule}${igRule}\n- 3-5 relevant hashtags (aim for 3-4); avoid repeating more than one hashtag from the other days.${direction?`\n- ADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}\n\nReturn ONLY valid JSON, no preamble, no markdown fences:\n{"text":"full post text","ig_intro":"","hashtags":["#foo","#bar","#baz"]}`;
+
+  try{
+    const data=await callClaude({model:MODEL_CREATIVE,max_tokens:1200,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
+    const parsed=extractJSONFromResponse(data);
+    const text=String(parsed.text||'').trim();
+    if(!text) throw new Error('Empty snippet returned');
+    r.text=text;
+    r.hashtags=Array.isArray(parsed.hashtags)?parsed.hashtags.filter(h=>typeof h==='string'&&h.startsWith('#')).slice(0,5):[];
+    r.ig_intro=String(parsed.ig_intro||'').trim();
+    // Any auto-built asset was made for the trashed text — drop it so a stale
+    // image doesn't ride along with the new snippet.
+    delete r.imageUrl; delete r.imageUrls; delete r.imageCredit; delete r.assetFormat; delete r.assetSpec;
+    renderSpinWeekResults();
+    showToast(`${r.day} rerolled — review before saving`,'success');
+  }catch(e){
+    console.error('Reroll failed:',e);
+    showToast('Reroll failed: '+e.message,'error');
+    if(btn){btn.disabled=false;btn.textContent='↻ Reroll';}
+  }finally{
+    setStatus('Ready',false);
+  }
 }
 
 function saveOneSpinWeek(i){
@@ -8906,7 +8957,8 @@ async function addLibraryLedPosts(){
 Photo: ${a.caption||a.filename}
 Product(s): ${(a.product||[]).join(', ')||'custom glass'}. Space: ${(a.space||[]).join(', ')||'residential'}.
 This week's theme (for continuity): ${topic}
-Voice: master tradesperson talking to a peer — precise, confident, specifics over adjectives (field-verify, set to spec, low-iron, frameless, fabricate). No hype, no "we pride ourselves", no world-class/cutting-edge, no emojis. 2-4 sentences. Return ONLY the caption text, nothing else.`;
+Voice: master tradesperson talking to a peer — precise, confident, specifics over adjectives (field-verify, set to spec, low-iron, frameless, fabricate). No hype, no "we pride ourselves", no world-class/cutting-edge, no emojis. 2-4 sentences. Return ONLY the caption text, nothing else.
+${HOUSE_STYLE}`;
       const data=await callClaude({model:MODEL_CREATIVE,max_tokens:400,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
       const cap=((data&&data.content&&data.content[0]&&data.content[0].text)||'').trim();
       if(!cap) continue;
