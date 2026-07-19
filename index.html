@@ -6716,8 +6716,19 @@ Each snippet must focus ONLY on its assigned section's content — the standard 
 
 If the source has FEWER than 5 distinct sections, distribute the available sections across the week as best you can (e.g. 4 sections → Mon/Tue/Wed/Thu cover one each, Fri summarizes or teases the series). If it has MORE than 5, pick the 5 most important.
 ` : `
-✦ SPIN MODE: ANGLES
-Each snippet pulls from the whole source post but with a different rhetorical angle (hook, personal, data, bold claim, did-you-know). The whole post is fair game for every snippet.
+✦ SPIN MODE: ANGLES — with a BEAT LEDGER (this is what makes the week feel like five posts, not one post five times)
+
+STEP 1 — MAP THE BEATS (do this before writing anything): identify 6-8 DISTINCT beats in the source. A beat is one self-contained thing: a fact, a number, a story, a tradeoff, a buried nuance, a piece of contrarian advice. Buried nuances count double — the aside most readers skimmed past often makes the best snippet of the week.
+
+STEP 2 — ASSIGN OWNERSHIP: give each day ONE primary beat, matched to its angle (the data angle gets a number beat; the personal angle gets the story beat; did-you-know gets the buried nuance). NO beat may be the primary of more than one day.
+
+OWNERSHIP RULES (strict):
+- Each snippet is BUILT on its primary beat. It may mention ONE other beat in a single passing sentence — never two, never as its opener.
+- The source's central thesis (its headline claim) may LEAD exactly ONE day of the week. The other four days must open from their own beat, not the thesis.
+- The five openers must be structurally different from each other: one opens on a number, one on a scene, one on a flat contrarian claim, one on a question or myth, one on a nuance ("There's a detail in X that..."). Never two openers with the same shape.
+- If two drafts share an opening line shape or the same factual pull, one of them is wrong — rewrite it from its own beat.
+
+In the JSON output, include a "beat" field on each snippet (a 3-8 word name for its primary beat) so the author can see the week's map at a glance.
 `}
 
 THE 5 SNIPPETS TO GENERATE:
@@ -6733,11 +6744,11 @@ RULES FOR EVERY SNIPPET:
 - Include 3-5 relevant hashtags per snippet (aim for 3-4; never more than 5). Vary them across the 5 days — do not repeat the same hashtag on more than 2 of the days
 ${spinMode==='sections'
   ? '- Each snippet must focus on its assigned section ONLY — do not bleed content from other sections\n- Reference the section by its actual subject (the standard name, the claim, the item) so it feels self-contained'
-  : '- Each snippet must be distinct — different hooks, different angles, different factual pulls from the source'}
+  : '- Each snippet must be distinct — different primary beat (per the BEAT LEDGER), different opener shape, different factual pull. Repeating another day's primary beat as your lead is a failed draft.'}
 - For cross-voice snippets: bridge MUST be in the voice doing the reposting, not the source voice${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","cross_voice":true,"bridge_from":"erika","text":"full post text here","ig_intro":"","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}
+{"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","beat":"3-8 word name of this day's primary beat","cross_voice":true,"bridge_from":"erika","text":"full post text here","ig_intro":"","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}
 
 For same-voice snippets, set cross_voice:false and bridge_from:null.
 For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Quinta & Co-voice snippets, ig_intro must be a 1-2 sentence channel intro per the rules above.`;
