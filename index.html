@@ -2719,12 +2719,18 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div class="bucket-grid" id="bucket-grid"></div>
         </div>
         <div class="field">
-          <label class="field-label">Topic / Angle</label>
+          <label class="field-label" style="display:flex;align-items:baseline;justify-content:space-between">Topic / Angle
+            <a id="suggest-topic-link" onclick="suggestTopic()" style="cursor:pointer;color:var(--navy);font-weight:600;letter-spacing:0.06em">✦ Suggest for me</a>
+          </label>
           <input type="text" id="topic-input" placeholder="e.g. DFW luxury market momentum April 2026" />
         </div>
         <div class="field">
           <label class="field-label">Key Points (one per line)</label>
           <textarea id="bullets-input" placeholder="• Rate environment improving&#10;• Move-up segment heating up&#10;• Eridion angle: capacity ready"></textarea>
+        </div>
+        <div id="suggest-note" style="display:none;gap:10px;align-items:baseline;justify-content:space-between;font-size:11px;line-height:1.6;color:var(--medium-gray);background:var(--navy-faint);border-left:2px solid var(--navy);padding:8px 10px;margin:-8px 0 16px">
+          <span id="suggest-note-why"></span>
+          <a onclick="suggestTopic()" style="cursor:pointer;color:var(--navy);font-weight:600;white-space:nowrap">↻ Try another</a>
         </div>
         <div class="settings-row">
           <div class="field">
@@ -4764,6 +4770,118 @@ ${ctaFinal}`;
 }
 
 // ── Research Brief (Stage 1) ──
+// ═══ TOPIC SUGGESTION — "✦ Suggest for me" ═══
+// Web-searches what the stream's audience is reacting to right now, picks ONE
+// topic tuned to that brand's goal, and fills Topic/Angle + Key Points (4
+// bullets) so the normal Research First → Generate flow can take over.
+// All candidate generation and scoring happens inside the model call — the
+// user only ever sees the winner.
+const TOPIC_STREAM_TITLES={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice (Quinta & Co campaign)'};
+
+// Per-stream editorial goals. Eridion optimizes for builder/architect trust
+// that leads to plans-to-bid; Quinta for awareness + follows + click-throughs.
+// These steer topic choice only and are never shown in the output.
+const TOPIC_BRIEFS={
+  eridion:`AUDIENCE: custom home builders, architects, and interior designers in DFW and Central Arkansas.
+GOAL: earn enough professional trust that a builder or architect sends Eridion a set of plans to bid on. Follower count is NOT the goal — qualified trust is.
+A WINNING TOPIC sits close to the moment a pro chooses a glass sub: real project numbers, a detail teardown, spec/code intel that prevents a callback, labor or market data that hits their schedule or budget, or a question builders actually ask before hiring a glazing sub.
+A LOSING TOPIC: general-homeowner content, follower-bait, or anything a glass sub without deep field experience could write just as well.`,
+  erika:`AUDIENCE: construction-industry peers, fellow business owners, and women in the trades, mostly on LinkedIn.
+GOAL: grow Erika Harrison's following and credibility as a female founder in construction.
+A WINNING TOPIC is a leadership or business-journey angle with a specific lived detail — the kind a non-follower saves or shares because it names something they've felt but never said out loud.`,
+  quinta:`AUDIENCE: women entrepreneurs and small-business owners curious about AI.
+GOAL: three things at once — brand awareness, follower growth, AND click-throughs to quintaand.co (the conversion path is reader → answer → class).
+A WINNING TOPIC is one a NON-follower would save or send — numbers, identity statements, "I thought it was just me" — that also leaves a natural open loop the website answers, so the click-through is earned, never forced.
+A LOSING TOPIC: generic AI news with no reason to click, or inside-baseball only existing followers would care about.`,
+  practice:`AUDIENCE: women entrepreneurs building a daily AI practice (The Practice, under Quinta & Co — "AI is a practice, not a purchase").
+GOAL: quiet resonance — saves and follows from people who want AI as a habit, not hype.
+A WINNING TOPIC is small, concrete, and repeatable: one practice, one prompt pattern, one honest field note. No news-chasing, no breathless takes.`
+};
+
+// Remember what's been suggested so "Try another" and next week's click don't
+// circle back to the same topics. Kept per stream, last 15, in localStorage.
+const SUGGEST_KEY='eridion_suggested_topics_v1';
+function recentSuggestions(stream){
+  try{const all=JSON.parse(localStorage.getItem(SUGGEST_KEY)||'{}');return Array.isArray(all[stream])?all[stream]:[];}catch(e){return [];}
+}
+function rememberSuggestion(stream,topic){
+  try{
+    const all=JSON.parse(localStorage.getItem(SUGGEST_KEY)||'{}');
+    const list=Array.isArray(all[stream])?all[stream]:[];
+    list.unshift(topic);
+    all[stream]=list.slice(0,15);
+    localStorage.setItem(SUGGEST_KEY,JSON.stringify(all));
+  }catch(e){}
+}
+
+async function suggestTopic(){
+  const link=document.getElementById('suggest-topic-link');
+  if(link.dataset.busy) return;
+  link.dataset.busy='1';
+  const prevLabel=link.textContent;
+  link.textContent='✦ Thinking…';
+  setStatus("Scanning for this week's topic…",true);
+
+  const bucketLabel=buckets[currentStream].find(b=>b.id===currentBucket)?.label||currentBucket;
+  const avoid=[...new Set([
+    ...recentSuggestions(currentStream),
+    ...library.filter(it=>it.voice===currentStream).slice(-12).map(it=>it.topic||it.title||'').filter(Boolean)
+  ])].slice(0,20);
+  const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  const prompt=`You are the editorial brain for a small content studio. Pick THE single best blog topic for this week and hand back exactly what the writer needs to start — nothing else.
+
+TODAY: ${today}
+BRAND / STREAM: ${TOPIC_STREAM_TITLES[currentStream]||currentStream}
+CONTENT BUCKET: ${bucketLabel}
+
+BUSINESS CONTEXT:
+${getKB()}
+
+EDITORIAL GOAL FOR THIS BRAND:
+${TOPIC_BRIEFS[currentStream]||''}
+
+ALREADY COVERED — do NOT suggest these or close variants:
+${avoid.length?avoid.map(t=>'- '+t).join('\n'):'(nothing yet)'}
+
+HOW TO CHOOSE (do all of this internally — show none of it in your output):
+1. FIRST use the web_search tool (2-5 searches) to find what this audience is asking, reading, and reacting to RIGHT NOW — recent industry news, fresh data releases, seasonal moments, live debates. A topic with no current demand signal loses.
+2. Draft 5-6 candidate topics that fit the content bucket and the editorial goal.
+3. Kill any candidate that can't yield at least 5 DIFFERENT standalone claims — this blog becomes a full week of social snippets, so a one-idea topic is disqualified no matter how smart it sounds.
+4. Kill any candidate a generic content writer could cover just as well — the winner should need this brand's specific position, data, or field experience.
+5. Of what survives, pick the one that best serves the editorial goal above. Ties go to the NARROWER topic, every time.
+
+Return ONLY valid JSON, no preamble, no markdown fences:
+{"topic":"...","bullets":["...","...","...","..."],"why":"..."}
+
+- topic: 90 characters max. Either the exact question the reader would type into a search box, or its answer stated boldly. Specific beats clever.
+- bullets: EXACTLY 4 key points, each 25 words max, each a DIFFERENT claim (never four restatements of one idea). At least 2 must be grounded in real, current facts you actually found via web_search — name the source and date inline in parentheses. Never invent a statistic. The LAST bullet is the brand's angle: what only this brand can add.
+- why: one plain sentence (25 words max) telling the writer why this topic, this week.`;
+
+  try{
+    const data=await callClaude({model:MODEL_UTILITY,max_tokens:4000,messages:[{role:'user',content:prompt}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]},m=>setStatus(m,true));
+    const out=extractJSONFromResponse(data);
+    if(!out.topic||!Array.isArray(out.bullets)||out.bullets.length<4) throw new Error('suggestion came back incomplete — try again');
+    document.getElementById('topic-input').value=String(out.topic).trim();
+    document.getElementById('bullets-input').value=out.bullets.slice(0,4).map(b=>'• '+String(b).trim().replace(/^[•\-–\s]+/,'')).join('\n');
+    rememberSuggestion(currentStream,String(out.topic).trim());
+    const note=document.getElementById('suggest-note');
+    if(note){
+      document.getElementById('suggest-note-why').textContent=out.why?String(out.why):'';
+      note.style.display=out.why?'flex':'none';
+    }
+    refreshSteps();
+    setStatus('');
+    showToast('Topic + key points filled — hit Research First when ready','success');
+  }catch(err){
+    setStatus('');
+    showToast('Suggestion failed: '+err.message,'error');
+  }finally{
+    delete link.dataset.busy;
+    link.textContent=prevLabel;
+  }
+}
+
 async function researchTopic() {
   const topic=document.getElementById('topic-input').value.trim();
   const bullets=document.getElementById('bullets-input').value.trim();
