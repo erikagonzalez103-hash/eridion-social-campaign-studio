@@ -2930,9 +2930,11 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div class="content-display" id="blog-output" contenteditable="true">
             <span class="content-placeholder">Your full blog post will appear here. Select "Blog + LinkedIn" format.</span>
           </div>
+          <div id="blog-tell-warn" style="display:none;color:var(--error);font-size:11px;margin:6px 0 2px"></div>
           <div class="action-bar">
             <button class="action-btn primary" onclick="copyBlog()">Copy Blog Content</button>
             <button class="action-btn" onclick="copyBlogHTML()">Copy as HTML</button>
+            <button class="action-btn" id="deai-blog-btn" onclick="deAiBlog()" title="Rewrite this blog to strip AI-tell phrasing, keeping structure, facts, and links">De-AI Blog</button>
           </div>
 
           <!-- SEO Package -->
@@ -3866,6 +3868,7 @@ const HOUSE_STYLE = `
 Do NOT use these worn AI phrasings, or anything within spitting distance of them:
 "stopped me in my tracks," "stopped me cold," "this stopped me," "made me stop scrolling," "let that sink in," "read that again," "sit with that," "here's the thing," "here's the kicker," "the truth is," "let's be honest," "let's dive in," "buckle up," "spoiler," "plot twist," "game-changer," "needle-mover," "hits different," "chef's kiss," "a masterclass in," "That's it. That's the post," "full stop," "and honestly?," "the part nobody talks about," "nobody talks about this," "say the quiet part out loud," "in today's fast-paced world," "in an ever-evolving landscape," "now more than ever," "it's not just X — it's Y," "this isn't about X, it's about Y," "the result?," "the best part?," "at the end of the day," "when it comes to," "navigating the world of," "unlock," "supercharge," "elevate," "delve," "tapestry," "testament to," "treasure trove," "look no further," "rest assured," "in a world where," "imagine a...," "said something I keep coming back to," "said something that stuck with me," "something I keep thinking about," "I haven't stopped thinking about," "it got me thinking," "that really stuck with me," "a conversation that changed how I think about..."
 NEVER narrate your own reaction as drama. Any construction where the writer performs being moved OR performs rumination — "stopped me cold," "wrecked me," "I felt that," "gave me goosebumps," "I had to sit with that," "what I keep coming back to," "I keep coming back to," "can't shake it," "still thinking about it," "it hit a nerve" — is banned in ALL its variants, not just the exact phrases listed above. State what the thing was and why it matters; skip the performance of reacting to or dwelling on it.
+The freeze-frame metaphor is banned with ANY subject or object, not just the writer. "Stops shop drawings cold," "stops the schedule cold," "stops the crew in its tracks," "brings the project to a screeching halt," "kills the deal dead" — all the same tell wearing different nouns. Say what literally happens instead: "the sub has to RFI it, and shop drawings wait a week on the answer."
 Also drop the AI CADENCE, not just the words: rule-of-three on every sentence; an em-dash dramatic reveal on every line; stacks of one-line "mic-drop" paragraphs; and rhetorical-question transitions ("The result? ...", "The catch? ...").
 NEVER tease a meaningful moment instead of delivering it. If you open on a person, give the CONCRETE thing they actually said or did, in their words, right away — don't write "a woman in our studio said something I keep coming back to" and then make the reader wait. The specific quote or moment IS the opener; the windup is the tell.
 Instead: vary sentence length, let plain sentences be plain, cut throat-clearing, and never reach for a metaphor you've already seen in a LinkedIn post. If a line sounds like it could open any post on any topic, rewrite it to be about THIS one.
@@ -3960,7 +3963,12 @@ function findSearchTerms(text){
 // variants get caught too ("stopped me cold", "stops me in my tracks",
 // "what I keep coming back to"). Extend freely as new tells show up.
 const AI_TELL_PATTERNS=[
-  [/stop(?:s|ped)? me (?:cold|in my tracks)/i,'stopped me cold/in my tracks'],
+  // "stops X cold" with ANY object ("stops shop drawings cold", "stopped the
+  // schedule cold") — requires "cold" at a clause end so "stops the cold air"
+  // (a literal thermal claim) doesn't false-positive.
+  [/stop(?:s|ped|ping)?\s+(?:[\w'’-]+\s+){1,4}?cold(?=\s*(?:[.,;:!?—–)"'\n]|$))/i,'stops X cold'],
+  [/\bin (?:its|their|my|your|his|her) tracks\b/i,'in its/their tracks'],
+  [/(?:screeching|grinding) halt/i,'screeching/grinding halt'],
   [/keeps? coming back to/i,'keep coming back to'],
   [/(?:haven't|can't|couldn't) stop thinking about/i,"can't stop thinking about"],
   [/keep thinking about/i,'keep thinking about'],
@@ -4732,6 +4740,7 @@ ${ctaFinal}`;
     const cleanBlog=(generatedBlog||'').replace(/^===BLOG===\s*/i,'').trim();
     if(cleanBlog) blogOut.innerHTML=formatBlogHTML(cleanBlog);
     else blogOut.textContent='Select "Blog + LinkedIn" format to generate a full blog post.';
+    renderBlogTellWarn();
 
     updateCharCount();
     logContent(topic,bucketLabel);
@@ -5172,6 +5181,7 @@ ${ctaFinal}`;
     const cleanBlog=(generatedBlog||'').replace(/^===BLOG===\s*/i,'').trim();
     if(cleanBlog) blogOut.innerHTML=formatBlogHTML(cleanBlog);
     else blogOut.textContent='Select "Blog + LinkedIn" format to generate a full blog post.';
+    renderBlogTellWarn();
 
     updateCharCount();
     logContent(topic+` [${pov.label}]`,bucketLabel);
@@ -5343,6 +5353,7 @@ Return ONLY the rewritten blog post. No preamble, no code fences.` : null;
         const blogOut = document.getElementById('blog-output');
         blogOut.style.whiteSpace = 'normal';
         blogOut.innerHTML = renderHighlightedBlog(newBlog);
+        renderBlogTellWarn();
       }
 
       // Update nudge banners
@@ -6051,7 +6062,58 @@ document.getElementById('linkedin-output').addEventListener('input',function(){
 });
 document.getElementById('blog-output').addEventListener('input',function(){
   generatedBlog=blogHtmlToMarkdown(this.innerHTML||'');
+  renderBlogTellWarn();
 });
+
+// ── Blog AI-tell warning ──
+// The LinkedIn readout only ever scanned generatedLinkedIn||generatedBlog — in
+// Blog + LinkedIn format the LinkedIn text exists, so the BLOG was never
+// checked and tells shipped in it unseen. This scans the blog itself, every
+// time it's rendered or edited.
+function renderBlogTellWarn(){
+  const el=document.getElementById('blog-tell-warn');
+  const blogOut=document.getElementById('blog-output');
+  if(!el||!blogOut) return;
+  const txt=(blogOut.innerText||blogOut.textContent||'').trim();
+  const tells=(!txt||/will appear here/i.test(txt))?[]:findAiTells(txt);
+  if(tells.length){
+    el.textContent='⚠ AI-tell phrasing in blog: '+tells.join(' · ')+' — hit De-AI Blog or edit';
+    el.style.display='block';
+  }else{
+    el.style.display='none';
+  }
+}
+
+// ── De-AI pass for the blog ──
+// Same cleanup as deAiDraft, but on the full blog markdown: strip AI-tell
+// phrasing and cadence while keeping headings, structure, facts, numbers,
+// links, and length. Re-renders through formatBlogHTML.
+async function deAiBlog(){
+  const blogOut=document.getElementById('blog-output');
+  const current=(generatedBlog||blogHtmlToMarkdown(blogOut?.innerHTML||'')||'').trim();
+  if(!current || /will appear here/i.test(current)){
+    showToast('Generate or load a blog first','error'); return;
+  }
+  const btn=document.getElementById('deai-blog-btn');
+  if(btn){btn.disabled=true; btn.textContent='De-AI-ing…';}
+  setStatus('Stripping AI tells from blog…',true);
+  const voice=voicePrompts[currentStream]||'';
+  const prompt=`${voice}\n${HOUSE_STYLE}\n\nYou are editing an EXISTING blog post to remove AI-tell phrasing and cadence. Apply the HOUSE WRITING STANDARDS above aggressively to the draft below — this is a cleanup pass, not a rewrite of the substance.\n\nDRAFT (markdown):\n---\n${current}\n---\n\nReturn the same blog with the worn phrases and AI cadence removed: keep the voice, keep every heading, fact, number, and link, keep roughly the same length and structure, and do not introduce new claims or a different point. If a line already sounds human, leave it alone. Return ONLY the cleaned-up blog in the same markdown format — no preamble, no commentary, no code fences.`;
+  try{
+    const data=await callClaude({model:MODEL_CREATIVE,max_tokens:8000,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
+    const text=(data.content||[]).filter(b=>b&&b.type==='text').map(b=>b.text).join('\n').trim();
+    if(!text) throw new Error('Empty response');
+    generatedBlog=text;
+    blogOut.innerHTML=formatBlogHTML(text);
+    renderBlogTellWarn();
+    showToast('De-AI pass done on blog — review before publishing','success');
+  }catch(e){
+    showToast('De-AI blog failed: '+e.message,'error');
+  }finally{
+    if(btn){btn.disabled=false; btn.textContent='De-AI Blog';}
+    setStatus('Ready',false);
+  }
+}
 
 // ── De-AI pass ──
 // Re-run the current LinkedIn draft through an editor pass that strips AI-tell phrasing/cadence
@@ -7651,6 +7713,7 @@ function loadFromLibrary(id){
   renderKeywordReadout(generatedLinkedIn||generatedBlog||'');
   const blogOut=document.getElementById('blog-output');
   blogOut.innerHTML=generatedBlog?formatBlogHTML(generatedBlog):'<em style="color:var(--text-muted)">No blog content.</em>';
+  renderBlogTellWarn();
   // Restore SEO + Substack packages if present
   if(it.seo){
     currentSEO=it.seo;
