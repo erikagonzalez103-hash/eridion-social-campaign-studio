@@ -4827,6 +4827,29 @@ function rememberSuggestion(stream,topic){
   }catch(e){}
 }
 
+// ── Duplicate-subject backstop ──
+// The prompt tells the model what's burned, but a reworded title can slip
+// past a soft instruction. This is the mechanical check: strip stopwords,
+// compare content words, and if the suggested topic shares most of its
+// substance with anything already covered, treat it as a duplicate.
+const TOPIC_STOPWORDS=new Set(('a an the and or but for of in on at to with without your you our we us is are was be do does how what why when where which this that it its from vs versus not no yes new more most every real all one week guide things need know needs about into over under').split(' '));
+function topicKeywords(t){
+  return new Set(String(t).toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/)
+    .filter(w=>w.length>2&&!TOPIC_STOPWORDS.has(w)).map(w=>w.replace(/s$/,'')));
+}
+function findDuplicateTopic(topic,avoid){
+  const kt=topicKeywords(topic);
+  if(!kt.size) return null;
+  for(const past of avoid){
+    const kp=topicKeywords(past);
+    if(!kp.size) continue;
+    let shared=0;
+    for(const w of kt) if(kp.has(w)) shared++;
+    if(shared/Math.min(kt.size,kp.size)>=0.6) return past;
+  }
+  return null;
+}
+
 async function suggestTopic(){
   const link=document.getElementById('suggest-topic-link');
   if(link.dataset.busy) return;
@@ -4836,10 +4859,10 @@ async function suggestTopic(){
   setStatus("Scanning for this week's topic…",true);
 
   const bucketLabel=buckets[currentStream].find(b=>b.id===currentBucket)?.label||currentBucket;
-  const avoid=[...new Set([
-    ...recentSuggestions(currentStream),
-    ...library.filter(it=>it.voice===currentStream).slice(-12).map(it=>it.topic||it.title||'').filter(Boolean)
-  ])].slice(0,20);
+  // EVERY library topic for this stream is burned — not just the last 12.
+  // Newest first so, if the 60-entry cap ever bites, it drops the oldest.
+  const libTopics=library.filter(it=>it.voice===currentStream).map(it=>it.topic||it.title||'').filter(Boolean).reverse();
+  const avoid=[...new Set([...recentSuggestions(currentStream),...libTopics])].slice(0,60);
   const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
   const prompt=`You are the editorial brain for a small content studio. Pick THE single best blog topic for this week and hand back exactly what the writer needs to start — nothing else.
@@ -4854,15 +4877,18 @@ ${getKB()}
 EDITORIAL GOAL FOR THIS BRAND:
 ${TOPIC_BRIEFS[currentStream]||''}
 
-ALREADY COVERED — do NOT suggest these or close variants:
+ALREADY COVERED — these subjects are BURNED:
 ${avoid.length?avoid.map(t=>'- '+t).join('\n'):'(nothing yet)'}
+Burned means the underlying SUBJECT, not just the exact title. A new headline, a fresh angle, a new stat, or the fact that the subject is trending again this week does NOT un-burn it — trending is how the same topic sneaks back in, and it is still a duplicate. If a candidate answers the same core question a burned entry answered, kill it and move to the next candidate. If the BUSINESS CONTEXT above lists past blog topics, treat those as burned too.
 
 HOW TO CHOOSE (do all of this internally — show none of it in your output):
 1. FIRST use the web_search tool (2-5 searches) to find what this audience is asking, reading, and reacting to RIGHT NOW — recent industry news, fresh data releases, seasonal moments, live debates. A topic with no current demand signal loses.
 2. Draft 5-6 candidate topics that fit the content bucket and the editorial goal.
-3. Kill any candidate that can't yield at least 5 DIFFERENT standalone claims — this blog becomes a full week of social snippets, so a one-idea topic is disqualified no matter how smart it sounds.
-4. Kill any candidate a generic content writer could cover just as well — the winner should need this brand's specific position, data, or field experience.
-5. Of what survives, pick the one that best serves the editorial goal above. Ties go to the NARROWER topic, every time.
+3. Kill any candidate whose core subject is burned (see the list above) — no matter how strongly it is trending.
+4. Kill any candidate that can't yield at least 5 DIFFERENT standalone claims — this blog becomes a full week of social snippets, so a one-idea topic is disqualified no matter how smart it sounds.
+5. Kill any candidate a generic content writer could cover just as well — the winner should need this brand's specific position, data, or field experience.
+6. Of what survives, pick the one that best serves the editorial goal above. Ties go to the NARROWER topic, every time.
+7. FINAL CHECK before answering: compare your winner against the burned list one last time. Same core subject = discard it and return the next survivor instead.
 
 Return ONLY valid JSON, no preamble, no markdown fences:
 {"topic":"...","bullets":["...","...","...","..."],"why":"..."}
@@ -4872,20 +4898,33 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 - why: one plain sentence (25 words max) telling the writer why this topic, this week.`;
 
   try{
-    const data=await callClaude({model:MODEL_UTILITY,max_tokens:4000,messages:[{role:'user',content:prompt}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]},m=>setStatus(m,true));
-    const out=extractJSONFromResponse(data);
-    if(!out.topic||!Array.isArray(out.bullets)||out.bullets.length<4) throw new Error('suggestion came back incomplete — try again');
+    // Up to 2 attempts: if the mechanical duplicate check catches the first
+    // answer recycling a burned subject, reject it back to the model once
+    // with the specific collision named.
+    let out=null,dup=null;
+    for(let attempt=0;attempt<2;attempt++){
+      const p=attempt===0?prompt:prompt+`\n\nYOUR PREVIOUS ANSWER "${out.topic}" WAS REJECTED: it covers the same subject as the burned topic "${dup}". Return a COMPLETELY DIFFERENT subject — not a new angle on the same one.`;
+      const data=await callClaude({model:MODEL_UTILITY,max_tokens:4000,messages:[{role:'user',content:p}],tools:[{type:'web_search_20250305',name:'web_search',max_uses:5,user_location:{type:'approximate',city:'Dallas',region:'Texas',country:'US',timezone:'America/Chicago'}}]},m=>setStatus(m,true));
+      out=extractJSONFromResponse(data);
+      if(!out.topic||!Array.isArray(out.bullets)||out.bullets.length<4) throw new Error('suggestion came back incomplete — try again');
+      dup=findDuplicateTopic(String(out.topic),avoid);
+      if(!dup) break;
+      setStatus('Too close to a past post — picking a different topic…',true);
+    }
     document.getElementById('topic-input').value=String(out.topic).trim();
     document.getElementById('bullets-input').value=out.bullets.slice(0,4).map(b=>'• '+String(b).trim().replace(/^[•\-–\s]+/,'')).join('\n');
     rememberSuggestion(currentStream,String(out.topic).trim());
     const note=document.getElementById('suggest-note');
     if(note){
-      document.getElementById('suggest-note-why').textContent=out.why?String(out.why):'';
-      note.style.display=out.why?'flex':'none';
+      const why=dup
+        ?`⚠ Still close to your past post "${dup}" — use it only if the overlap is intentional.`
+        :(out.why?String(out.why):'');
+      document.getElementById('suggest-note-why').textContent=why;
+      note.style.display=why?'flex':'none';
     }
     refreshSteps();
     setStatus('');
-    showToast('Topic + key points filled — hit Research First when ready','success');
+    showToast(dup?'Topic filled, but it overlaps a past post — check the note':'Topic + key points filled — hit Research First when ready',dup?'error':'success');
   }catch(err){
     setStatus('');
     showToast('Suggestion failed: '+err.message,'error');
