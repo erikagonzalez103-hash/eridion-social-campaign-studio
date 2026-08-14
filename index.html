@@ -7263,14 +7263,16 @@ Produce a complete SEO package for this post, tuned for THREE surfaces: (1) Goog
 ANSWER-ENGINE NOTE: AI assistants cite pages whose key claim is stated as a clean, self-contained sentence with real nouns (material, code, city, service). Choose a focus_keyword that matches how a person would actually phrase the question to an assistant, and make the meta_description read as a direct, quotable answer — not a teaser.
 
 RULES PER FIELD:
-- focus_keyword: 2-5 words. This MUST be the focus keyword the blog's TITLE and SUBHEADINGS are already built around — read the H1 and the H2s and lift it; do NOT invent a different phrase. It should already appear verbatim in the title, the opening sentence, and at least one subhead. (If the blog lacks an obvious keyword there, pick the tightest builder/construction-audience search phrase the post answers.) Then confirm title_tag, meta_description, and url_slug all contain this same keyword.
-- title_tag: Under 60 characters HARD LIMIT. Punchy, keyword-inclusive, click-worthy. Different from (but echoing) the blog H1.
-- meta_description: Under 160 characters HARD LIMIT. Natural sentence, keyword present, ends with a reason to click (outcome, insight, stat).
-- url_slug: kebab-case (lowercase words separated by hyphens), 3-6 words, keyword-inclusive, no stop words, no special characters.
-- excerpt: 2-3 sentences, up to 500 characters, summarizes the post's thesis and payoff. This appears in the Wix blog listing and RSS.
-- alt_text: 10-15 word description of what a reader would see in the featured image for this post — descriptive and keyword-inclusive (imagine a luxury install that matches the topic).
-- og_title: Under 111 characters HARD LIMIT. Can be slightly more emotional/curious than the SEO title — this is what people see when shared on LinkedIn/Facebook.
-- og_description: Under 500 characters. Can be longer than meta_description and more builder-narrative. First 125 characters matter most (LinkedIn truncates).
+- focus_keyword: 2-4 words (prefer 2-3). CRITICAL: it must be a VERBATIM, contiguous phrase that ALREADY appears word-for-word in the blog body AND in the H1 title — copy it exactly as written; do NOT paraphrase, reorder, pluralize, or add/drop words (a QC check does an exact case-insensitive substring match on the body, so "questions a new business owner should ask" ≠ "questions new business owner should ask"). Pick the tightest such phrase the post is truly about. If your best candidate isn't literally in the body, choose a shorter one that IS. Lowercase unless it's a proper noun.
+- title_tag: Under 60 characters HARD LIMIT. Punchy, click-worthy, and MUST contain the exact focus_keyword.
+- meta_description: Under 160 characters HARD LIMIT. Natural sentence that MUST contain the exact focus_keyword, ending with a reason to click (outcome, insight, stat).
+- url_slug: kebab-case (lowercase words separated by hyphens), 3-6 words, MUST include the focus_keyword's words, no stop words, no special characters.
+- excerpt: 2-3 sentences, up to 500 characters, summarizes the post's thesis and payoff, and MUST contain the exact focus_keyword. Appears in the Wix blog listing and RSS.
+- alt_text: 10-15 word description of the featured image for this post — descriptive and including the focus_keyword.
+- og_title: Under 111 characters HARD LIMIT. Slightly more emotional/curious than the SEO title, and MUST contain the exact focus_keyword — this is the headline people see when shared on LinkedIn/Facebook.
+- og_description: Under 500 characters, builder-narrative; MUST contain the exact focus_keyword within the FIRST 125 characters (LinkedIn truncates).
+
+KEYWORD PLACEMENT IS MANDATORY: the exact focus_keyword string must appear, verbatim, in the title_tag, meta_description, excerpt, og_title, AND og_description. Before you return, re-read your own fields and confirm each one literally contains it — if any doesn't, rewrite that field until it does. Do not return a package where the keyword is missing from any of these five.
 
 Return ONLY valid JSON, no preamble, no markdown fences:
 {"focus_keyword":"...","title_tag":"...","meta_description":"...","url_slug":"...","excerpt":"...","alt_text":"...","og_title":"...","og_description":"..."}`;
@@ -7349,15 +7351,20 @@ function renderSEOPackage(){
       // Title = the blog's first markdown H1 if present, else its first non-empty line.
       const firstLine=(generatedBlog||'').split('\n').map(l=>l.trim()).find(l=>l)||'';
       const titleText=(firstLine.replace(/^#+\s*/,'')+' '+(currentSEO.title_tag||'')).toLowerCase();
-      const inTitle=titleText.includes(kw);
-      if(bodyCount>0 && inTitle){
-        kc.textContent=`✓ Keyword in title and body (${bodyCount}×)`;
+      const has=s=>String(s||'').toLowerCase().includes(kw);
+      const checks=[
+        ['body', bodyCount>0],
+        ['headline', titleText.includes(kw)],
+        ['meta', has(currentSEO.meta_description)],
+        ['excerpt', has(currentSEO.excerpt)],
+        ['social share', has(currentSEO.og_description)],
+      ];
+      const missing=checks.filter(c=>!c[1]).map(c=>c[0]);
+      if(!missing.length){
+        kc.textContent=`✓ Keyword present everywhere — body (${bodyCount}×), headline, meta, excerpt & social share`;
         kc.classList.remove('warn'); kc.classList.add('ok');
-      } else if(bodyCount>0){
-        kc.textContent=`⚠ Keyword in body (${bodyCount}×) but not in the title — work it into the H1`;
-        kc.classList.remove('ok'); kc.classList.add('warn');
       } else {
-        kc.textContent='⚠ Keyword not found in the blog body — weave it in, or pick a keyword the post actually uses';
+        kc.textContent=`⚠ Keyword missing from: ${missing.join(', ')} — regenerate the SEO package (or weave it into the blog to cover "body")`;
         kc.classList.remove('ok'); kc.classList.add('warn');
       }
     }
