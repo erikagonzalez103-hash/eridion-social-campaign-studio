@@ -5763,6 +5763,7 @@ function renderImagePicker(containerId, itemId){
           <option value="carousel">Carousel</option>
           <option value="stock">Stock photo</option>
           <option value="image">Generated image</option>
+          <option value="reel">🎬 Short-form / Reel</option>
         </select>
         <button class="img-picker-btn" onclick="generateImagePromptForItem('${itemId}', this, document.getElementById('${containerId}-fmt')?.value)" style="border-color:var(--gold-dim);color:var(--gold)">✦ Image Prompt</button>
         ${hasImg?`<button class="img-picker-btn danger" onclick="removeImageFromLibraryItem('${itemId}')">Remove All</button>`:''}
@@ -5808,6 +5809,14 @@ function closeImageLightbox(){ const ov=document.getElementById('img-lightbox');
 async function generateImagePromptForItem(itemId, btn, fmt){
   const it = library.find(x => x.id === itemId);
   if(!it){ showToast('Post not found','error'); return; }
+  if(fmt==='reel'){   // short-form video script brief — copy it, run in ChatGPT
+    const rvoice = it.voice || it.scheduled_account || 'eridion';
+    const rtext = (it.blog_text || it.linkedin_text || it.title || '').trim();
+    if(!rtext){ showToast('No post copy to read — add some text first','error'); return; }
+    try{ await navigator.clipboard.writeText(buildReelPrompt(rvoice, rtext)); showToast('🎬 Reel prompt copied — paste into your ChatGPT','success'); }
+    catch(e){ showToast('Copy failed: '+e.message,'error'); }
+    return;
+  }
   if(fmt && fmt!=='auto' && ASSET_FORMATS.includes(fmt)){
     return generateFormattedImagePrompt(it, btn, fmt);
   }
@@ -9018,10 +9027,10 @@ async function _legacyPushWeekToBufferViaZapier(){
   showToast(`${success} pushed, ${failed} failed (Zapier legacy)`, failed?'error':'success');
 }
 
-const ASSET_FORMATS = ['quote','stat','infographic','chart','carousel','stock','image'];
+const ASSET_FORMATS = ['quote','stat','infographic','chart','carousel','stock','image','reel'];
 // Labels map to Eridion's five editorial archetypes (Editorial Photography, Editorial
 // Quote Card, Technical Diagram, Data Story, Narrative Carousel).
-const ASSET_FMT_LABEL = {quote:'Editorial quote card',stat:'Data story (stat)',infographic:'Technical diagram',chart:'Data story',carousel:'Narrative carousel',stock:'Editorial photography (stock)',image:'Editorial photography'};
+const ASSET_FMT_LABEL = {quote:'Editorial quote card',stat:'Data story (stat)',infographic:'Technical diagram',chart:'Data story',carousel:'Narrative carousel',stock:'Editorial photography (stock)',image:'Editorial photography',reel:'🎬 Short-form / Reel'};
 
 const QUALITY_BAR = "You are a senior graphic designer with 10+ years of experience, executing a social brief written by a digital strategist with 15+ years at a top-3 global agency. The result must look ART-DIRECTED and premium: confident visual hierarchy, deliberate asymmetry and composition, refined typography and spacing, depth and texture where it serves the idea, and ONE clear focal point. Never a flat, centered, 'default template' or clip-art look. Editorial, considered, scroll-stopping for the right reasons.\n\nMEET OR EXCEED current premium editorial social standards: design mobile-first — instantly legible at grid-thumbnail size and in bright sunlight (large, bold, wide type; NEVER thin or low-contrast — strong contrast is non-negotiable). Lead with one confident headline that reads at a glance. Render 1:1 square at high resolution, but compose for a vertical feed: keep all critical text and the key subject inside a generous centered safe zone with comfortable margins, so nothing is lost when the profile grid crops to a taller 3:4 frame or platform UI eats the edges. Crisp, clean export. A genuine thumb-stopper.\n\n";
 
@@ -9171,8 +9180,41 @@ const REAL_PHOTO_GUIDE = "\n\nIF I ATTACH A REAL JOB PHOTO to edit (instead of g
   "• Professional / DSLR shots — light touch only: keep color true to life, lift exposure/contrast subtly, straighten the verticals, and CROP to a strong architectural composition (lead with a clean line, rule-of-thirds, let negative space breathe). It should read like Architectural Digest, never over-filtered.\n"+
   "• iPhone / rough shots — do more work: correct white balance and exposure, crop in tighter to hero the glass, and clean out clutter or distractions in the frame. Never redraw, over-relight, or replace the real installation — it must stay authentically the actual job.\n"+
   "• Crop for drama when it earns it: go tight on an edge, a piece of hardware, or a reflection, and use a 4:5 portrait crop for feed impact.";
+// Short-form video (Reel / TikTok / Short) brief — voice-aware, and honest about
+// audio: it suggests a SOUND MOOD only; the real trending audio is picked inside
+// Instagram at post time (there's no API for trending sounds). Used by the
+// image-options dropdown in snippets AND the Prompt Pack per-day format override.
+function buildReelPrompt(voice, text){
+  const vLabel={
+    eridion:'Eridion Glass — a master-glazier-led custom glass & mirror shop for luxury $1M+ Dallas homes; builder-to-builder, precise, fluff-free',
+    erika:'Erika Harrison — a female founder in construction; warm, candid, leadership-minded',
+    quinta:'Quinta & Co — practical AI for women business owners, "one hour at a time"; calm, plainspoken, a smart friend over coffee',
+    practice:'The Practice — Quinta\'s quiet voice; AI as a small daily practice, restrained and reflective'
+  }[voice]||voice;
+  const bRoll = voice==='eridion'
+    ? 'Lean on REAL job footage/photos — finished installs, macro details of edges, hardware and reflections, a before/after. Say which kind of shot each beat needs so she can pull it from her catalog.'
+    : 'Talking-head to camera plus simple b-roll or clean text frames — never stocky corporate footage.';
+  return `Write a ready-to-shoot SHORT-FORM VIDEO script (Instagram Reel / TikTok / YouTube Short) for ${vLabel}. Derive it from the post below — she records and edits it herself.
+
+POST:
+"""
+${(text||'').slice(0,1500)}
+"""
+
+Return EXACTLY these sections, concrete and executable:
+HOOK (0–3s): one spoken line + the on-screen text for the first frame. Stop the scroll and state the payoff — no "wait for it", no fake countdowns.
+SHOT LIST: 4–6 beats. For each beat: [seconds] · what's on screen · the spoken VO or on-screen caption. ${bRoll}
+ON-SCREEN TEXT: the exact overlays beat by beat — short, punchy, legible on a phone.
+CAPTION: the hook line, then the value, then ONE genuine CTA; end with 3–5 relevant hashtags.
+AUDIO: suggest a MOOD / type of sound only (e.g. "upbeat lo-fi ~15s", "calm acoustic") — I'll choose the actual trending audio inside Instagram at post time. Do NOT name a specific licensed song.
+LENGTH: total target in seconds (aim 15–30s).
+
+Match the ${String(voice).toUpperCase()} voice and keep every claim consistent with the post. No preamble — start at HOOK.`;
+}
+
 function buildPromptForDay(voice, format, spec, fallbackText){
   spec=spec||{};
+  if(format==='reel') return buildReelPrompt(voice, fallbackText);
   if(format==='quote') return brandQuotePrompt(voice, spec, fallbackText);
   if(format==='stat'||format==='infographic') return brandInfographicPrompt(voice, spec, fallbackText);
   if(format==='chart') return brandChartPrompt(voice, spec);
@@ -9317,6 +9359,14 @@ async function overridePromptPackFormat(idx, newFmt){
   const item=library.find(x=>x.id===e.itemId);
   const text=(item&&(item.linkedin_text||item.blog_text))||'';
   if(!text.trim()){ showToast('No post text found for this day','error'); renderPromptPack(); return; }
+  if(newFmt==='reel'){   // no spec needed — the reel brief works straight from the post
+    e.format='reel';
+    e.prompt=buildReelPrompt(e.voice,text);
+    e.catalogMatches=matchCatalogPhotos(text,{},3);   // real clips/photos for the shot list
+    renderPromptPack();
+    showToast(`${e.day} → 🎬 Short-form / Reel`,'success');
+    return;
+  }
   const sel=document.getElementById(`pp-fmt-${idx}`);
   if(sel) sel.disabled=true;
   setStatus(`Rebuilding ${e.day} as ${ASSET_FMT_LABEL[newFmt]||newFmt}…`,true);
