@@ -3892,6 +3892,16 @@ LinkedIn (and Google) ranks copy on the literal words in it. Work the natural se
 // content only — never in an Eridion Glass post). Pass 'week' when one prompt
 // generates snippets in multiple voices (Spin Week). Voice always wins: these
 // shape STRUCTURE, never tone.
+// On-page SEO rules injected into every BLOG generation so the focus keyword
+// actually lands in the H1 + subheads + opening + body (not just the meta
+// fields, which are generated afterward). Meet-and-exceed, not just pass.
+const SEO_ONPAGE = `ON-PAGE SEO — the finished blog MUST satisfy ALL of these (this is how it gets found; aim to MEET AND EXCEED standard SEO, not just pass it):
+- FOCUS KEYWORD: before writing, lock ONE focus keyword — the exact phrase a builder, GC, PM, architect, or luxury homeowner in DFW would type into Google or ask an AI assistant (e.g. "low-iron shower glass", "frameless glass railing code", "colorback glass backsplash Dallas"). 2-5 words, specific, built from real nouns (material · code · city · service).
+- Place that focus keyword — verbatim or a very close natural variant — in ALL FOUR: the TITLE / H1; the FIRST sentence (your opening answer); at least ONE H2 subheading; and the closing paragraph.
+- Use the focus keyword naturally 3-6 times across the body, plus semantic variants and closely related terms (adjacent materials, codes, cities, services) — enough that the page is unmistakably about it, never keyword-stuffed.
+- Every H2/H3 subheading is specific and search-shaped — a phrase someone might actually search or ask — never generic ("Introduction", "Overview", "Conclusion", "Final thoughts").
+- This layers ON TOP of the exact-question title and answer-first opening (GEO PLAYBOOK) — those already double as keyword placement, so keep them.`;
+
 function buildGEO(stream){
   const LINK_RULES={
     eridion:'Weave ONE link naturally into a sentence — eridionglass.com or erika@eridionglass.com, per the CTA rules. Never a quintaand.co link in Eridion content.',
@@ -4682,6 +4692,8 @@ BLOG POST (1000-1400 words):
 - Strong closing CTA paragraph — clear and direct, never manufactured urgency
 - Final line: a direct action statement (email, website, or "let's talk")
 
+${SEO_ONPAGE}
+
 LINKEDIN SNIPPET (150-300 words):
 - Line one = the answer (the key insight from the blog, stated plainly)
 - One mid-post soft CTA
@@ -5156,6 +5168,8 @@ BLOG POST (1000-1400 words):
 - One quotable standalone line somewhere in the post
 - 2 subtle inline CTAs woven naturally
 - Strong closing CTA paragraph
+
+${SEO_ONPAGE}
 
 LINKEDIN SNIPPET (150-300 words):
 - Line one = the answer (the key insight from the blog, stated plainly)
@@ -7240,7 +7254,7 @@ Produce a complete SEO package for this post, tuned for THREE surfaces: (1) Goog
 ANSWER-ENGINE NOTE: AI assistants cite pages whose key claim is stated as a clean, self-contained sentence with real nouns (material, code, city, service). Choose a focus_keyword that matches how a person would actually phrase the question to an assistant, and make the meta_description read as a direct, quotable answer — not a teaser.
 
 RULES PER FIELD:
-- focus_keyword: 2-5 words, the primary phrase you want this post to rank for. Should appear naturally in the blog body, title, and meta. Builder or construction-audience-relevant.
+- focus_keyword: 2-5 words. This MUST be the focus keyword the blog's TITLE and SUBHEADINGS are already built around — read the H1 and the H2s and lift it; do NOT invent a different phrase. It should already appear verbatim in the title, the opening sentence, and at least one subhead. (If the blog lacks an obvious keyword there, pick the tightest builder/construction-audience search phrase the post answers.) Then confirm title_tag, meta_description, and url_slug all contain this same keyword.
 - title_tag: Under 60 characters HARD LIMIT. Punchy, keyword-inclusive, click-worthy. Different from (but echoing) the blog H1.
 - meta_description: Under 160 characters HARD LIMIT. Natural sentence, keyword present, ends with a reason to click (outcome, insight, stat).
 - url_slug: kebab-case (lowercase words separated by hyphens), 3-6 words, keyword-inclusive, no stop words, no special characters.
