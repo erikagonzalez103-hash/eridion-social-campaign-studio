@@ -3281,10 +3281,8 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div class="cal-actions">
             <button class="action-btn primary" onclick="openAutoSchedModal()">⚡ Auto-Schedule Week</button>
             <button class="action-btn primary" onclick="pushWeekToBuffer()" style="background:var(--green);border-color:var(--green);color:var(--white)">🚀 Push Week to Buffer</button>
-            <button class="action-btn" onclick="publishToWix()">📝 Send to Wix as Draft (full SEO)</button>
             <button class="action-btn" onclick="saveToSubstack()">Save to Substack</button>
           </div>
-          <div id="wix-status" style="margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);"></div>
         </div>
 
 
@@ -6070,59 +6068,54 @@ async function wixImportImage(url){
 // draft, it's imported into Wix Media and set as the cover, the social-share
 // image (og:image), and placed at the top of the blog body — so all she does in
 // Wix is review + publish.
-async function publishToWix(){
-  const content=generatedBlog||generatedLinkedIn;
-  if(!content){ showToast('Generate a blog first','error'); return; }
-  const seo=(typeof currentSEO!=='undefined'&&currentSEO)||{};
+// Send ONE library item to Wix as a blog draft (she uploads one blog/week; the
+// rest are social snippets). Pulls the item's blog body, its saved SEO package,
+// and its attached image — importing that image into Wix Media and wiring it as
+// the cover, the social-share image (og:image), and the top of the blog body.
+async function publishItemToWix(id){
+  const it=(typeof library!=='undefined'&&library.find(x=>x.id===id));
+  if(!it){ showToast('Post not found','error'); return; }
+  const content=it.blog_text||it.linkedin_text||'';
+  if(!content){ showToast('This post has no blog text to send','error'); return; }
+  const seo=it.seo||{};
+  const imgUrl=it.selectedImageUrl||it.image_url||(it.imageUrls&&it.imageUrls[0])||'';
   const parsed=blogToWix(content);
-  const title=parsed.title || (seo.title_tag||'').trim() || (document.getElementById('topic-input')?.value||'').trim() || 'Untitled';
+  const title=parsed.title || (seo.title_tag||'').trim() || it.title || 'Untitled';
   const draftPost={ title, richContent:parsed.richContent, seoData:buildWixSeoData(seo) };
   if(seo.excerpt) draftPost.excerpt=String(seo.excerpt);
   if(seo.url_slug) draftPost.seoSlug=String(seo.url_slug);
-  const imgUrl=(typeof selectedImageUrl!=='undefined'&&selectedImageUrl)||((typeof selectedImageUrls!=='undefined'&&selectedImageUrls&&selectedImageUrls[0])||'');
-  const st=document.getElementById('wix-status');
-  let imgNote=''; // appended to the success line so she knows what happened with the image
+  let imgNote='';
   setStatus('Sending to Wix…',true);
+  showToast(imgUrl?'Importing image + sending to Wix…':'Sending draft to Wix…','info');
   try{
     // ── Import + wire the attached image (cover + og:image + top of body) ──
     if(imgUrl){
-      if(st) st.textContent='Importing image into Wix Media…';
       const alt=String(seo.alt_text||seo.focus_keyword||title||'').slice(0,120);
       const [imp,size]=await Promise.all([wixImportImage(imgUrl), getImageSize(imgUrl)]);
       if(imp.id){
-        // 1) cover image
         draftPost.media={ wixMedia:{ image:{ id:imp.id, width:size.w, height:size.h } }, displayed:true, custom:true };
-        // 2) social-share image (og:image)
         try{ (draftPost.seoData.tags=draftPost.seoData.tags||[]).push({type:'meta',props:{property:'og:image',content:imgUrl}}); }catch(_){}
-        // 3) top of the blog body
         const nodes=draftPost.richContent&&draftPost.richContent.nodes;
         if(Array.isArray(nodes)){
           nodes.unshift({ type:'IMAGE', id:'imgcover', nodes:[], imageData:{ containerData:{ width:{size:'CONTENT'}, alignment:'CENTER' }, image:{ src:{id:imp.id}, width:size.w, height:size.h }, altText:alt } });
         }
-        imgNote=' Cover, social image & in-body image all set.';
+        imgNote=' (cover + social + in-body image set)';
       } else if(imp.error==='route'){
-        imgNote=' (Image skipped — add the /site-media/ path to your worker to auto-attach images.)';
-        showToast('Image not attached — worker needs the /site-media/ path','error');
+        showToast('Image skipped — worker needs the /site-media/ path','error');
       } else {
-        imgNote=' (Image couldn’t import — check the key has Media Manager permission; add it manually in Wix.)';
-        showToast('Image not attached: '+imp.error,'error');
+        showToast('Image not attached: '+imp.error+' — add it manually in Wix','error');
       }
     }
     // ── Create the draft ──
-    if(st) st.textContent='Sending draft to Wix…';
     const {res,r}=await callWix('/blog/v3/draft-posts','POST',{draftPost});
-    if(res.status===404){ if(st) st.textContent='Wix route not deployed yet — add /api/wix to your worker'; showToast('Add the /api/wix route to your worker first','error'); return; }
+    if(res.status===404){ showToast('Add the /api/wix route to your worker first','error'); return; }
     if(res.ok && r.ok && r.data && r.data.draftPost){
-      document.getElementById('wix-dot')?.classList.add('active');
-      const base=imgUrl&&draftPost.media ? '✓ Draft created in Wix with full SEO + image — just review &amp; publish.' : '✓ Draft created in Wix with full SEO — add the cover image &amp; publish there.';
-      if(st) st.innerHTML=base+(imgNote?' '+imgNote.trim():'')+' <a href="https://manage.wix.com/" target="_blank" style="color:var(--navy)">Open Wix →</a>';
-      showToast('Wix draft created ✓'+(draftPost.media?' with image':'')+' — review &amp; publish in Wix','success');
+      showToast('Wix draft created ✓'+imgNote+' — review & publish in Wix','success');
     } else {
       const msg=(r.data&&(r.data.message||(r.data.error&&(r.data.error.message||r.data.error))))||('HTTP '+(r.status||res.status));
-      if(st) st.textContent='Wix error: '+msg;
       showToast('Wix draft failed: '+msg,'error');
     }
-  }catch(e){ if(st) st.textContent='Connection failed: '+e.message; showToast('Could not reach the Wix proxy','error'); }
+  }catch(e){ showToast('Could not reach the Wix proxy','error'); }
   finally{ setStatus('Ready',false); }
 }
 
@@ -7868,6 +7861,7 @@ function renderLibrary(){
             <button class="lib-menu-btn primary" onclick="toggleLibMenu(event,this)">Publish <span class="lib-menu-caret">▾</span></button>
             <div class="lib-menu-items">
               <button class="lib-menu-item" onclick="pushPostToBuffer('${it.id}');closeLibMenus()" style="color:var(--green-deep)">🚀 Push to Buffer</button>
+              ${(it.blog_text&&it.blog_text.length>200)?`<button class="lib-menu-item" onclick="publishItemToWix('${it.id}');closeLibMenus()" style="color:var(--navy)">📝 Send to Wix (draft + SEO + image)</button>`:''}
               <button class="lib-menu-item" onclick="openSchedModal('${it.id}');closeLibMenus()">📆 ${it.status==='scheduled'?'Reschedule':'Schedule'}</button>
               ${it.status==='scheduled'?`<button class="lib-menu-item" onclick="unschedule('${it.id}');closeLibMenus()">Unschedule</button>`:''}
               <button class="lib-menu-item" onclick="markPosted('${it.id}');closeLibMenus()">✓ Mark Posted</button>
