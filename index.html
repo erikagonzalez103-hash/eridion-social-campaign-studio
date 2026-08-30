@@ -6050,12 +6050,14 @@ function getImageSize(url){
 // Import an external image URL into the user's Wix Media Manager and return its
 // Wix media id (usable for both cover image and in-body IMAGE nodes). Returns
 // {id} on success, or {error} — the caller still creates the draft either way.
-async function wixImportImage(url){
+async function wixImportImage(url, name){
   if(!url || !/^https?:\/\//i.test(url)) return {error:'no image'};
   const ext=(url.split('?')[0].match(/\.(jpe?g|png|webp|gif)$/i)||[])[1]||'jpg';
   const mime='image/'+(ext.toLowerCase()==='jpg'?'jpeg':ext.toLowerCase());
+  const safe=String(name||'blog-cover').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'blog-cover';
+  const payload={url, mimeType:mime, mediaType:'IMAGE', displayName:safe+'.'+ext, filePath:'/Blog'};
   try{
-    const {res,r}=await callWix('/site-media/v1/files/import','POST',{url, mimeType:mime, mediaType:'IMAGE', displayName:'blog-cover.'+ext});
+    const {res,r}=await callWix('/site-media/v1/files/import','POST',payload);
     if(res.status===404) return {error:'route'}; // worker not updated for /site-media/ yet
     const file=r&&r.ok&&r.data&&r.data.file;
     if(file&&file.id) return {id:file.id};
@@ -6120,7 +6122,7 @@ async function publishItemToWix(id){
     // ── Import + wire the attached image (cover + og:image + top of body) ──
     if(imgUrl){
       const alt=String(seo.alt_text||seo.focus_keyword||title||'').slice(0,120);
-      const [imp,size]=await Promise.all([wixImportImage(imgUrl), getImageSize(imgUrl)]);
+      const [imp,size]=await Promise.all([wixImportImage(imgUrl, seo.focus_keyword||title), getImageSize(imgUrl)]);
       if(imp.id){
         draftPost.media={ wixMedia:{ image:{ id:imp.id, width:size.w, height:size.h } }, displayed:true, custom:true };
         try{ (draftPost.seoData.tags=draftPost.seoData.tags||[]).push({type:'meta',props:{property:'og:image',content:imgUrl}}); }catch(_){}
@@ -6132,7 +6134,9 @@ async function publishItemToWix(id){
       } else if(imp.error==='route'){
         showToast('Image skipped — worker needs the /site-media/ path','error');
       } else {
-        showToast('Image not attached: '+imp.error+' — add it manually in Wix','error');
+        let host=''; try{ host=new URL(imgUrl).host; }catch(_){}
+        console.error('Wix image import failed for',imgUrl,'→',imp.error);
+        showToast('Image not attached ('+(host||'image')+'): '+imp.error,'error');
       }
     }
     // ── Blog tags: reuse her existing tag vocabulary + add the focus keyword ──
