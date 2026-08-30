@@ -5525,29 +5525,56 @@ function getImgBBKey(){
   return (document.getElementById('imgbb-key')?.value||localStorage.getItem('imgbb_key')||'').trim();
 }
 
+// Primary uploader: host the image on the user's own Cloudflare R2 bucket via
+// the worker's /api/upload route. R2 serves a stable public URL that Buffer AND
+// Wix can both fetch reliably — unlike ImgBB, whose links those services
+// intermittently failed to read. Falls back to ImgBB only if the /api/upload
+// route isn't deployed yet (404) or the worker is unreachable, so nothing
+// breaks before the worker is updated.
 async function uploadImageToImgBB(file){
+  if(!file) throw new Error('No file selected');
+  if(file.size>MAX_UPLOAD_BYTES) throw new Error('File over 32MB');
+  if(!file.type.startsWith('image/')) throw new Error('That doesn\'t look like an image');
+  const endpoint=WORKER.replace(/\/api\/messages$/,'/api/upload');
+  let res;
+  try{
+    res=await fetch(endpoint,{
+      method:'POST',
+      headers:{ 'Content-Type': file.type||'image/png', 'X-Filename': (file.name||'upload').replace(/[^\w.\-]+/g,'-').slice(0,80) },
+      body:file
+    });
+  }catch(e){
+    // Worker unreachable — fall back to ImgBB so uploads still work.
+    return uploadViaImgBB(file);
+  }
+  if(res.status===404){
+    // /api/upload not deployed yet — fall back to ImgBB.
+    return uploadViaImgBB(file);
+  }
+  const json=await res.json().catch(()=>null);
+  if(!res.ok || !json || !json.ok || !json.url){
+    const msg=(json&&(json.error||json.message))||('Upload failed ('+res.status+')');
+    throw new Error(msg);
+  }
+  return { url: json.url, displayUrl: json.url, deleteUrl: null, thumb: json.url };
+}
+// Legacy ImgBB uploader — kept as a fallback only. Requires the ImgBB key.
+async function uploadViaImgBB(file){
   const key=getImgBBKey();
   if(!key){
-    throw new Error('Add your ImgBB API key in API Keys (free at api.imgbb.com)');
+    throw new Error('Image host not reachable. Add the /api/upload route to your worker (recommended), or set an ImgBB key in API Keys as a fallback.');
   }
-  if(!file) throw new Error('No file selected');
   if(file.size>MAX_UPLOAD_BYTES) throw new Error('File over 32MB — ImgBB free tier limit');
-  if(!file.type.startsWith('image/')) throw new Error('That doesn\'t look like an image');
   const fd=new FormData();
   fd.append('image', file);
-  // ImgBB takes the key as a query param OR form field; query is more reliable.
-  const res=await fetch(`${IMGBB_ENDPOINT}?key=${encodeURIComponent(key)}`,{
-    method:'POST', body:fd
-  });
+  const res=await fetch(`${IMGBB_ENDPOINT}?key=${encodeURIComponent(key)}`,{ method:'POST', body:fd });
   const json=await res.json().catch(()=>null);
   if(!res.ok || !json || !json.success){
     const msg=json?.error?.message||json?.error||`ImgBB returned ${res.status}`;
     throw new Error(msg);
   }
-  // ImgBB response shape: data.url is the direct image URL with extension,
-  // data.display_url is the page-friendly URL. Both end in .jpg/.png/.gif/.webp.
   return {
-    url: json.data.url,             // direct, what Buffer fetches
+    url: json.data.url,
     displayUrl: json.data.display_url || json.data.url,
     deleteUrl: json.data.delete_url || null,
     thumb: json.data.thumb?.url || json.data.url,
