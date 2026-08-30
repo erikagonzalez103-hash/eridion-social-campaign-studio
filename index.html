@@ -5535,12 +5535,17 @@ async function uploadImageToImgBB(file){
   if(!file) throw new Error('No file selected');
   if(file.size>MAX_UPLOAD_BYTES) throw new Error('File over 32MB');
   if(!file.type.startsWith('image/')) throw new Error('That doesn\'t look like an image');
-  const endpoint=WORKER.replace(/\/api\/messages$/,'/api/upload');
+  const fname=(file.name||'upload').replace(/[^\w.\-]+/g,'-').slice(0,80);
+  const endpoint=WORKER.replace(/\/api\/messages$/,'/api/upload')+'?name='+encodeURIComponent(fname);
   let res;
   try{
+    // Filename rides as a query param (not a custom header) so the request only
+    // uses the Content-Type header the worker's CORS already allows — a custom
+    // X-Filename header would need to be in the allow-headers list or the
+    // preflight fails and we'd silently fall back to ImgBB.
     res=await fetch(endpoint,{
       method:'POST',
-      headers:{ 'Content-Type': file.type||'image/png', 'X-Filename': (file.name||'upload').replace(/[^\w.\-]+/g,'-').slice(0,80) },
+      headers:{ 'Content-Type': file.type||'image/png' },
       body:file
     });
   }catch(e){
