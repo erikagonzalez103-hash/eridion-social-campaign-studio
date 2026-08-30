@@ -6063,22 +6063,51 @@ async function wixImportImage(url){
     return {error:msg};
   }catch(e){ return {error:e.message}; }
 }
-// Create a Wix blog DRAFT with the full SEO package, via the worker proxy (keeps
-// the Wix key server-side + fixes CORS). If an image is attached to the current
-// draft, it's imported into Wix Media and set as the cover, the social-share
-// image (og:image), and placed at the top of the blog body — so all she does in
-// Wix is review + publish.
+// Fallback blog-tag generator — only used for older library items whose saved
+// SEO package predates blog_tags. Returns 5-6 reusable Title-Case category tags.
+async function generateBlogTags(blogText, focusKeyword){
+  try{
+    const prompt=`From this blog post, produce 5-6 short, reusable Wix blog CATEGORY tags in Title Case (2-4 words each) for a DFW luxury-construction audience — evergreen audience/trade/location/service buckets like "DFW Architects", "Luxury Home Builders", "Glass Installation", "Dallas Construction", "DFW Interior Design", "Custom Home Building". No hashtags, no # symbols, not the narrow focus keyword.\n\nBLOG:\n---\n${String(blogText||'').slice(0,3000)}\n---\n\nReturn ONLY a JSON array of strings, nothing else.`;
+    const data=await callClaude({model:MODEL_UTILITY,max_tokens:300,messages:[{role:'user',content:prompt}]});
+    const m=String(data||'').match(/\[[\s\S]*\]/);
+    if(m){ const arr=JSON.parse(m[0]); if(Array.isArray(arr)) return arr.map(t=>String(t||'').trim().replace(/^#/,'')).filter(Boolean).slice(0,8); }
+  }catch(_){}
+  return [];
+}
+// Resolve a list of tag LABELS to Wix tag IDs, reusing the user's existing tag
+// vocabulary (case/space/punct-insensitive match) and creating only genuinely
+// new labels (e.g. the focus keyword). Returns a deduped array of tag ids.
+async function resolveWixTagIds(labels){
+  const want=[...new Set((labels||[]).map(l=>String(l||'').trim()).filter(Boolean))];
+  if(!want.length) return [];
+  const norm=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const byNorm={};
+  try{
+    const {r}=await callWix('/blog/v3/tags/query','POST',{query:{paging:{limit:200}}});
+    ((r&&r.ok&&r.data&&r.data.tags)||[]).forEach(t=>{ if(t&&t.label) byNorm[norm(t.label)]=t.id; });
+  }catch(_){}
+  const ids=[];
+  for(const label of want){
+    let id=byNorm[norm(label)];
+    if(!id){
+      try{ const {r:cr}=await callWix('/blog/v3/tags','POST',{label}); id=cr&&cr.ok&&cr.data&&cr.data.tag&&cr.data.tag.id; if(id) byNorm[norm(label)]=id; }catch(_){}
+    }
+    if(id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
 // Send ONE library item to Wix as a blog draft (she uploads one blog/week; the
 // rest are social snippets). Pulls the item's blog body, its saved SEO package,
-// and its attached image — importing that image into Wix Media and wiring it as
-// the cover, the social-share image (og:image), and the top of the blog body.
+// its blog tags, and its attached image — importing that image into Wix Media
+// and wiring it as the cover, the social-share image (og:image), and the top of
+// the blog body, plus assigning the blog tags — so all she does is review + publish.
 async function publishItemToWix(id){
   const it=(typeof library!=='undefined'&&library.find(x=>x.id===id));
   if(!it){ showToast('Post not found','error'); return; }
   const content=it.blog_text||it.linkedin_text||'';
   if(!content){ showToast('This post has no blog text to send','error'); return; }
   const seo=it.seo||{};
-  const imgUrl=it.selectedImageUrl||it.image_url||(it.imageUrls&&it.imageUrls[0])||'';
+  const imgUrl=(typeof getItemImageUrls==='function'?(getItemImageUrls(it)[0]||''):(it.selectedImageUrl||it.image_url||(it.imageUrls&&it.imageUrls[0])||''));
   const parsed=blogToWix(content);
   const title=parsed.title || (seo.title_tag||'').trim() || it.title || 'Untitled';
   const draftPost={ title, richContent:parsed.richContent, seoData:buildWixSeoData(seo) };
@@ -6106,11 +6135,22 @@ async function publishItemToWix(id){
         showToast('Image not attached: '+imp.error+' — add it manually in Wix','error');
       }
     }
+    // ── Blog tags: reuse her existing tag vocabulary + add the focus keyword ──
+    let tagNote='';
+    const tagLabels=[];
+    let bt=Array.isArray(seo.blog_tags)?seo.blog_tags.slice():[];
+    if(!bt.length) bt=await generateBlogTags(content, seo.focus_keyword); // older posts w/o saved tags
+    tagLabels.push(...bt);
+    if(seo.focus_keyword) tagLabels.push(seo.focus_keyword);
+    if(tagLabels.length){
+      const tagIds=await resolveWixTagIds(tagLabels);
+      if(tagIds.length){ draftPost.tagIds=tagIds; tagNote=' + '+tagIds.length+' tags'; }
+    }
     // ── Create the draft ──
     const {res,r}=await callWix('/blog/v3/draft-posts','POST',{draftPost});
     if(res.status===404){ showToast('Add the /api/wix route to your worker first','error'); return; }
     if(res.ok && r.ok && r.data && r.data.draftPost){
-      showToast('Wix draft created ✓'+imgNote+' — review & publish in Wix','success');
+      showToast('Wix draft created ✓'+imgNote+tagNote+' — review & publish in Wix','success');
     } else {
       const msg=(r.data&&(r.data.message||(r.data.error&&(r.data.error.message||r.data.error))))||('HTTP '+(r.status||res.status));
       showToast('Wix draft failed: '+msg,'error');
@@ -7371,17 +7411,22 @@ RULES PER FIELD:
 - alt_text: 10-15 word description of the featured image for this post — descriptive and including the focus_keyword.
 - og_title: Under 111 characters HARD LIMIT. Slightly more emotional/curious than the SEO title, and MUST contain the exact focus_keyword — this is the headline people see when shared on LinkedIn/Facebook.
 - og_description: Under 500 characters, builder-narrative; MUST contain the exact focus_keyword within the FIRST 125 characters (LinkedIn truncates).
+- blog_tags: an array of 5-6 SHORT, reusable blog category tags in Title Case (2-4 words each) for grouping this post on the Wix blog. Think evergreen audience / trade / location / service buckets a DFW luxury-construction reader would browse by — e.g. "DFW Architects", "Luxury Home Builders", "Glass Installation", "Dallas Construction", "DFW Interior Design", "Custom Home Building". Prefer broad recurring categories the site would reuse across many posts (NOT the narrow focus keyword, NOT hashtags, no # symbols). Pick the 5-6 that genuinely fit this post's subject and audience.
 
 KEYWORD PLACEMENT IS MANDATORY: the exact focus_keyword string must appear, verbatim, in the title_tag, meta_description, excerpt, og_title, AND og_description. Before you return, re-read your own fields and confirm each one literally contains it — if any doesn't, rewrite that field until it does. Do not return a package where the keyword is missing from any of these five.
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"focus_keyword":"...","title_tag":"...","meta_description":"...","url_slug":"...","excerpt":"...","alt_text":"...","og_title":"...","og_description":"..."}`;
+{"focus_keyword":"...","title_tag":"...","meta_description":"...","url_slug":"...","excerpt":"...","alt_text":"...","og_title":"...","og_description":"...","blog_tags":["...","...","...","...","..."]}`;
 
   try{
     const data=await callClaude({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]},m=>{if(statusEl)statusEl.textContent=m;});
     const parsed=extractJSONFromResponse(data);
     currentSEO={};
     SEO_FIELDS.forEach(f=>{currentSEO[f]=String(parsed[f]||'').trim();});
+    // blog_tags is an array (Wix blog category tags) — carry it through separately.
+    currentSEO.blog_tags=Array.isArray(parsed.blog_tags)
+      ? parsed.blog_tags.map(t=>String(t||'').trim().replace(/^#/,'')).filter(Boolean).slice(0,8)
+      : [];
     renderSEOPackage();
     // Open the section so user sees the result
     document.getElementById('seo-package').classList.add('open');
