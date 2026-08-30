@@ -8868,27 +8868,35 @@ async function pushSinglePost(item, opts){
 // the user toggles channels, picks IG type (Post/Story/Reel), and confirms.
 // The actual push happens in _executeBufferPush, called by confirmBufferPush.
 async function pushPostToBuffer(id){
-  const token = getBufferToken();
-  if(!token){
-    return _legacyPushPostToBufferViaZapier(id);
-  }
-  const item = getLibraryItem(id);
-  if(!item){showToast('Post not found','error');return;}
-  if(!item.scheduled_for){showToast('Schedule this post first','error');return;}
-  if(!(item.selectedImageUrl||item.image_url)){
-    if(!confirm('This post has no image attached. Buffer requires media on every channel and will reject this. Push anyway?')){
-      openImageAttachModal(id);
+  // Wrap the whole entry so ANY thrown error surfaces as a toast instead of a
+  // silent no-op (the click otherwise just dies with nothing shown).
+  try{
+    const token = getBufferToken();
+    if(!token){
+      return _legacyPushPostToBufferViaZapier(id);
+    }
+    const item = getLibraryItem(id);
+    if(!item){showToast('Post not found','error');return;}
+    if(!item.scheduled_for){showToast('Schedule this post first (Publish ▾ → Schedule) before pushing to Buffer','error');return;}
+    const hasImg = (typeof getItemImageUrls==='function' ? getItemImageUrls(item).length>0 : !!(item.selectedImageUrl||item.image_url));
+    if(!hasImg){
+      if(!confirm('This post has no image attached. Buffer requires media on every channel and will reject this. Push anyway?')){
+        openImageAttachModal(id);
+        return;
+      }
+    }
+    const voice = item.scheduled_account||item.voice||'eridion';
+    if(!getChannelIdFor(voice,'linkedin')){
+      showToast(`No LinkedIn channel ID set for "${voice}" — open API Keys → Fetch My Channels`,'error');
+      toggleKeys();
       return;
     }
+    // Hand off to the preview modal. User confirms there.
+    openBufferPreviewModal(id);
+  }catch(e){
+    console.error('pushPostToBuffer failed:',e);
+    showToast('Push to Buffer couldn’t open: '+e.message,'error');
   }
-  const voice = item.scheduled_account||item.voice||'eridion';
-  if(!getChannelIdFor(voice,'linkedin')){
-    showToast(`No LinkedIn channel ID set for ${voice} — open API Keys → Fetch My Channels`,'error');
-    toggleKeys();
-    return;
-  }
-  // Hand off to the preview modal. User confirms there.
-  openBufferPreviewModal(id);
 }
 
 // Opens the preview modal for a library item. Builds per-channel cards
@@ -9070,7 +9078,7 @@ async function pushWeekToBuffer(){
   if(!weekItems.length){showToast('No scheduled posts this week','error');return;}
 
   // Sanity-check images upfront so we don't half-push and then warn
-  const noImage = weekItems.filter(i=>!(i.selectedImageUrl||i.image_url));
+  const noImage = weekItems.filter(i=>getItemImageUrls(i).length===0);
   if(noImage.length){
     if(!confirm(`${noImage.length} of ${weekItems.length} posts have no image attached. Buffer requires media on every channel and will reject those. Push the ones with images?`)) return;
   }
@@ -9088,7 +9096,7 @@ async function pushWeekToBuffer(){
   for(let i=0; i<weekItems.length; i++){
     const item = weekItems[i];
     setStatus(`Pushing ${i+1}/${weekItems.length}...`,true);
-    if(!(item.selectedImageUrl||item.image_url)){
+    if(getItemImageUrls(item).length===0){
       // Skip silently if user declined, else just count as a failure
       liFail++;
       errorsAggregate.push(`${item.title||item.id}: no image`);
