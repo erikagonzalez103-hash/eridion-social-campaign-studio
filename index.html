@@ -6028,8 +6028,48 @@ function buildWixSeoData(seo){
   if(seo.focus_keyword) data.settings={keywords:[{term:String(seo.focus_keyword),isMain:true}]};  // pre-fills the SEO Assistant focus keyword
   return data;
 }
+// Low-level call to the Wix proxy route. Returns {res, r} where r is the parsed
+// JSON body ({ok,status,data}). Both /blog/ and /site-media/ paths go through here.
+async function callWix(path, method, payload){
+  const endpoint=WORKER.replace(/\/api\/messages$/,'/api/wix');
+  const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path,method:method||'POST',payload:payload||{}})});
+  const r=await res.json().catch(()=>({}));
+  return {res, r};
+}
+// Measure an image's natural pixel size (for the cover/in-body node so Wix doesn't
+// render a broken w_NaN,h_NaN hero). Falls back to a sane 3:2 default on any failure.
+function getImageSize(url){
+  return new Promise(resolve=>{
+    if(!url){ resolve({w:1600,h:1067}); return; }
+    const img=new Image(); let done=false;
+    const finish=(w,h)=>{ if(done) return; done=true; resolve({w:w||1600,h:h||1067}); };
+    img.onload=()=>finish(img.naturalWidth,img.naturalHeight);
+    img.onerror=()=>finish(0,0);
+    setTimeout(()=>finish(0,0),6000); // don't hang the publish if the host is slow
+    img.src=url;
+  });
+}
+// Import an external image URL into the user's Wix Media Manager and return its
+// Wix media id (usable for both cover image and in-body IMAGE nodes). Returns
+// {id} on success, or {error} — the caller still creates the draft either way.
+async function wixImportImage(url){
+  if(!url || !/^https?:\/\//i.test(url)) return {error:'no image'};
+  const ext=(url.split('?')[0].match(/\.(jpe?g|png|webp|gif)$/i)||[])[1]||'jpg';
+  const mime='image/'+(ext.toLowerCase()==='jpg'?'jpeg':ext.toLowerCase());
+  try{
+    const {res,r}=await callWix('/site-media/v1/files/import','POST',{url, mimeType:mime, mediaType:'IMAGE', displayName:'blog-cover.'+ext});
+    if(res.status===404) return {error:'route'}; // worker not updated for /site-media/ yet
+    const file=r&&r.ok&&r.data&&r.data.file;
+    if(file&&file.id) return {id:file.id};
+    const msg=(r.data&&(r.data.message||(r.data.error&&(r.data.error.message||r.data.error))))||('HTTP '+(r.status||res.status));
+    return {error:msg};
+  }catch(e){ return {error:e.message}; }
+}
 // Create a Wix blog DRAFT with the full SEO package, via the worker proxy (keeps
-// the Wix key server-side + fixes CORS). She adds the cover image + publishes in Wix.
+// the Wix key server-side + fixes CORS). If an image is attached to the current
+// draft, it's imported into Wix Media and set as the cover, the social-share
+// image (og:image), and placed at the top of the blog body — so all she does in
+// Wix is review + publish.
 async function publishToWix(){
   const content=generatedBlog||generatedLinkedIn;
   if(!content){ showToast('Generate a blog first','error'); return; }
@@ -6039,18 +6079,44 @@ async function publishToWix(){
   const draftPost={ title, richContent:parsed.richContent, seoData:buildWixSeoData(seo) };
   if(seo.excerpt) draftPost.excerpt=String(seo.excerpt);
   if(seo.url_slug) draftPost.seoSlug=String(seo.url_slug);
+  const imgUrl=(typeof selectedImageUrl!=='undefined'&&selectedImageUrl)||((typeof selectedImageUrls!=='undefined'&&selectedImageUrls&&selectedImageUrls[0])||'');
   const st=document.getElementById('wix-status');
-  if(st) st.textContent='Sending draft to Wix…';
+  let imgNote=''; // appended to the success line so she knows what happened with the image
   setStatus('Sending to Wix…',true);
   try{
-    const endpoint=WORKER.replace(/\/api\/messages$/,'/api/wix');
-    const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'/blog/v3/draft-posts',method:'POST',payload:{draftPost}})});
+    // ── Import + wire the attached image (cover + og:image + top of body) ──
+    if(imgUrl){
+      if(st) st.textContent='Importing image into Wix Media…';
+      const alt=String(seo.alt_text||seo.focus_keyword||title||'').slice(0,120);
+      const [imp,size]=await Promise.all([wixImportImage(imgUrl), getImageSize(imgUrl)]);
+      if(imp.id){
+        // 1) cover image
+        draftPost.media={ wixMedia:{ image:{ id:imp.id, width:size.w, height:size.h } }, displayed:true, custom:true };
+        // 2) social-share image (og:image)
+        try{ (draftPost.seoData.tags=draftPost.seoData.tags||[]).push({type:'meta',props:{property:'og:image',content:imgUrl}}); }catch(_){}
+        // 3) top of the blog body
+        const nodes=draftPost.richContent&&draftPost.richContent.nodes;
+        if(Array.isArray(nodes)){
+          nodes.unshift({ type:'IMAGE', id:'imgcover', nodes:[], imageData:{ containerData:{ width:{size:'CONTENT'}, alignment:'CENTER' }, image:{ src:{id:imp.id}, width:size.w, height:size.h }, altText:alt } });
+        }
+        imgNote=' Cover, social image & in-body image all set.';
+      } else if(imp.error==='route'){
+        imgNote=' (Image skipped — add the /site-media/ path to your worker to auto-attach images.)';
+        showToast('Image not attached — worker needs the /site-media/ path','error');
+      } else {
+        imgNote=' (Image couldn’t import — check the key has Media Manager permission; add it manually in Wix.)';
+        showToast('Image not attached: '+imp.error,'error');
+      }
+    }
+    // ── Create the draft ──
+    if(st) st.textContent='Sending draft to Wix…';
+    const {res,r}=await callWix('/blog/v3/draft-posts','POST',{draftPost});
     if(res.status===404){ if(st) st.textContent='Wix route not deployed yet — add /api/wix to your worker'; showToast('Add the /api/wix route to your worker first','error'); return; }
-    const r=await res.json().catch(()=>({}));
     if(res.ok && r.ok && r.data && r.data.draftPost){
       document.getElementById('wix-dot')?.classList.add('active');
-      if(st) st.innerHTML='✓ Draft created in Wix with full SEO — now add the cover image &amp; publish there. <a href="https://manage.wix.com/" target="_blank" style="color:var(--navy)">Open Wix →</a>';
-      showToast('Wix draft created ✓ — add the image &amp; publish in Wix','success');
+      const base=imgUrl&&draftPost.media ? '✓ Draft created in Wix with full SEO + image — just review &amp; publish.' : '✓ Draft created in Wix with full SEO — add the cover image &amp; publish there.';
+      if(st) st.innerHTML=base+(imgNote?' '+imgNote.trim():'')+' <a href="https://manage.wix.com/" target="_blank" style="color:var(--navy)">Open Wix →</a>';
+      showToast('Wix draft created ✓'+(draftPost.media?' with image':'')+' — review &amp; publish in Wix','success');
     } else {
       const msg=(r.data&&(r.data.message||(r.data.error&&(r.data.error.message||r.data.error))))||('HTTP '+(r.status||res.status));
       if(st) st.textContent='Wix error: '+msg;
@@ -7821,6 +7887,10 @@ function loadFromLibrary(id){
   generatedLinkedIn=it.linkedin_text||'';
   generatedBlog=it.blog_text||'';
   generatedHashtags=it.hashtags||[];
+  // Restore the attached image so "Send to Wix" can push it as cover/body/og.
+  const litImg=it.selectedImageUrl||it.image_url||(it.imageUrls&&it.imageUrls[0])||'';
+  if(litImg){ selectedImageUrl=litImg; selectedImageUrls=(it.imageUrls&&it.imageUrls.length)?it.imageUrls.slice():[litImg]; }
+  else { selectedImageUrl=''; selectedImageUrls=[]; }
   const liOut=document.getElementById('linkedin-output');
   liOut.innerHTML=''; liOut.textContent=generatedLinkedIn||'(no LinkedIn text)';
   document.getElementById('hashtags-container').innerHTML=generatedHashtags.map(h=>`<span class="hashtag">${h}</span>`).join('');
