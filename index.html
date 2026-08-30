@@ -3281,7 +3281,7 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div class="cal-actions">
             <button class="action-btn primary" onclick="openAutoSchedModal()">⚡ Auto-Schedule Week</button>
             <button class="action-btn primary" onclick="pushWeekToBuffer()" style="background:var(--green);border-color:var(--green);color:var(--white)">🚀 Push Week to Buffer</button>
-            <button class="action-btn" onclick="publishToWix()">Publish Latest to Wix Blog</button>
+            <button class="action-btn" onclick="publishToWix()">📝 Send to Wix as Draft (full SEO)</button>
             <button class="action-btn" onclick="saveToSubstack()">Save to Substack</button>
           </div>
           <div id="wix-status" style="margin-top:12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);"></div>
@@ -5994,29 +5994,70 @@ function saveToSubstack(){
   showToast('Substack integration coming soon — wire it up next session','info');
 }
 
-async function publishToWix(draft=false){
-  const apiKey=document.getElementById('wix-key').value||localStorage.getItem('wix_key');
-  const siteId=document.getElementById('wix-site-id').value||localStorage.getItem('wix_site_id');
-  if(!apiKey||!siteId){showToast('Add Wix API Key and Site ID first','error');toggleKeys();return;}
-  const title=document.getElementById('topic-input').value.trim();
-  const content=generatedBlog||generatedLinkedIn;
-  if(!content){showToast('Generate content first','error');return;}
-  setStatus('Publishing to Wix...',true);
-  document.getElementById('wix-status').textContent='Connecting to Wix...';
-  try{
-    const body={draftPost:{title,richContent:{nodes:[{type:'PARAGRAPH',nodes:[{type:'TEXT',textData:{text:content,decorations:[]}}],paragraphData:{}}]}},publish:!draft};
-    const res=await fetch('https://www.wixapis.com/blog/v3/draft-posts',{method:'POST',headers:{'Content-Type':'application/json','Authorization':apiKey,'wix-site-id':siteId},body:JSON.stringify(body)});
-    if(res.ok){
-      document.getElementById('wix-dot').classList.add('active');
-      document.getElementById('wix-status').textContent=draft?'✓ Saved as draft in Wix':'✓ Published to Wix blog';
-      showToast(draft?'Draft saved!':'Published to Wix!','success');
+// Convert the generated blog (markdown) into Wix Ricos rich content and pull the
+// leading H1 out as the post title — so the Wix post keeps real headings and
+// paragraphs (and the keyword-in-H1/subheads SEO), not one flat paragraph.
+function blogToWix(md){
+  const mkText=t=>({type:'TEXT',textData:{text:t,decorations:[]}});
+  let title=''; const nodes=[]; let started=false;
+  String(md||'').split('\n').forEach(raw=>{
+    const t=raw.replace(/\r$/,'').trim(); if(!t) return;
+    const h=t.match(/^(#{1,6})\s+(.*)$/);
+    if(h){
+      const lvl=h[1].length, text=h[2].replace(/[*_`]/g,'').trim();
+      if(!started && lvl===1 && !title){ title=text; started=true; return; } // first H1 = post title
+      started=true;
+      nodes.push({type:'HEADING',id:'n'+nodes.length,nodes:[mkText(text)],headingData:{level:Math.max(2,Math.min(lvl,6))}});
     } else {
-      const err=await res.json();
-      document.getElementById('wix-status').textContent=`Error: ${err.message||'Check API key and site ID'}`;
-      showToast('Wix publish failed','error');
+      started=true;
+      const text=t.replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/`(.+?)`/g,'$1').replace(/^[-*]\s+/,'• ');
+      nodes.push({type:'PARAGRAPH',id:'n'+nodes.length,nodes:[mkText(text)],paragraphData:{}});
     }
-  }catch(e){document.getElementById('wix-status').textContent='Connection failed';showToast('Could not connect to Wix','error');}
-  finally{setStatus('Ready',false);}
+  });
+  if(!nodes.length) nodes.push({type:'PARAGRAPH',id:'n0',nodes:[mkText(String(md||'').slice(0,6000))],paragraphData:{}});
+  return {title, richContent:{nodes}};
+}
+// Map the SEO package to Wix seoData tags (title tag, meta description, OG tags).
+function buildWixSeoData(seo){
+  const tags=[];
+  if(seo.title_tag) tags.push({type:'title',children:String(seo.title_tag)});
+  if(seo.meta_description) tags.push({type:'meta',props:{name:'description',content:String(seo.meta_description)}});
+  if(seo.og_title) tags.push({type:'meta',props:{property:'og:title',content:String(seo.og_title)}});
+  if(seo.og_description) tags.push({type:'meta',props:{property:'og:description',content:String(seo.og_description)}});
+  const data={tags};
+  if(seo.focus_keyword) data.settings={keywords:[{term:String(seo.focus_keyword),isMain:true}]};  // pre-fills the SEO Assistant focus keyword
+  return data;
+}
+// Create a Wix blog DRAFT with the full SEO package, via the worker proxy (keeps
+// the Wix key server-side + fixes CORS). She adds the cover image + publishes in Wix.
+async function publishToWix(){
+  const content=generatedBlog||generatedLinkedIn;
+  if(!content){ showToast('Generate a blog first','error'); return; }
+  const seo=(typeof currentSEO!=='undefined'&&currentSEO)||{};
+  const parsed=blogToWix(content);
+  const title=parsed.title || (seo.title_tag||'').trim() || (document.getElementById('topic-input')?.value||'').trim() || 'Untitled';
+  const draftPost={ title, richContent:parsed.richContent, seoData:buildWixSeoData(seo) };
+  if(seo.excerpt) draftPost.excerpt=String(seo.excerpt);
+  if(seo.url_slug) draftPost.seoSlug=String(seo.url_slug);
+  const st=document.getElementById('wix-status');
+  if(st) st.textContent='Sending draft to Wix…';
+  setStatus('Sending to Wix…',true);
+  try{
+    const endpoint=WORKER.replace(/\/api\/messages$/,'/api/wix');
+    const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'/blog/v3/draft-posts',method:'POST',payload:{draftPost}})});
+    if(res.status===404){ if(st) st.textContent='Wix route not deployed yet — add /api/wix to your worker'; showToast('Add the /api/wix route to your worker first','error'); return; }
+    const r=await res.json().catch(()=>({}));
+    if(res.ok && r.ok && r.data && r.data.draftPost){
+      document.getElementById('wix-dot')?.classList.add('active');
+      if(st) st.innerHTML='✓ Draft created in Wix with full SEO — now add the cover image &amp; publish there. <a href="https://manage.wix.com/" target="_blank" style="color:var(--navy)">Open Wix →</a>';
+      showToast('Wix draft created ✓ — add the image &amp; publish in Wix','success');
+    } else {
+      const msg=(r.data&&(r.data.message||(r.data.error&&(r.data.error.message||r.data.error))))||('HTTP '+(r.status||res.status));
+      if(st) st.textContent='Wix error: '+msg;
+      showToast('Wix draft failed: '+msg,'error');
+    }
+  }catch(e){ if(st) st.textContent='Connection failed: '+e.message; showToast('Could not reach the Wix proxy','error'); }
+  finally{ setStatus('Ready',false); }
 }
 
 // ── Copy helpers ──
