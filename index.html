@@ -9233,7 +9233,7 @@ const ASSET_FORMATS = ['quote','stat','infographic','chart','carousel','stock','
 // Quote Card, Technical Diagram, Data Story, Narrative Carousel).
 const ASSET_FMT_LABEL = {quote:'Editorial quote card',stat:'Data story (stat)',infographic:'Technical diagram',chart:'Data story',carousel:'Narrative carousel',stock:'Editorial photography (stock)',image:'Editorial photography',reel:'🎬 Short-form / Reel'};
 
-const QUALITY_BAR = "You are a senior graphic designer with 10+ years of experience, executing a social brief written by a digital strategist with 15+ years at a top-3 global agency. The result must look ART-DIRECTED and premium: confident visual hierarchy, deliberate asymmetry and composition, refined typography and spacing, depth and texture where it serves the idea, and ONE clear focal point. Never a flat, centered, 'default template' or clip-art look. Editorial, considered, scroll-stopping for the right reasons.\n\nMEET OR EXCEED current premium editorial social standards: design mobile-first — instantly legible at grid-thumbnail size and in bright sunlight (large, bold, wide type; NEVER thin or low-contrast — strong contrast is non-negotiable). Lead with one confident headline that reads at a glance. Render 1:1 square at high resolution, but compose for a vertical feed: keep all critical text and the key subject inside a generous centered safe zone with comfortable margins, so nothing is lost when the profile grid crops to a taller 3:4 frame or platform UI eats the edges. Crisp, clean export. A genuine thumb-stopper.\n\n";
+const QUALITY_BAR = "You are a senior graphic designer with 10+ years of experience, executing a social brief written by a digital strategist with 15+ years at a top-3 global agency. The result must look ART-DIRECTED and premium: confident visual hierarchy, deliberate asymmetry and composition, refined typography and spacing, depth and texture where it serves the idea, and ONE clear focal point. Never a flat, centered, 'default template' or clip-art look. Editorial, considered, scroll-stopping for the right reasons.\n\nMEET OR EXCEED current premium editorial social standards: design mobile-first — instantly legible at grid-thumbnail size and in bright sunlight (large, bold, wide type; NEVER thin or low-contrast — strong contrast is non-negotiable). Lead with one confident headline that reads at a glance. Render 1:1 square at high resolution, but compose for a vertical feed: keep all critical text and the key subject inside a generous centered safe zone with comfortable margins, so nothing is lost when the profile grid crops to a taller 3:4 frame or platform UI eats the edges. Crisp, clean export. A genuine thumb-stopper.\n\nTYPE SIZE WINS OVER CONTENT — THIS IS THE MOST IMPORTANT RULE ON THIS BRIEF. Every word given below is a MAXIMUM, not a target. Lay the card out at a type size that is comfortably readable as a small thumbnail on a phone, then see what fits. If it does not all fit at that size, CUT CONTENT — drop the closing line first, then trim the supporting points, then shorten the labels. NEVER reduce the type size to make more copy fit, never tighten leading or tracking to squeeze in another line, and never add a word that was not given to you. A card carrying three elements in big confident type is CORRECT and a card carrying eight elements in small type is a FAILURE, even though the second one says more. When in doubt, leave something out.\n\n";
 
 // Brand "style briefs" injected into gpt-image-1 prompts so generated images/infographics
 // come out on-brand automatically — the studio equivalent of "my ChatGPT has my guidelines."
@@ -9253,24 +9253,38 @@ function brandInfographicPrompt(voice, spec, fallbackText){
   const head=spec.headline||spec.infographic_title;
   if(head) L.push("Headline (render exactly): "+head);
   if(spec.hero_stat||spec.stat_number) L.push("Key stat (render exactly): "+(spec.hero_stat||spec.stat_number)+((spec.sub_label||spec.stat_label)?(" — "+(spec.sub_label||spec.stat_label)):""));
-  const pts=(spec.infographic_points||[]).map(p=>((p.value?p.value+" — ":"")+(p.label||""))).filter(Boolean);
-  if(pts.length) L.push("Points/items (render each exactly): "+pts.join("; "));
-  if(spec.closing_line||spec.closing_emphasis) L.push("Closing line (render exactly): "+[spec.closing_line,spec.closing_emphasis].filter(Boolean).join(" "));
+  // Hard cap at 3 even if the model overproduced — a 5-point card is the single
+  // biggest cause of shrunken, unreadable type.
+  const pts=(spec.infographic_points||[]).slice(0,3).map(p=>((p.value?p.value+" — ":"")+(p.label||""))).filter(Boolean);
+  if(pts.length) L.push("Points/items (render each exactly, and render NO others): "+pts.join("; "));
+  // A sign-off only earns its space on a bare stat card. Once the card is already
+  // carrying a list of points, the closing line is the first thing that would have
+  // forced the type smaller — so drop it here rather than hoping the model does.
+  const closing=[spec.closing_line,spec.closing_emphasis].filter(Boolean).join(" ");
+  if(closing && !pts.length) L.push("Closing line (render exactly, small, one line): "+closing);
   if(!head && !pts.length && fallbackText) L.push("Source post to distill into a simple visual: "+String(fallbackText).slice(0,500));
   L.push("Use a clean, editorial visual device that fits the idea — a restrained diagram, a confident typographic treatment, or (sparingly, only when it truly fits) a SINGLE small hand-drawn element. Do NOT default to a full hand-drawn / sketchbook illustration, and do NOT draw bar charts, graphs, or data plots: you cannot size bars to the real numbers, so present figures as bold typographic callouts instead, never as proportional bars.");
-  L.push("KEEP TEXT MINIMAL — every extra word risks a misspelling. Use only the few words given above, render EACH one EXACTLY and spelled correctly (double-check: LIGHT, frameless, antiqued, transmission), no invented words, no stray dashes before numbers. Lots of calm space. Output the finished card only — no UI, and no rendered logo/wordmark (a small hand-drawn sprout is fine for Quinta).");
+  // Count what actually gets RENDERED, not how many lines we pushed — the stat and
+  // its label ship in one instruction but land on the card as two separate strings.
+  const elementCount=[head, (spec.hero_stat||spec.stat_number), (spec.sub_label||spec.stat_label), (pts.length?'':closing)].filter(Boolean).length+pts.length;
+  L.push("TEXT BUDGET: this card carries EXACTLY "+elementCount+" text element"+(elementCount===1?"":"s")+" — the ones listed above and NOTHING else. Do not add a title, a caption, a tagline, a source line, a URL, a date, or filler labels. Use only the words given, render EACH one EXACTLY and spelled correctly (double-check: LIGHT, frameless, antiqued, transmission), no invented words, no stray dashes before numbers.");
+  L.push("Set those "+elementCount+" element"+(elementCount===1?"":"s")+" LARGE — the headline and any number should be big enough to read at a glance in a phone feed without zooming. If they will not all fit at that size, drop the closing line, then the smallest point, until they do. Lots of calm space is the goal, not a fault. Output the finished card only — no UI, and no rendered logo/wordmark (a small hand-drawn sprout is fine for Quinta).");
   return L.join("\n");
 }
 // Per-format field definitions + the day-spec JSON shape — shared by the
 // weekly arc prompt AND the per-day format-override prompt so they never drift.
-const ARC_FORMAT_DEFS=`- "quote": a single sharp line from the post works as a pull-quote card. Fields: quote_text (<=180 chars, drawn from the post), attribution (the author/brand name, or "").
-- "stat": the day centers on a number or result. Fields: stat_number (e.g. "72%", "3×", "$1M+", "24 in"), stat_label (<=60 chars). ALSO fill the Eridion brand-card fields: eyebrow (one word, e.g. "GLASS"), hero_stat (the number itself), sub_label (UPPERCASE, <=30 chars, what it measures), and optionally closing_line + closing_emphasis (a two-part italic sign-off; closing_emphasis is the punchy second half).
-- "infographic": the day lists 2-5 discrete points/standards/benefits. Fields: infographic_title (<=50 chars), infographic_points = array of 2-5 {"value","label"}. ALSO fill the Eridion brand-card fields: eyebrow (one word), headline (UPPERCASE, <=30 chars — the claim), kicker (short UPPERCASE lead-in, e.g. "DESIGNED FOR"), hero_stat (the single biggest number/phrase, e.g. "20+ YEARS"), sub_label (UPPERCASE), benefits = array of 2-5 {"label" (1-2 words, UPPERCASE), "icon"} where icon is one of: droplet, noslash, shield, window, diamond, check, ruler, layers (pick the closest meaning — droplet=water/non-porous, noslash=resistant/anti-X, shield=protection, window=glass/panel, diamond=quality/durability, check=verified, ruler=precision/measure, layers=panels), and optionally closing_line + closing_emphasis.
-- "chart": the day compares 2-4 numbers (e.g. 91% vs 83% light transmission, or a before/after). PREFER this over stat/infographic whenever the point is a quantitative comparison — it's rendered as a real, accurate bar chart. Fields: chart_headline (the SCROLL-STOPPING hook/takeaway, <=8 words — the story, NOT the metric name; e.g. "The clarity the high end now notices"), chart_title (the small metric label/eyebrow, e.g. "Visible light transmitted", <=30 chars), chart_items = array of 2-4 {"label","value"} (value like "91%" or "20 yrs"; label 1-3 words), chart_caption (one supporting sentence — the "so what"; put the punchiest half after an em dash "—" for emphasis).
-- "carousel": the day tells a LONGER story worth multiple slides — a step-by-step, a before/after, a 3-part argument. Carousels earn more clicks, so use one when a day genuinely has a sequence (not every day). Fields: carousel_slides = array of 3-6 {"slide_title" (<=8 words), "slide_body" (<=20 words)}, building a clear narrative across slides. For Quinta & Co / Practice voice days, shape the carousel as Q&A pairs (GEO playbook): slide 1 poses the question the post answers, slide 2 states the answer plainly, later slides deepen it.
+const ARC_FORMAT_DEFS=`- "quote": a single sharp line from the post works as a pull-quote card. Fields: quote_text (<=110 chars, drawn from the post — a quote long enough to need small type is the wrong quote; find the sharpest fragment, not the fullest sentence), attribution (the author/brand name, or "").
+- "stat": the day centers on ONE number or result. The number is the whole card — it should fill it. Fields: stat_number (the figure alone, e.g. "72%", "3×", "$1M+", "24 in"), stat_label (UPPERCASE, <=24 chars, what it measures — NOT a sentence). Optionally closing_line (<=8 words, a single short sign-off; omit it unless it genuinely lands). THREE text elements maximum. Do not restate the number in words, do not add a headline above it.
+- "infographic": the day lists a FEW discrete points or standards. Fields: infographic_title (<=40 chars — the claim, UPPERCASE), infographic_points = array of EXACTLY 2-3 {"value" (<=8 chars), "label" (<=4 words)}. Three points is the ceiling, not the goal — two well-chosen points beat three padded ones. If the post offers five points, pick the best 2-3 and DROP the rest; a crowded card is worse than an incomplete one. Do not add a closing line to this format.
+- "chart": the day compares 2-4 numbers (e.g. 91% vs 83% light transmission, or a before/after). PREFER this over stat/infographic whenever the point is a quantitative comparison — it's rendered as a real, accurate bar chart. Fields: chart_headline (the SCROLL-STOPPING hook/takeaway, <=8 words — the story, NOT the metric name; e.g. "The clarity the high end now notices"), chart_title (the small metric label/eyebrow, e.g. "Visible light transmitted", <=30 chars), chart_items = array of 2-3 {"label","value"} (value like "91%" or "20 yrs"; label 1-2 words), chart_caption (OPTIONAL, <=12 words — the "so what"; omit it entirely rather than padding, and never write two sentences).
+- "carousel": the day tells a LONGER story worth multiple slides — a step-by-step, a before/after, a 3-part argument. Carousels earn more clicks, so use one when a day genuinely has a sequence (not every day). Fields: carousel_slides = array of 3-5 {"slide_title" (<=6 words), "slide_body" (<=12 words)}, building a clear narrative across slides. A slide is a billboard, not a paragraph — if a thought needs 20 words, split it across two slides or cut it. For Quinta & Co / Practice voice days, shape the carousel as Q&A pairs (GEO playbook): slide 1 poses the question the post answers, slide 2 states the answer plainly, later slides deepen it.
 - "stock": a real-world photograph fits better than anything generated. Fields: stock_query (2-4 concrete words, searchable on Unsplash).
 - "image": a conceptual/artistic generated image fits best. Fields: image_prompt (vivid and SPECIFIC — name the concrete subject, material, object, or place the post is actually about, e.g. "antiqued mirror panels installed on a coffered ceiling," not just "a ceiling"; photographic or illustrative; NO text on screen).`;
-const ARC_DAY_JSON='{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","eyebrow":"","headline":"","kicker":"","hero_stat":"","sub_label":"","benefits":[],"closing_line":"","closing_emphasis":"","chart_headline":"","chart_title":"","chart_items":[],"chart_caption":"","carousel_slides":[]}';
+// Only fields an image prompt actually renders. eyebrow/kicker/hero_stat/sub_label/
+// benefits/closing_emphasis were left over from the deleted local card renderer —
+// the model filled them and every builder dropped them, which primed it to think of
+// a card as a dense many-element object. Removed 2026-09-02.
+const ARC_DAY_JSON='{"day":"","format":"quote","rationale":"one short sentence","quote_text":"","attribution":"","stat_number":"","stat_label":"","infographic_title":"","infographic_points":[],"image_prompt":"","stock_query":"","closing_line":"","chart_headline":"","chart_title":"","chart_items":[],"chart_caption":"","carousel_slides":[]}';
 // Map a model day-decision object to the spec buildPromptForDay expects.
 function specFromDecision(d){
   d=d||{};
@@ -9345,7 +9359,8 @@ function extractJsonObject(text){
 function brandQuotePrompt(voice, spec, fallbackText){
   const L=[QUALITY_BAR+(BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta)];
   L.push("\nDesign ONE beautiful pull-quote social card (1:1 square) in this brand.");
-  L.push('Quote (render EXACTLY, spelled correctly, as the focal typographic element): "'+(spec.quote_text||(fallbackText||'').slice(0,180))+'"');
+  L.push('Quote (render EXACTLY, spelled correctly, as the focal typographic element): "'+(spec.quote_text||(fallbackText||'').slice(0,110))+'"');
+  L.push("The quote is the ONLY substantial text on this card and it should be set LARGE — filling most of the square, readable at a glance in a phone feed. Add no title, no caption, no quotation-mark graphic taller than the text, no source line beyond the attribution below.");
   if(spec.attribution) L.push("Attribution line: set it as small, plain UPPERCASE letters reading exactly: — "+String(spec.attribution).toUpperCase());
   L.push("Elegant typographic composition with generous space, brand colors and fonts. Do NOT render any logo, emblem, or stylized wordmark (those come out garbled) — the attribution is plain type only. No other text; render every word crisply and spelled correctly.");
   return L.join("\n");
@@ -9367,10 +9382,11 @@ function brandChartPrompt(voice, spec){
   L.push("\nCreate ONE clean, accurate bar chart (1:1 square) in this brand.");
   if(spec.chart_headline||spec.headline) L.push("Headline (render exactly): "+(spec.chart_headline||spec.headline));
   if(spec.chart_title||spec.infographic_title) L.push("Metric label / eyebrow: "+(spec.chart_title||spec.infographic_title));
-  const items=(spec.chart_items&&spec.chart_items.length?spec.chart_items:spec.infographic_points)||[];
-  if(items.length) L.push("Bars (each EXACT; bar HEIGHTS must be TRUE to the values — a 83% bar is shorter than a 91% bar): "+items.map(p=>(p.label||'')+" = "+(p.value||'')).join("; "));
-  if(spec.chart_caption||spec.closing_line) L.push("Caption (render exactly): "+(spec.chart_caption||spec.closing_line));
+  const items=((spec.chart_items&&spec.chart_items.length?spec.chart_items:spec.infographic_points)||[]).slice(0,3);
+  if(items.length) L.push("Bars (each EXACT, and NO other bars; bar HEIGHTS must be TRUE to the values — a 83% bar is shorter than a 91% bar): "+items.map(p=>(p.label||'')+" = "+(p.value||'')).join("; "));
+  if(spec.chart_caption||spec.closing_line) L.push("Caption (render exactly, one line): "+(spec.chart_caption||spec.closing_line));
   L.push("Accurate proportions, exact spelling, brand colors and fonts.");
+  L.push("TEXT BUDGET: headline, metric label, the bar labels and values, and the one-line caption — NOTHING else. No axis ticks, no gridline numbers, no legend, no source line, no percentage repeated twice. Set the headline and the bar values LARGE enough to read at a glance in a phone feed; if the caption will not fit at that size, drop the caption rather than shrinking the type.");
   return L.join("\n");
 }
 
@@ -9420,9 +9436,10 @@ function buildPromptForDay(voice, format, spec, fallbackText){
   if(format==='stat'||format==='infographic') return brandInfographicPrompt(voice, spec, fallbackText);
   if(format==='chart') return brandChartPrompt(voice, spec);
   if(format==='carousel'){
-    const slides=(spec.carousel_slides||[]).slice(0,8).filter(s=>s&&(s.slide_title||s.slide_body));
+    const slides=(spec.carousel_slides||[]).slice(0,5).filter(s=>s&&(s.slide_title||s.slide_body));
     const L=[QUALITY_BAR+(BRAND_IMAGE_BRIEFS[voice]||BRAND_IMAGE_BRIEFS.quinta)];
     L.push("\nCreate a cohesive "+slides.length+"-slide CAROUSEL (each slide 1:1 square) that tells one story. Keep the SAME layout/palette/type across every slide. Minimal words, exact spelling.");
+    L.push("Each slide carries ONLY its own title and body line as given below — no slide numbers, no headers, no footers, no 'swipe' prompts, no logo. Set the slide title LARGE (it should read at a glance in a phone feed) and the body beneath it clearly smaller but still comfortably readable. Render the words exactly as given and add none of your own; if a line feels short, that is correct.");
     slides.forEach((s,i)=>{ L.push("Slide "+(i+1)+": "+[s.slide_title,s.slide_body].filter(Boolean).join(" — ")); });
     return L.join("\n");
   }
