@@ -3349,6 +3349,7 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
               <button class="launch-btn buffer" onclick="pushPostToBuffer(viewingPostId)" style="background:var(--green);border-color:var(--green);color:var(--white)">🚀 Push to Buffer</button>
               <button class="action-btn" onclick="(function(){var _id=viewingPostId;closeViewPostModal();openSchedModal(_id);})()">📆 Reschedule</button>
+              <button class="action-btn" onclick="(function(){var _id=viewingPostId;closeViewPostModal();openEditText(_id);})()">✏️ Edit Text &amp; Links</button>
               <button class="action-btn" onclick="viewPostGoToLibrary()">↩ Return to Editor</button>
               <button class="action-btn" onclick="closeViewPostModal()" style="margin-left:auto">Close</button>
             </div>
@@ -3583,6 +3584,41 @@ textarea { min-height: 80px; line-height: 1.6; }
             </div>
             <div class="spin-results" id="spin-week-results" style="display:none"></div>
             <div id="week-assets" style="display:none;margin-top:18px"></div>
+          </div>
+        </div>
+
+        <!-- Edit Text Modal — edit a SAVED post in place. The main editor
+             (linkedin-output) never synced its contenteditable back to
+             generatedLinkedIn, and "Save Current Draft" calls addToLibrary(),
+             which creates a DUPLICATE. So there was no way to add a link to an
+             already-spun snippet. This saves onto the same item. -->
+        <div class="sched-modal" id="edit-text-modal">
+          <div class="sched-modal-inner" style="max-width:720px;max-height:90vh;overflow-y:auto">
+            <div class="sched-modal-title">✏️ Edit post text</div>
+            <div id="edit-text-meta" style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.12em;color:var(--text-muted);margin-bottom:12px"></div>
+
+            <label class="field-label">LinkedIn / social text</label>
+            <textarea id="edit-text-li" oninput="updateEditTextMeta()" style="width:100%;box-sizing:border-box;min-height:260px;font-size:13px;line-height:1.7"></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:4px 0 14px">
+              <div style="font-size:11px;color:var(--text-muted)">Paste links inline, right where you want them. Plain URLs — LinkedIn and Buffer both linkify them automatically.</div>
+              <div id="edit-text-count" style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);white-space:nowrap"></div>
+            </div>
+
+            <div id="edit-text-links" style="margin-bottom:14px"></div>
+
+            <div id="edit-text-blog-wrap" style="display:none">
+              <label class="field-label">Blog text</label>
+              <textarea id="edit-text-blog" style="width:100%;box-sizing:border-box;min-height:180px;font-size:13px;line-height:1.7"></textarea>
+              <div style="height:14px"></div>
+            </div>
+
+            <label class="field-label">Hashtags (space separated)</label>
+            <input type="text" id="edit-text-tags" placeholder="#GlassDesign #LuxuryHomes" style="width:100%;box-sizing:border-box;font-size:12px" />
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px">
+              <button class="action-btn primary" onclick="saveEditText()">Save changes</button>
+              <button class="action-btn" onclick="closeEditText()" style="margin-left:auto">Cancel</button>
+            </div>
           </div>
         </div>
 
@@ -8084,6 +8120,7 @@ function renderLibrary(){
           <div class="lib-menu">
             <button class="lib-menu-btn" onclick="toggleLibMenu(event,this)">Edit <span class="lib-menu-caret">▾</span></button>
             <div class="lib-menu-items">
+              <button class="lib-menu-item" onclick="openEditText('${it.id}');closeLibMenus()" style="font-weight:600">✏️ Edit Text &amp; Links</button>
               <button class="lib-menu-item" onclick="loadFromLibrary('${it.id}');closeLibMenus()">Load</button>
               <button class="lib-menu-item" onclick="copyFromLibrary('${it.id}');closeLibMenus()">Copy Text</button>
               <button class="lib-menu-item" onclick="openImageAttachModal('${it.id}');closeLibMenus()">🖼 ${hasImage?'Edit Image':'Add Image'}</button>
@@ -8114,6 +8151,80 @@ function renderLibrary(){
       </div>
     `;
   }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// ── EDIT A SAVED POST IN PLACE ──
+// loadFromLibrary() drops an item into the main editor, but that editor's
+// contenteditable never synced back to generatedLinkedIn, and the only save
+// path (saveCurrentToLibrary → addToLibrary) mints a NEW entry. So an
+// already-spun snippet could not be corrected — no way to add a link, fix a
+// name, or trim a line. This edits the item itself.
+// ══════════════════════════════════════════════════════════════════════
+let editingTextId=null;
+
+const URL_RE=/https?:\/\/[^\s<>"')\]]+/g;
+
+function openEditText(id){
+  const it=library.find(x=>x.id===id);
+  if(!it){ showToast('Post not found','error'); return; }
+  editingTextId=id;
+  const voiceLabel=(it.voice||'').toUpperCase();
+  const day=it.snippet_day?(' · '+it.snippet_day):'';
+  document.getElementById('edit-text-meta').textContent=`${voiceLabel}${day} · ${it.status||'draft'} · ${(it.title||'Untitled').slice(0,60)}`;
+  document.getElementById('edit-text-li').value=it.linkedin_text||'';
+  const blogWrap=document.getElementById('edit-text-blog-wrap');
+  const hasBlog=!!(it.blog_text&&it.blog_text.trim());
+  blogWrap.style.display=hasBlog?'block':'none';
+  document.getElementById('edit-text-blog').value=it.blog_text||'';
+  document.getElementById('edit-text-tags').value=(it.hashtags||[]).join(' ');
+  updateEditTextMeta();
+  document.getElementById('edit-text-modal').classList.add('open');
+  setTimeout(()=>{ try{ document.getElementById('edit-text-li').focus(); }catch(e){} },40);
+}
+
+// Live character count + a readout of every link in the text, so she can see
+// at a glance that the URLs she pasted are the ones she meant.
+function updateEditTextMeta(){
+  const txt=document.getElementById('edit-text-li').value||'';
+  const c=document.getElementById('edit-text-count');
+  const over=txt.length>3000;
+  if(c){ c.textContent=`${txt.length} chars${over?' — over LinkedIn’s 3,000 limit':''}`; c.style.color=over?'var(--red,#b3261e)':'var(--text-muted)'; }
+  const urls=txt.match(URL_RE)||[];
+  const box=document.getElementById('edit-text-links');
+  if(!box) return;
+  box.innerHTML = urls.length
+    ? `<div style="background:var(--off-white,#F5F6F8);border:1px solid var(--hairline,#E6E8EC);border-radius:6px;padding:10px 12px">
+         <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">${urls.length} link${urls.length===1?'':'s'} in this post</div>
+         ${urls.map(u=>`<div style="font-family:var(--font-mono);font-size:11px;line-height:1.6;word-break:break-all"><a href="${u.replace(/"/g,'&quot;')}" target="_blank" rel="noopener" style="color:var(--navy)">${escapeHTML(u)}</a></div>`).join('')}
+         <div style="font-size:10px;color:var(--text-muted);margin-top:6px">Click one to check it opens where you expect.</div>
+       </div>`
+    : `<div style="font-size:11px;color:var(--text-muted)">No links in this post yet.</div>`;
+}
+
+function saveEditText(){
+  const it=library.find(x=>x.id===editingTextId);
+  if(!it){ showToast('Post not found','error'); return; }
+  const li=document.getElementById('edit-text-li').value;
+  const blogEl=document.getElementById('edit-text-blog');
+  const tags=(document.getElementById('edit-text-tags').value||'')
+    .split(/[\s,]+/).map(t=>t.trim()).filter(Boolean)
+    .map(t=>t.startsWith('#')?t:'#'+t);
+  if(!li.trim() && !(blogEl.value||'').trim()){ showToast('Post can’t be empty','error'); return; }
+  it.linkedin_text=li;
+  if(document.getElementById('edit-text-blog-wrap').style.display!=='none') it.blog_text=blogEl.value;
+  it.hashtags=tags;
+  it.edited_at=Date.now();
+  persistLibrary();
+  renderLibrary();
+  if(typeof renderCalendar==='function' && document.getElementById('tab-calendar')?.classList.contains('active')) renderCalendar();
+  closeEditText();
+  showToast('Saved','success');
+}
+
+function closeEditText(){
+  editingTextId=null;
+  document.getElementById('edit-text-modal').classList.remove('open');
 }
 
 function loadFromLibrary(id){
