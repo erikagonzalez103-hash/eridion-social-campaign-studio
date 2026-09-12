@@ -3624,7 +3624,7 @@ textarea { min-height: 80px; line-height: 1.6; }
               <span style="display:flex;gap:12px;white-space:nowrap"><a onclick="openMentions('body')" style="cursor:pointer;color:var(--navy);font-weight:600;font-size:10px">🏷 Mentions</a><a onclick="pullLinksToComment()" style="cursor:pointer;color:var(--navy);font-weight:600;font-size:10px">↓ Pull links from post</a></span>
             </label>
             <textarea id="edit-text-comment" placeholder="Casa Verde — https://casaverde.com&#10;Maria Santos — https://linkedin.com/in/mariasantos" style="width:100%;box-sizing:border-box;min-height:90px;font-size:13px;line-height:1.7"></textarea>
-            <div style="font-size:11px;color:var(--text-muted);margin:4px 0 14px">Neither LinkedIn nor Instagram makes a company name clickable in the post body — only a full URL, and only on LinkedIn. Put the names in the post and the links here.</div>
+            <div style="font-size:11px;color:var(--text-muted);margin:4px 0 14px">Neither LinkedIn nor Instagram makes a company name clickable in the post body — only a full URL, and only on LinkedIn. Put the names in the post and the links here. <strong>Buffer posts this automatically on LinkedIn.</strong> Instagram ignores it (a known Buffer bug), so use Copy and paste it there yourself.</div>
 
             <label class="field-label">Hashtags (space separated)</label>
             <input type="text" id="edit-text-tags" placeholder="#GlassDesign #LuxuryHomes" style="width:100%;box-sizing:border-box;font-size:12px" />
@@ -8461,7 +8461,8 @@ function insertMention(i, fmt){
   showToast(`Inserted “${txt.length>40?txt.slice(0,40)+'…':txt}”`,'success');
 }
 
-// Copy a staged first comment (Buffer won't post it for us).
+// Copy a staged first comment. Buffer posts it on LinkedIn automatically, so
+// this is really the Instagram path (Buffer silently drops firstComment there).
 function copyFirstComment(id){
   const it=library.find(x=>x.id===id);
   if(!it||!it.first_comment){ showToast('No first comment saved on this post','error'); return; }
@@ -8599,7 +8600,7 @@ function openViewPostModal(id){
     cEl.style.display='block';
     cEl.innerHTML=`<div style="background:var(--off-white,#F5F6F8);border:1px solid var(--hairline,#E6E8EC);border-radius:6px;padding:10px 12px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px">
-        <span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)">First comment — paste after posting</span>
+        <span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)">First comment — auto on LinkedIn · paste on Instagram</span>
         <button class="action-btn" style="font-size:10px;padding:4px 9px" onclick="copyFirstComment('${id}')">Copy</button>
       </div>
       <div style="font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word">${escapeHTML(it.first_comment)}</div>
@@ -9332,7 +9333,7 @@ function _composeText(item, channelKind){
 // Single createPost call: schedules a post on a specific channel at a
 // specific time, optionally with one image attached. Returns the new
 // Buffer post ID on success, throws on failure.
-async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduledForIso, channelKind, igType}){
+async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduledForIso, channelKind, igType, firstComment}){
   // Build the GraphQL mutation. Use variables for everything user-supplied
   // to avoid escaping issues (especially in the post text).
   const mutation = `
@@ -9375,6 +9376,24 @@ async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduled
   if(igTypeValue){
     input.metadata = { instagram: { type: igTypeValue, shouldShareToFeed: true } };
   }
+  // First comment — where the links go, since neither LinkedIn nor Instagram
+  // will hyperlink a company name in the post body.
+  //   LinkedIn  → LinkedInPostMetadataInput.firstComment. Works.
+  //   Instagram → the field exists on InstagramPostMetadataInput, but Buffer's
+  //     own changelog reports it is SILENTLY IGNORED and comes back null. We
+  //     still send it (costs nothing, fixed the day they fix it) and keep the
+  //     manual copy button as the real Instagram path.
+  // NOTE: the `input` object above is NOT what gets sent — only `inlineMutation`
+  // below is. So the metadata literal has to be built here, as a string.
+  const fc=(firstComment||'').trim();
+  const metaParts=[];
+  if(igTypeValue){
+    const igFields=[`type: ${igTypeValue}`, `shouldShareToFeed: true`];
+    if(fc) igFields.push(`firstComment: ${JSON.stringify(fc)}`);
+    metaParts.push(`instagram: { ${igFields.join(', ')} }`);
+  }
+  if(fc && channelKind==='linkedin') metaParts.push(`linkedin: { firstComment: ${JSON.stringify(fc)} }`);
+  const metadataLiteral = metaParts.length ? `, metadata: { ${metaParts.join(', ')} }` : '';
   // Try inline-literal mode first since Buffer's docs use enum literals
   // (`automatic`, `customScheduled`) which can be tricky as variables.
   // Fallback: build the query inline if variables fail.
@@ -9387,7 +9406,7 @@ async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduled
         schedulingType: automatic,
         mode: customScheduled,
         dueAt: ${JSON.stringify(scheduledForIso)}
-        ${igTypeValue?`, metadata: { instagram: { type: ${igTypeValue}, shouldShareToFeed: true } }`:''}
+        ${metadataLiteral}
         ${mediaUrls.length?`, assets: [${mediaUrls.map(u=>`{ image: { url: ${JSON.stringify(u)} } }`).join(', ')}]`:''}
       }) {
         ... on PostActionSuccess { post { id } }
@@ -9433,7 +9452,7 @@ async function pushSinglePost(item, opts){
     } else {
       try{
         const liText = _composeText(item, 'linkedin');
-        await createBufferPost({channelId: liChannelId, text: liText, imageUrl, imageUrls, scheduledForIso, channelKind: 'linkedin'});
+        await createBufferPost({channelId: liChannelId, text: liText, imageUrl, imageUrls, scheduledForIso, channelKind: 'linkedin', firstComment: item.first_comment});
         result.linkedin = true;
       }catch(e){
         result.errors.push(`LI: ${e.message}`);
@@ -9450,7 +9469,7 @@ async function pushSinglePost(item, opts){
         result.instagram = 'oversize';
       } else {
         try{
-          await createBufferPost({channelId: igChannelId, text: igText, imageUrl, imageUrls, scheduledForIso, channelKind: 'instagram', igType});
+          await createBufferPost({channelId: igChannelId, text: igText, imageUrl, imageUrls, scheduledForIso, channelKind: 'instagram', igType, firstComment: item.first_comment});
           result.instagram = true;
         }catch(e){
           result.instagram = 'error';
