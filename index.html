@@ -3323,6 +3323,7 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div id="view-post-meta" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;color:var(--text-muted);margin-bottom:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"></div>
             <div id="view-post-body" style="background:var(--surface2);border:1px solid var(--border);padding:16px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;max-height:400px;overflow-y:auto;margin-bottom:12px;"></div>
             <div id="view-post-hashtags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;"></div>
+            <div id="view-post-comment" style="display:none;margin-bottom:16px"></div>
 
             <!-- Image attachment (Buffer needs this on every post) -->
             <div id="view-post-image-picker"></div>
@@ -3611,6 +3612,17 @@ textarea { min-height: 80px; line-height: 1.6; }
               <textarea id="edit-text-blog" style="width:100%;box-sizing:border-box;min-height:180px;font-size:13px;line-height:1.7"></textarea>
               <div style="height:14px"></div>
             </div>
+
+            <!-- First comment. LinkedIn feed posts and Instagram captions can't
+                 carry anchor-text hyperlinks, so the pattern is: names in the
+                 post, links in the first comment. Buffer doesn't post comments
+                 for us, so this is a staging box with a copy button. -->
+            <label class="field-label" style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+              <span>First comment <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">— where the links go</span></span>
+              <a onclick="pullLinksToComment()" style="cursor:pointer;color:var(--navy);font-weight:600;font-size:10px;white-space:nowrap">↓ Pull links from post</a>
+            </label>
+            <textarea id="edit-text-comment" placeholder="Casa Verde — https://casaverde.com&#10;Maria Santos — https://linkedin.com/in/mariasantos" style="width:100%;box-sizing:border-box;min-height:90px;font-size:13px;line-height:1.7"></textarea>
+            <div style="font-size:11px;color:var(--text-muted);margin:4px 0 14px">Neither LinkedIn nor Instagram makes a company name clickable in the post body — only a full URL, and only on LinkedIn. Put the names in the post and the links here.</div>
 
             <label class="field-label">Hashtags (space separated)</label>
             <input type="text" id="edit-text-tags" placeholder="#GlassDesign #LuxuryHomes" style="width:100%;box-sizing:border-box;font-size:12px" />
@@ -6215,21 +6227,41 @@ function saveToSubstack(){
 // Convert the generated blog (markdown) into Wix Ricos rich content and pull the
 // leading H1 out as the post title — so the Wix post keeps real headings and
 // paragraphs (and the keyword-in-H1/subheads SEO), not one flat paragraph.
+// Markdown link syntax. Kept as its own constant because both the heading path
+// (which flattens a link to its label) and the paragraph path (which turns it
+// into a real Wix anchor) need it.
+const MD_LINK=/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+
 function blogToWix(md){
   const mkText=t=>({type:'TEXT',textData:{text:t,decorations:[]}});
+  // A Wix paragraph is a list of TEXT nodes; a hyperlink is a TEXT node carrying
+  // a LINK decoration. So [label](url) becomes its own node between the plain
+  // runs around it. Previously every paragraph was ONE undecorated node, so
+  // markdown links reached the blog as literal "[label](url)" characters.
+  const mkTextNodes=t=>{
+    const out=[]; let last=0, m;
+    MD_LINK.lastIndex=0;
+    while((m=MD_LINK.exec(t))!==null){
+      if(m.index>last) out.push(mkText(t.slice(last,m.index)));
+      out.push({type:'TEXT',textData:{text:m[1],decorations:[{type:'LINK',linkData:{link:{url:m[2],target:'BLANK',rel:{noopener:true}}}}]}});
+      last=m.index+m[0].length;
+    }
+    if(last<t.length) out.push(mkText(t.slice(last)));
+    return out.length?out:[mkText(t)];
+  };
   let title=''; const nodes=[]; let started=false;
   String(md||'').split('\n').forEach(raw=>{
     const t=raw.replace(/\r$/,'').trim(); if(!t) return;
     const h=t.match(/^(#{1,6})\s+(.*)$/);
     if(h){
-      const lvl=h[1].length, text=h[2].replace(/[*_`]/g,'').trim();
+      const lvl=h[1].length, text=h[2].replace(MD_LINK,'$1').replace(/[*_`]/g,'').trim();
       if(!started && lvl===1 && !title){ title=text; started=true; return; } // first H1 = post title
       started=true;
       nodes.push({type:'HEADING',id:'n'+nodes.length,nodes:[mkText(text)],headingData:{level:Math.max(2,Math.min(lvl,6))}});
     } else {
       started=true;
       const text=t.replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/`(.+?)`/g,'$1').replace(/^[-*]\s+/,'• ');
-      nodes.push({type:'PARAGRAPH',id:'n'+nodes.length,nodes:[mkText(text)],paragraphData:{}});
+      nodes.push({type:'PARAGRAPH',id:'n'+nodes.length,nodes:mkTextNodes(text),paragraphData:{}});
     }
   });
   if(!nodes.length) nodes.push({type:'PARAGRAPH',id:'n0',nodes:[mkText(String(md||'').slice(0,6000))],paragraphData:{}});
@@ -8123,6 +8155,7 @@ function renderLibrary(){
               <button class="lib-menu-item" onclick="openEditText('${it.id}');closeLibMenus()" style="font-weight:600">✏️ Edit Text &amp; Links</button>
               <button class="lib-menu-item" onclick="loadFromLibrary('${it.id}');closeLibMenus()">Load</button>
               <button class="lib-menu-item" onclick="copyFromLibrary('${it.id}');closeLibMenus()">Copy Text</button>
+              ${it.first_comment?`<button class="lib-menu-item" onclick="copyFirstComment('${it.id}');closeLibMenus()">Copy First Comment</button>`:''}
               <button class="lib-menu-item" onclick="openImageAttachModal('${it.id}');closeLibMenus()">🖼 ${hasImage?'Edit Image':'Add Image'}</button>
             </div>
           </div>
@@ -8177,6 +8210,7 @@ function openEditText(id){
   const hasBlog=!!(it.blog_text&&it.blog_text.trim());
   blogWrap.style.display=hasBlog?'block':'none';
   document.getElementById('edit-text-blog').value=it.blog_text||'';
+  document.getElementById('edit-text-comment').value=it.first_comment||'';
   document.getElementById('edit-text-tags').value=(it.hashtags||[]).join(' ');
   updateEditTextMeta();
   document.getElementById('edit-text-modal').classList.add('open');
@@ -8214,6 +8248,8 @@ function saveEditText(){
   it.linkedin_text=li;
   if(document.getElementById('edit-text-blog-wrap').style.display!=='none') it.blog_text=blogEl.value;
   it.hashtags=tags;
+  const fc=(document.getElementById('edit-text-comment').value||'').trim();
+  if(fc) it.first_comment=fc; else delete it.first_comment;
   it.edited_at=Date.now();
   persistLibrary();
   renderLibrary();
@@ -8225,6 +8261,30 @@ function saveEditText(){
 function closeEditText(){
   editingTextId=null;
   document.getElementById('edit-text-modal').classList.remove('open');
+}
+
+// Move the links out of the post body and into the first comment — the pattern
+// that works when a platform won't hyperlink a company name. Appends only URLs
+// not already staged, and leaves the body alone so she decides what replaces them.
+function pullLinksToComment(){
+  const body=document.getElementById('edit-text-li').value||'';
+  const box=document.getElementById('edit-text-comment');
+  const urls=[...new Set(body.match(URL_RE)||[])];
+  if(!urls.length){ showToast('No links in the post body to pull','error'); return; }
+  const existing=box.value||'';
+  const add=urls.filter(u=>existing.indexOf(u)<0);
+  if(!add.length){ showToast('Those links are already in the comment','success'); return; }
+  box.value=(existing.trim()?existing.replace(/\s*$/,'\n'):'')+add.join('\n');
+  showToast(`${add.length} link${add.length===1?'':'s'} pulled into the first comment — now swap them for names in the post`,'success');
+}
+
+// Copy a staged first comment (Buffer won't post it for us).
+function copyFirstComment(id){
+  const it=library.find(x=>x.id===id);
+  if(!it||!it.first_comment){ showToast('No first comment saved on this post','error'); return; }
+  navigator.clipboard.writeText(it.first_comment)
+    .then(()=>showToast('First comment copied — paste it as the first comment after posting','success'))
+    .catch(()=>showToast('Copy failed — open Edit Text and copy it manually','error'));
 }
 
 function loadFromLibrary(id){
@@ -8351,6 +8411,17 @@ function openViewPostModal(id){
   }
   // Render the image picker — it reads from the library item, so it
   // automatically reflects whether an image is already attached.
+  const cEl=document.getElementById('view-post-comment');
+  if(it.first_comment){
+    cEl.style.display='block';
+    cEl.innerHTML=`<div style="background:var(--off-white,#F5F6F8);border:1px solid var(--hairline,#E6E8EC);border-radius:6px;padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px">
+        <span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted)">First comment — paste after posting</span>
+        <button class="action-btn" style="font-size:10px;padding:4px 9px" onclick="copyFirstComment('${id}')">Copy</button>
+      </div>
+      <div style="font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word">${escapeHTML(it.first_comment)}</div>
+    </div>`;
+  } else { cEl.style.display='none'; cEl.innerHTML=''; }
   renderImagePicker('view-post-image-picker', id);
   populateResultsForm(it);
   document.getElementById('view-post-modal').classList.add('open');
