@@ -3496,6 +3496,11 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div class="spin-modal-title">✦ Spin a Snippet</div>
             <div class="spin-modal-sub">Generate a short LinkedIn snippet from this blog post — optionally in a different voice, with a specific angle.</div>
             <div class="spin-source-preview" id="spin-source-preview"></div>
+            <div class="spin-form-full">
+              <label class="field-label">Blog URL — the CTA links back to this</label>
+              <input type="text" id="spin-blog-url" onchange="saveBlogUrlFromField('spin-blog-url')" placeholder="https://eridionglass.com/post/your-slug" style="font-family:var(--font-mono);font-size:12px" />
+              <div id="spin-blog-url-note" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
+            </div>
             <div class="spin-form-row">
               <div class="field" style="margin-bottom:0">
                 <label class="field-label">Voice</label>
@@ -3536,6 +3541,11 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div class="spin-modal-title">✦ Spin Week from This Blog</div>
             <div class="spin-modal-sub">Generate 5 snippets (Mon–Fri) from this blog post — each with a different angle, optionally mixing voices across the week.</div>
             <div class="spin-source-preview" id="spin-week-source-preview"></div>
+            <div class="spin-form-full">
+              <label class="field-label">Blog URL — every snippet's CTA links back to this</label>
+              <input type="text" id="spin-week-blog-url" onchange="saveBlogUrlFromField('spin-week-blog-url')" placeholder="https://eridionglass.com/post/your-slug" style="font-family:var(--font-mono);font-size:12px" />
+              <div id="spin-week-blog-url-note" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
+            </div>
             <div class="spin-form-full">
               <label class="field-label">Spin Mode</label>
               <select id="spin-week-mode">
@@ -4074,10 +4084,108 @@ function renderKeywordReadout(text){
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// ── BLOG BACK-LINK ──
+// Every post's CTA points back to the blog post it came from. The awkward part:
+// snippets are written BEFORE the blog is live (publishItemToWix creates a
+// DRAFT that Erika reviews and publishes herself), so at generation time there
+// is no confirmed URL — only the slug we sent to Wix as seoSlug. So we derive a
+// default from the slug and let her correct it in one field on the source post;
+// relinkChildren() then repairs any snippets already written against the old URL.
+// ══════════════════════════════════════════════════════════════════════
+const BLOG_BASES={ eridion:'https://eridionglass.com/post/' };  // Wix pattern; other brands blog elsewhere, so they get no guess
+
+// Best-effort URL for a source post. Explicit blogUrl always wins over the guess.
+function deriveBlogUrl(item){
+  if(!item) return '';
+  const slug=((item.seo||{}).url_slug||'').trim();
+  const base=BLOG_BASES[item.voice||'eridion'];
+  return (slug&&base)?(base+slug):'';
+}
+function getBlogUrl(item){
+  if(!item) return '';
+  const explicit=(item.blogUrl||'').trim();
+  if(explicit) return explicit;
+  // A snippet inherits its parent's link rather than guessing from its own slug.
+  if(item.parent_id && typeof library!=='undefined'){
+    const p=library.find(x=>x.id===item.parent_id);
+    if(p) return (p.blogUrl||'').trim()||deriveBlogUrl(p);
+  }
+  return deriveBlogUrl(item);
+}
+
+// The rule appended to every CTA block. Returns '' when there's no URL, so a
+// missing link degrades to the old behaviour instead of inventing one.
+function buildBlogLinkRule(url, eachSnippet){
+  if(!url) return '';
+  return `\n- ${eachSnippet?'EVERY ONE of the 5 snippets':'THE CTA'} MUST LINK BACK TO THE SOURCE BLOG POST. Include this URL, exactly as written, character for character: ${url}
+- Do NOT shorten it, re-slug it, guess a different path, wrap it in markdown, or append tracking parameters. Paste it verbatim.
+- Put it in the post body, worked into the CTA sentence as a natural next step ("the full breakdown is here: <url>") — never a bare "click here" and never a naked URL on its own line with no sentence around it.
+- Use it ONCE. One link per post.`;
+}
+
+// Snippets already spun carry the OLD url baked into their text. Swap it for the
+// new one (literal replace, not regex — a URL is full of regex metacharacters).
+function relinkChildren(parentId, oldUrl, newUrl){
+  if(!parentId||!oldUrl||oldUrl===newUrl) return 0;
+  let n=0;
+  library.forEach(it=>{
+    if(it.parent_id!==parentId) return;
+    let touched=false;
+    ['linkedin_text','blog_text','ig_intro'].forEach(f=>{
+      if(typeof it[f]==='string' && it[f].indexOf(oldUrl)>=0){ it[f]=it[f].split(oldUrl).join(newUrl); touched=true; }
+    });
+    if(it.blogUrl===oldUrl){ it.blogUrl=newUrl; touched=true; }
+    if(touched) n++;
+  });
+  if(n) persistLibrary();
+  return n;
+}
+function countChildren(parentId){
+  return parentId?library.filter(it=>it.parent_id===parentId).length:0;
+}
+
+// Paint the blog-url input + its explainer from the current spinSource.
+function paintBlogUrlField(inputId, noteId){
+  const inp=document.getElementById(inputId), note=document.getElementById(noteId);
+  if(!inp||!spinSource) return;
+  const explicit=(spinSource.blogUrl||'').trim();
+  const derived=deriveBlogUrl(spinSource);
+  inp.value=explicit||derived;
+  const kids=countChildren(spinSource.id);
+  const kidNote=kids?` ${kids} snippet${kids===1?'':'s'} already spun from this post — changing the URL offers to fix their links too.`:'';
+  if(note) note.textContent = explicit
+    ? 'Saved on this post.'+kidNote
+    : (derived
+        ? 'Guessed from the SEO slug — confirm or paste the real URL after you publish in Wix.'+kidNote
+        : 'No URL yet. Snippets will skip the back-link until you add one.'+kidNote);
+}
+
+function saveBlogUrlFromField(inputId){
+  const inp=document.getElementById(inputId);
+  if(!inp||!spinSource) return;
+  const val=(inp.value||'').trim();
+  if(val && !/^https?:\/\/\S+$/i.test(val)){ showToast('That doesn’t look like a URL — needs to start with https://','error'); return; }
+  const oldUrl=getBlogUrl(spinSource);
+  if(val) spinSource.blogUrl=val; else delete spinSource.blogUrl;
+  persistLibrary();
+  if(val && oldUrl && oldUrl!==val){
+    const hits=library.filter(it=>it.parent_id===spinSource.id &&
+      ['linkedin_text','blog_text','ig_intro'].some(f=>typeof it[f]==='string'&&it[f].indexOf(oldUrl)>=0)).length;
+    if(hits && confirm(`${hits} already-written snippet${hits===1?'':'s'} still link${hits===1?'s':''} to the old URL.\n\nOld: ${oldUrl}\nNew: ${val}\n\nUpdate ${hits===1?'it':'them'} now?`)){
+      const n=relinkChildren(spinSource.id, oldUrl, val);
+      showToast(`Updated the link in ${n} snippet${n===1?'':'s'}`,'success');
+      if(typeof renderLibrary==='function') renderLibrary();
+    }
+  }
+  paintBlogUrlField(inputId, inputId+'-note');
+  if(val) showToast('Blog URL saved','success');
+}
+
 // ── CTA rules per voice ──
 // One source of truth, injected into every generator. (Previously duplicated across two
 // functions and already drifting — the richer, example-led version wins.)
-function buildCTA(stream){
+function buildCTA(stream, blogUrl){
   const eridion=`\n\nCTA RULES — APPLY TO ALL FORMATS:
 - Every post must include at least one subtle CTA mid-content, framed as a concrete next step (e.g. "If you're speccing glass for a project, send us the elevations and we'll flag anything that affects lead time." or "We're glad to walk through your specs.")
 - On LinkedIn, the closing question (GEO PLAYBOOK ⑤) carries the closing CTA — a genuine question that invites a builder next step (e.g. "Speccing a glass package this fall? Send the elevations to erika@eridionglass.com — what's the one detail that always slows yours down?"). Never manufactured urgency or scarcity — no countdown pressure like "before Q3 fills up" or "now is the time."
@@ -4092,7 +4200,17 @@ function buildCTA(stream){
 - Direct mentions of the brand (Quinta & Co), the campaign (The Practice), open studio, or upcoming modules are fine. Avoid urgency, superlatives, scarcity tactics, or anything that reads like a sales page.
 - Default to NO CTA. Add one only when it deepens the invitation; if the post is just a field note or a manifesto, let it breathe.
 - The GEO closing question (GEO PLAYBOOK ⑤) is NOT a CTA — a quiet, genuine question to the reader fits Quinta's register and still closes every LinkedIn post.`;
-  return stream==='eridion' ? eridion : ((stream==='quinta'||stream==='practice') ? quinta : erika);
+  // Quinta/Practice normally default to NO CTA. A blog back-link overrides that
+  // (Erika's call, 2026-09-12) — but only the requirement changes, not the
+  // register: the link still has to arrive quietly, not as a sales close.
+  const quintaLinked=`\n\nCTA RULES FOR QUINTA & CO:
+- This post MUST carry the blog back-link below. That is the one required element — do not stack a second CTA, an offer, or an urgency line on top of it.
+- Keep the register: invitational, never coercive. The link is an offer to read further, not a pitch. "The longer version lives here: <url>" is right; "Don't miss this!" is not.
+- Avoid urgency, superlatives, scarcity, or anything that reads like a sales page.
+- The GEO closing question (GEO PLAYBOOK ⑤) still closes the post — a quiet, genuine question. The link sits with the CTA, not inside the question.`;
+  const base = stream==='eridion' ? eridion
+    : ((stream==='quinta'||stream==='practice') ? (blogUrl?quintaLinked:quinta) : erika);
+  return base + buildBlogLinkRule(blogUrl);
 }
 
 // ── POV Sets: four angles per topic category ──
@@ -6803,6 +6921,7 @@ function openSpinSnippetModal(id){
   document.getElementById('spin-voice').value=src.voice;
   document.getElementById('spin-angle').value='hook';
   document.getElementById('spin-direction').value='';
+  paintBlogUrlField('spin-blog-url','spin-blog-url-note');
   document.getElementById('spin-snippet-results').style.display='none';
   document.getElementById('spin-snippet-results').innerHTML='';
   document.getElementById('spin-snippet-modal').classList.add('open');
@@ -6830,6 +6949,7 @@ function openSpinWeekModal(id){
   const mm=String(nextMon.getMonth()+1).padStart(2,'0');
   const dd=String(nextMon.getDate()).padStart(2,'0');
   document.getElementById('spin-week-target-monday').value=`${yyyy}-${mm}-${dd}`;
+  paintBlogUrlField('spin-week-blog-url','spin-week-blog-url-note');
   document.getElementById('spin-week-results').style.display='none';
   document.getElementById('spin-week-results').innerHTML='';
   document.getElementById('spin-week-modal').classList.add('open');
@@ -6864,6 +6984,9 @@ async function runSpinSnippet(){
     : voice==='erika'
       ? `CTA: One soft CTA at the end — invite to connect, comment, or DM. Not salesy.`
       : `CTA: One natural CTA — get on the schedule, visit eridionglass.com, or reach erika@eridionglass.com. Builder-focused, not pushy.`;
+  // Every snippet points back at the blog it was spun from.
+  const spinBlogUrl=getBlogUrl(spinSource);
+  const ctaRuleFinal=ctaRule+buildBlogLinkRule(spinBlogUrl);
 
   // Voice-natural narrative bridge instructions (applied only on cross-voice reposts)
   const VOICE_DISPLAY_NAMES={eridion:'Eridion (the company)',erika:'Erika (Erika Harrison, co-founder)',quinta:'Quinta & Co (business education brand for women entrepreneurs)'};
@@ -6911,7 +7034,7 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
   const wordRange=crossVoice?'90-220 words total (allowance for the narrative bridge)':'80-200 words total';
   const igOutputRule=(voice!=='eridion')?`\n\n✦ OUTPUT FORMAT:\nReturn the post text + hashtags FIRST. Then on a new line, the literal separator "===IG_INTRO===" followed by the 1-2 sentence IG channel intro. No other commentary anywhere.`:'';
 
-  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(voice)}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. A snippet is NOT a summary of the source — it is the single most interesting claim in it, picked out and sharpened. Deliver the surprise in line one; make the reader feel smarter by line three. If your draft reads like a book report of the post, start over from the post's best sentence.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRule}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
+  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(voice)}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. A snippet is NOT a summary of the source — it is the single most interesting claim in it, picked out and sharpened. Deliver the surprise in line one; make the reader feel smarter by line three. If your draft reads like a book report of the post, start over from the post's best sentence.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRuleFinal}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
 
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:900,messages:[{role:'user',content:prompt}]},m=>{resultsEl.innerHTML=`<div class="spin-loading">${escapeHTML(m)}</div>`;});
@@ -7024,6 +7147,7 @@ function saveSpinSnippetToLibrary(idx){
     hashtags:r.hashtags,
   });
   entry.parent_id=spinSource.id;
+  entry.blogUrl=getBlogUrl(spinSource);   // snapshot the back-link on the snippet itself
   entry.snippet_angle=r.angleKey;
   if(r.crossVoice){
     entry.cross_voice=true;
@@ -7196,7 +7320,7 @@ RULES FOR EVERY SNIPPET:
 - 80-200 words each (cross-voice snippets can run to 220 to accommodate the bridge)
 - Apply the GEO PLAYBOOK above to each snippet: line one = the answer (for cross-voice snippets, the bridge IS line one, so make the bridge deliver the answer, not tease it); one stat with its source named in the text where the source post provides one; end with one genuine question to the reader; use the link rule for the snippet's assigned voice
 - Stay factually consistent with the source — no invented data
-- Match the assigned voice precisely (different voices have different CTA rules: Eridion = direct CTA, Erika = soft CTA, Quinta & Co = usually NO CTA at all)
+- Match the assigned voice precisely (different voices have different CTA rules: Eridion = direct CTA, Erika = soft CTA, Quinta & Co = quiet and invitational)${buildBlogLinkRule(getBlogUrl(spinSource), true)}
 - Include 3-5 relevant hashtags per snippet (aim for 3-4; never more than 5). Vary them across the 5 days — do not repeat the same hashtag on more than 2 of the days
 ${spinMode==='sections'
   ? '- Each snippet must focus on its assigned section ONLY — do not bleed content from other sections\n- Reference the section by its actual subject (the standard name, the claim, the item) so it feels self-contained'
@@ -7357,6 +7481,7 @@ function saveOneSpinWeek(i){
     hashtags:r.hashtags,
   });
   entry.parent_id=spinSource.id;
+  entry.blogUrl=getBlogUrl(spinSource);   // snapshot the back-link on the snippet itself
   entry.snippet_angle=r.angleKey;
   entry.snippet_day=r.day;
   if(r.crossVoice){
@@ -7415,6 +7540,7 @@ function saveAndScheduleSpinWeek(){
       hashtags:r.hashtags,
     });
     entry.parent_id=spinSource.id;
+    entry.blogUrl=getBlogUrl(spinSource);   // snapshot the back-link on the snippet itself
     entry.snippet_angle=r.angleKey;
     entry.snippet_day=r.day;
     if(r.crossVoice){
