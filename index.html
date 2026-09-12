@@ -2826,6 +2826,7 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               <button class="action-btn" onclick="testBufferConnection()" style="flex:1;min-width:120px">🔌 Test Connection</button>
               <button class="action-btn" onclick="fetchBufferChannels()" style="flex:1;min-width:120px;color:var(--navy);border-color:var(--navy)">📡 Fetch My Channels</button>
+              <button class="action-btn" onclick="testLinkedInMention()" style="flex:1;min-width:120px" title="Creates one throwaway post a year out to see whether Buffer&#39;s API turns a LinkedIn Page URL into a real mention">🔗 Test LI Mention</button>
             </div>
             <div id="buffer-status-line" style="margin-top:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;color:var(--medium-gray);min-height:13px"></div>
           </div>
@@ -2859,6 +2860,7 @@ textarea { min-height: 80px; line-height: 1.6; }
             <button class="aux-chip" data-step="today" onclick="switchTab('today')">☀️ Today</button>
             <button class="aux-chip" data-step="library" onclick="switchTab('library')">📚 Library</button>
             <button class="aux-chip" data-step="briefing" onclick="switchTab('briefing')">🎙 Briefing</button>
+            <button class="aux-chip" onclick="openMentions()" title="People and companies you tag often">🏷 Mentions</button>
             <button class="aux-chip" data-step="refs" onclick="switchTab('refs')" title="Pick the cards whose look you want matched — your brand reference set">⭐ Brand Refs</button>
             <button class="aux-chip" onclick="window.open('catalog.html','_blank','noopener')" title="Browse &amp; tag your real job photos (opens in a new tab)">📁 Catalog</button>
           </div>
@@ -3619,7 +3621,7 @@ textarea { min-height: 80px; line-height: 1.6; }
                  for us, so this is a staging box with a copy button. -->
             <label class="field-label" style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
               <span>First comment <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">— where the links go</span></span>
-              <a onclick="pullLinksToComment()" style="cursor:pointer;color:var(--navy);font-weight:600;font-size:10px;white-space:nowrap">↓ Pull links from post</a>
+              <span style="display:flex;gap:12px;white-space:nowrap"><a onclick="openMentions('body')" style="cursor:pointer;color:var(--navy);font-weight:600;font-size:10px">🏷 Mentions</a><a onclick="pullLinksToComment()" style="cursor:pointer;color:var(--navy);font-weight:600;font-size:10px">↓ Pull links from post</a></span>
             </label>
             <textarea id="edit-text-comment" placeholder="Casa Verde — https://casaverde.com&#10;Maria Santos — https://linkedin.com/in/mariasantos" style="width:100%;box-sizing:border-box;min-height:90px;font-size:13px;line-height:1.7"></textarea>
             <div style="font-size:11px;color:var(--text-muted);margin:4px 0 14px">Neither LinkedIn nor Instagram makes a company name clickable in the post body — only a full URL, and only on LinkedIn. Put the names in the post and the links here.</div>
@@ -3630,6 +3632,38 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px">
               <button class="action-btn primary" onclick="saveEditText()">Save changes</button>
               <button class="action-btn" onclick="closeEditText()" style="margin-left:auto">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mentions directory. The roster of people/companies tagged often, so
+             the lookup happens once per person instead of once per post. One post
+             string goes to BOTH LinkedIn and Instagram, so we can't auto-pick a
+             format — @handle is inert on LinkedIn, a Page URL is ugly on IG. The
+             picker therefore offers each format explicitly. -->
+        <div class="sched-modal" id="mentions-modal">
+          <div class="sched-modal-inner" style="max-width:760px;max-height:90vh;overflow-y:auto">
+            <div class="sched-modal-title">🏷 Mentions</div>
+            <div style="font-size:12px;color:var(--text-muted);margin:6px 0 16px;line-height:1.6">
+              Save someone once, tag them forever. <strong>Instagram</strong> links <code style="font-family:var(--font-mono)">@handle</code> automatically. <strong>LinkedIn</strong> needs the Page URL — and only tags companies that <em>follow your page</em>. <strong>Blog</strong> takes a real hyperlink.
+            </div>
+            <div id="mentions-list"></div>
+            <div style="border-top:1px solid var(--hairline,#E6E8EC);margin-top:16px;padding-top:14px">
+              <div class="panel-title" id="mention-form-title">Add someone</div>
+              <input type="hidden" id="mention-edit-id" />
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <label style="flex:1;min-width:180px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">Name<input type="text" id="mention-name" placeholder="Casa Verde" style="width:100%;box-sizing:border-box;margin-top:4px;font-size:12px" /></label>
+                <label style="flex:1;min-width:180px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">Instagram handle<input type="text" id="mention-ig" placeholder="casaverde" style="width:100%;box-sizing:border-box;margin-top:4px;font-size:12px" /></label>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+                <label style="flex:1;min-width:180px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">LinkedIn Page / profile URL<input type="text" id="mention-li" placeholder="https://linkedin.com/company/casa-verde" style="width:100%;box-sizing:border-box;margin-top:4px;font-size:12px;font-family:var(--font-mono)" /></label>
+                <label style="flex:1;min-width:180px;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted)">Website<input type="text" id="mention-site" placeholder="https://casaverde.com" style="width:100%;box-sizing:border-box;margin-top:4px;font-size:12px;font-family:var(--font-mono)" /></label>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                <button class="action-btn primary" onclick="saveMention()" id="mention-save-btn">Add to directory</button>
+                <button class="action-btn" onclick="resetMentionForm()">Clear</button>
+                <button class="action-btn" onclick="closeMentions()" style="margin-left:auto">Close</button>
+              </div>
             </div>
           </div>
         </div>
@@ -8278,6 +8312,155 @@ function pullLinksToComment(){
   showToast(`${add.length} link${add.length===1?'':'s'} pulled into the first comment — now swap them for names in the post`,'success');
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// ── MENTIONS DIRECTORY ──
+// { id, name, ig, li, site }. Lives in localStorage, shared across all voices —
+// a partner tagged from Quinta is the same partner tagged from Eridion.
+// ══════════════════════════════════════════════════════════════════════
+const MENTIONS_KEY='eridion_mentions';
+let mentionInsertTarget=null;   // 'body' | 'comment' | null (manage-only)
+
+function loadMentions(){
+  try{ const a=JSON.parse(localStorage.getItem(MENTIONS_KEY)||'[]'); return Array.isArray(a)?a:[]; }
+  catch(e){ return []; }
+}
+function saveMentions(a){
+  try{ localStorage.setItem(MENTIONS_KEY, JSON.stringify(a)); }
+  catch(e){ showToast('Could not save (storage full?)','error'); }
+}
+
+// One post string serves LinkedIn AND Instagram, so there is no single correct
+// format — the caller picks. 'name' is the safe-everywhere option.
+function formatMention(m, fmt){
+  if(!m) return '';
+  if(fmt==='ig')   return m.ig ? '@'+String(m.ig).replace(/^@/,'') : m.name;
+  if(fmt==='li')   return m.li || m.name;
+  if(fmt==='blog') return m.site ? `[${m.name}](${m.site})` : m.name;
+  return m.name;
+}
+
+function openMentions(target){
+  mentionInsertTarget=target||null;
+  resetMentionForm();
+  renderMentions();
+  document.getElementById('mentions-modal').classList.add('open');
+}
+function closeMentions(){
+  mentionInsertTarget=null;
+  document.getElementById('mentions-modal').classList.remove('open');
+}
+function resetMentionForm(){
+  ['mention-edit-id','mention-name','mention-ig','mention-li','mention-site'].forEach(id=>{
+    const e=document.getElementById(id); if(e) e.value='';
+  });
+  const t=document.getElementById('mention-form-title'); if(t) t.textContent='Add someone';
+  const b=document.getElementById('mention-save-btn'); if(b) b.textContent='Add to directory';
+}
+
+function renderMentions(){
+  const list=loadMentions();
+  const el=document.getElementById('mentions-list');
+  if(!el) return;
+  if(!list.length){
+    el.innerHTML=`<div class="placeholder-card"><p>Nobody saved yet. Add the people and companies you tag often — the form below.</p></div>`;
+    return;
+  }
+  const inserting=!!mentionInsertTarget;
+  el.innerHTML=list.map((m,i)=>{
+    const bits=[m.ig?'IG':'', m.li?'LinkedIn':'', m.site?'Web':''].filter(Boolean).join(' · ')||'name only';
+    const btn=(fmt,label,title,enabled)=>enabled
+      ? `<button class="action-btn" style="font-size:10px;padding:4px 9px" title="${title}" onclick="insertMention(${i},'${fmt}')">${label}</button>`
+      : `<button class="action-btn" style="font-size:10px;padding:4px 9px;opacity:.35;cursor:not-allowed" title="Not saved for this person" disabled>${label}</button>`;
+    return `<div style="border:1px solid var(--hairline,#E6E8EC);border-radius:6px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <div><strong style="font-size:13px">${escapeHTML(m.name)}</strong> <span style="font-size:10px;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase">${bits}</span></div>
+        <div style="display:flex;gap:6px">
+          <button class="action-btn" style="font-size:10px;padding:4px 9px" onclick="editMention(${i})">Edit</button>
+          <button class="action-btn" style="font-size:10px;padding:4px 9px;color:var(--red,#b3261e)" onclick="deleteMention(${i})">Delete</button>
+        </div>
+      </div>
+      ${inserting?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">
+        <span style="font-size:10px;color:var(--text-muted);letter-spacing:0.06em;text-transform:uppercase;margin-right:2px">Insert</span>
+        ${btn('name','Name','Plain name — safe on every platform',true)}
+        ${btn('ig','@handle','Instagram links this automatically. Inert on LinkedIn.',!!m.ig)}
+        ${btn('li','LinkedIn URL','LinkedIn turns this into a tag — only if they follow your page.',!!m.li)}
+        ${btn('blog','Blog link','Markdown link — becomes a real hyperlink on the blog.',!!m.site)}
+        ${btn('all','→ First comment','Name + every link, appended to the first comment',true)}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function saveMention(){
+  const id=document.getElementById('mention-edit-id').value;
+  const name=(document.getElementById('mention-name').value||'').trim();
+  if(!name){ showToast('Name is required','error'); return; }
+  const rec={
+    id:id||('m_'+Date.now().toString(36)),
+    name,
+    ig:(document.getElementById('mention-ig').value||'').trim().replace(/^@/,''),
+    li:(document.getElementById('mention-li').value||'').trim(),
+    site:(document.getElementById('mention-site').value||'').trim()
+  };
+  for(const [f,label] of [['li','LinkedIn URL'],['site','Website']]){
+    if(rec[f] && !/^https?:\/\/\S+$/i.test(rec[f])){ showToast(`${label} must start with https://`,'error'); return; }
+  }
+  const list=loadMentions();
+  const at=list.findIndex(x=>x.id===rec.id);
+  if(at>=0) list[at]=rec; else list.push(rec);
+  list.sort((a,b)=>a.name.localeCompare(b.name));
+  saveMentions(list);
+  resetMentionForm();
+  renderMentions();
+  showToast(at>=0?'Updated':'Added to directory','success');
+}
+function editMention(i){
+  const m=loadMentions()[i]; if(!m) return;
+  document.getElementById('mention-edit-id').value=m.id;
+  document.getElementById('mention-name').value=m.name||'';
+  document.getElementById('mention-ig').value=m.ig||'';
+  document.getElementById('mention-li').value=m.li||'';
+  document.getElementById('mention-site').value=m.site||'';
+  document.getElementById('mention-form-title').textContent='Edit '+m.name;
+  document.getElementById('mention-save-btn').textContent='Save changes';
+}
+function deleteMention(i){
+  const list=loadMentions(); const m=list[i]; if(!m) return;
+  if(!confirm(`Remove ${m.name} from the directory?`)) return;
+  list.splice(i,1); saveMentions(list); renderMentions();
+  showToast('Removed','success');
+}
+
+// Insert at the cursor in whichever box the picker was opened from.
+function insertMention(i, fmt){
+  const m=loadMentions()[i]; if(!m) return;
+  const commentEl=document.getElementById('edit-text-comment');
+  if(fmt==='all'){
+    if(!commentEl) return;
+    const lines=[m.site&&`${m.name} — ${m.site}`, m.li&&`${m.name} on LinkedIn — ${m.li}`, m.ig&&`${m.name} on Instagram — @${m.ig}`].filter(Boolean);
+    if(!lines.length){ showToast(`No links saved for ${m.name}`,'error'); return; }
+    const cur=commentEl.value||'';
+    const add=lines.filter(l=>cur.indexOf(l)<0);
+    if(!add.length){ showToast('Already in the first comment','success'); return; }
+    commentEl.value=(cur.trim()?cur.replace(/\s*$/,'\n'):'')+add.join('\n');
+    showToast(`${m.name} added to the first comment`,'success');
+    return;
+  }
+  const target=(mentionInsertTarget==='comment')?commentEl:document.getElementById('edit-text-li');
+  if(!target) return;
+  const txt=formatMention(m,fmt);
+  const s=target.selectionStart, e=target.selectionEnd;
+  if(typeof s==='number'){
+    target.value=target.value.slice(0,s)+txt+target.value.slice(e);
+    const pos=s+txt.length;
+    target.focus(); target.setSelectionRange(pos,pos);
+  } else {
+    target.value+=txt;
+  }
+  if(target.id==='edit-text-li') updateEditTextMeta();
+  showToast(`Inserted “${txt.length>40?txt.slice(0,40)+'…':txt}”`,'success');
+}
+
 // Copy a staged first comment (Buffer won't post it for us).
 function copyFirstComment(id){
   const it=library.find(x=>x.id===id);
@@ -9045,6 +9228,48 @@ async function fetchBufferChannels(){
 
 // Resolve channel ID for a given voice + channel kind. Returns null if not
 // configured, with the caller deciding whether that's a hard error.
+// ── Does Buffer's API convert a pasted LinkedIn Page URL into a real mention? ──
+// Buffer's help centre documents that behaviour for their web COMPOSER; whether
+// the GraphQL API does the same is undocumented, and it decides how the mentions
+// directory has to format LinkedIn posts. So: create one throwaway post a year
+// out, then look at it in Buffer's queue. A mention renders as the company name;
+// no conversion leaves the raw URL sitting there.
+async function testLinkedInMention(){
+  const ch=getBufferChannels();
+  const channelId=ch.eridion_li||ch.quinta_li||ch.erika_li;
+  if(!channelId){ showToast('No LinkedIn channel ID — hit "Fetch My Channels" first','error'); return; }
+  const pageUrl=(window.prompt(
+    'Paste the LinkedIn Page URL of a company to try tagging.\n\n'+
+    'IMPORTANT: LinkedIn only lets a Page tag companies/people who FOLLOW that page, '+
+    'so pick one you know follows you — otherwise a failed tag tells us nothing about the API.\n\n'+
+    'e.g. https://www.linkedin.com/company/quinta-and-co/'
+  )||'').trim();
+  if(!pageUrl) return;
+  if(!/^https?:\/\/(www\.)?linkedin\.com\//i.test(pageUrl)){ showToast('That’s not a linkedin.com URL','error'); return; }
+  const when=new Date(); when.setFullYear(when.getFullYear()+1);
+  const text=`MENTION TEST — delete me.\n\nTagging: ${pageUrl}`;
+  setStatus('Creating test post in Buffer…',true);
+  try{
+    const created=await createBufferPost({channelId, text, scheduledForIso:when.toISOString(), channelKind:'linkedin'});
+    console.log('Buffer mention test — full response:', created);
+    const echoed=(created&&created.text)||'';
+    const converted=echoed && echoed.indexOf(pageUrl)<0;   // URL gone from the echo = something rewrote it
+    showToast(converted
+      ? 'Created — Buffer REWROTE the URL in the returned text. Check the queue to confirm it’s a mention.'
+      : 'Created — Buffer echoed the URL unchanged. Check the queue: raw link = no API conversion.', 'success');
+    window.prompt(
+      'Test post created, scheduled '+when.toLocaleDateString()+'.\n\n'+
+      'NOW: open Buffer’s queue and look at it.\n'+
+      '  • Shows the COMPANY NAME highlighted → the API does convert. \n'+
+      '  • Shows the raw URL → it does not; mentions need Buffer’s composer.\n\n'+
+      'Then DELETE the test post.\n\nText Buffer returned:',
+      echoed||'(no text returned — see console)');
+  }catch(e){
+    console.error('Buffer mention test failed:', e);
+    showToast('Test failed: '+(e&&e.message||e),'error');
+  } finally { setStatus('Ready',false); }
+}
+
 function getChannelIdFor(voice, kind){
   const ch = getBufferChannels();
   if(kind === 'instagram'){
