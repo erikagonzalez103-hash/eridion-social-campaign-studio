@@ -2754,10 +2754,10 @@ textarea { min-height: 80px; line-height: 1.6; }
         </div>
         <!-- Knowledge Base -->
         <div class="keys-toggle" onclick="toggleKB()" style="margin-top:4px;color:var(--gold-dim)">
-          <span id="kb-arrow">▶</span> <span style="color:var(--gold-dim)">Knowledge Base</span>
+          <span id="kb-arrow">▶</span> <span style="color:var(--gold-dim)">Knowledge Base — <span id="kb-brand-label">Eridion Glass</span></span>
         </div>
         <div class="keys-section" id="kb-section">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.6">These facts are injected into every generation. Edit anytime — changes take effect on next Generate.</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.6">Facts for <strong>this brand only</strong> — switch streams above to edit a different one. Changes take effect on next Generate.</div>
           <textarea id="kb-input" style="min-height:180px;font-size:11px;line-height:1.7" placeholder="Loading..."></textarea>
           <div style="display:flex;gap:8px;margin-top:8px;margin-bottom:4px">
             <button class="action-btn" onclick="saveKB()" style="flex:1">Save Knowledge Base</button>
@@ -4374,6 +4374,7 @@ function setStream(s) {
   renderBuckets();
   // The reference set is per brand, so switching streams while it's open has to
   // repaint it — otherwise you'd be thumbing Quinta cards into Eridion's set.
+  paintKB();   // the KB is per brand too
   const refsTab=document.getElementById('tab-refs');
   if(refsTab && refsTab.classList.contains('active')) renderRefs();
 }
@@ -6703,29 +6704,83 @@ function toggleKB(){
   s.classList.toggle('open'); a.textContent=s.classList.contains('open')?'▼':'▶';
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// ── KNOWLEDGE BASE — PER BRAND ──
+// One shared KB used to be injected into EVERY generation, and its contents are
+// Eridion's service list — so every Quinta & Co, Erika and Practice piece was
+// written with a glass subcontractor's catalogue sitting in its context. Each
+// brand now keeps its own facts. A brand with none gets an explicit "none
+// recorded" note rather than silently inheriting another brand's.
+// ═══════════════════════════════════════════════════════════════════════
+const KB_KEY='eridion_kb_v2';
+const KB_BRAND_LABELS={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'};
+function kbBrandLabel(v){ return KB_BRAND_LABELS[v]||v; }
+
+function loadKBAll(){
+  let all={};
+  try{ const o=JSON.parse(localStorage.getItem(KB_KEY)||'null'); if(o&&typeof o==='object') all=o; }catch(e){}
+  if(!localStorage.getItem(KB_KEY)){
+    // One-time migration: the old single KB was Eridion's facts, so it becomes Eridion's.
+    const legacy=(localStorage.getItem('eridion_kb')||'').trim();
+    all={eridion: legacy.length>10 ? legacy : KB_DEFAULT};
+    try{ localStorage.setItem(KB_KEY, JSON.stringify(all)); }catch(e){}
+  }
+  return all;
+}
+function saveKBAll(all){
+  try{ localStorage.setItem(KB_KEY, JSON.stringify(all)); }
+  catch(e){ showToast('Could not save Knowledge Base (storage full?)','error'); }
+}
+
 function saveKB(){
-  const val=document.getElementById('kb-input').value.trim();
-  if(!val){showToast('Knowledge Base is empty — nothing saved','error');return;}
-  localStorage.setItem('eridion_kb',val);
-  showToast('Knowledge Base saved — takes effect on next Generate','success');
+  const all=loadKBAll();
+  all[currentStream]=document.getElementById('kb-input').value.trim();
+  saveKBAll(all);
+  showToast(kbBrandLabel(currentStream)+' Knowledge Base saved — takes effect on next Generate','success');
 }
 
 function resetKB(){
-  if(!confirm('Reset to defaults? Your edits will be lost.')) return;
-  document.getElementById('kb-input').value=KB_DEFAULT;
-  localStorage.setItem('eridion_kb',KB_DEFAULT);
-  showToast('Knowledge Base reset to defaults','success');
+  const isEridion=currentStream==='eridion';
+  const msg=isEridion
+    ? 'Reset Eridion’s Knowledge Base to the built-in defaults? Your edits will be lost.'
+    : 'Clear '+kbBrandLabel(currentStream)+'’s Knowledge Base? Your edits will be lost.';
+  if(!confirm(msg)) return;
+  const val=isEridion?KB_DEFAULT:'';
+  document.getElementById('kb-input').value=val;
+  const all=loadKBAll(); all[currentStream]=val; saveKBAll(all);
+  showToast(kbBrandLabel(currentStream)+' Knowledge Base reset','success');
 }
 
-function loadKB(){
-  const saved=localStorage.getItem('eridion_kb');
-  const toLoad = saved && saved.trim().length > 10 ? saved : KB_DEFAULT;
-  document.getElementById('kb-input').value=toLoad;
-  if(!saved) localStorage.setItem('eridion_kb',KB_DEFAULT);
+function loadKB(){ paintKB(); }
+
+// Repaint the box for the active brand. Persists whatever is in the box back to
+// the brand it belonged to FIRST, so switching streams mid-edit never loses text.
+let kbPaintedFor=null;
+function paintKB(){
+  const el=document.getElementById('kb-input'); if(!el) return;
+  if(kbPaintedFor && kbPaintedFor!==currentStream){
+    const prev=loadKBAll(); prev[kbPaintedFor]=el.value.trim(); saveKBAll(prev);
+  }
+  const all=loadKBAll();
+  el.value=all[currentStream]||'';
+  el.placeholder='Facts that are always true for '+kbBrandLabel(currentStream)+'. Injected into every '+kbBrandLabel(currentStream)+' generation — and no other brand’s.';
+  const lbl=document.getElementById('kb-brand-label');
+  if(lbl) lbl.textContent=kbBrandLabel(currentStream);
+  kbPaintedFor=currentStream;
 }
 
-function getKB(){
-  return document.getElementById('kb-input').value.trim()||KB_DEFAULT;
+// voice defaults to the active stream. Pass a voice explicitly wherever ONE
+// prompt writes in several voices (spin week) — otherwise every snippet would
+// get whichever brand's box happens to be open.
+function getKB(voice){
+  const v=voice||currentStream;
+  if(v===currentStream){
+    const el=document.getElementById('kb-input');
+    const live=el?el.value.trim():'';
+    if(live) return live;   // unsaved edits still take effect, as before
+  }
+  const stored=((loadKBAll()||{})[v]||'').trim();
+  return stored || '(No business facts recorded for '+kbBrandLabel(v)+' yet — rely on the voice guidelines above. Do NOT borrow facts, services or specifics from another brand.)';
 }
 // Quiet persistence: write current field values to localStorage with no UI
 // side effects. Called by both the Save Keys button (via saveKeys) and the
@@ -7136,7 +7191,7 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
   const wordRange=crossVoice?'90-220 words total (allowance for the narrative bridge)':'80-200 words total';
   const igOutputRule=(voice!=='eridion')?`\n\n✦ OUTPUT FORMAT:\nReturn the post text + hashtags FIRST. Then on a new line, the literal separator "===IG_INTRO===" followed by the 1-2 sentence IG channel intro. No other commentary anywhere.`:'';
 
-  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(voice)}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. A snippet is NOT a summary of the source — it is the single most interesting claim in it, picked out and sharpened. Deliver the surprise in line one; make the reader feel smarter by line three. If your draft reads like a book report of the post, start over from the post's best sentence.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRuleFinal}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
+  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(voice)}\n\nBUSINESS FACTS FOR ${voice.toUpperCase()}:\n${getKB(voice)}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. A snippet is NOT a summary of the source — it is the single most interesting claim in it, picked out and sharpened. Deliver the surprise in line one; make the reader feel smarter by line three. If your draft reads like a book report of the post, start over from the post's best sentence.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRuleFinal}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
 
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:900,messages:[{role:'user',content:prompt}]},m=>{resultsEl.innerHTML=`<div class="spin-loading">${escapeHTML(m)}</div>`;});
@@ -7364,10 +7419,15 @@ Voice-natural patterns (cadence reference only — never copy verbatim):
 
 For ERIDION-voice snippets: set ig_intro to empty string "" (the voice already matches the channel).`;
 
+  // One call writes all five snippets, in up to four different voices. Each
+  // brand's facts are labelled so a Quinta day can't be written off Eridion's
+  // service list.
+  const kbBlock=[...new Set(Object.values(voiceByDay))]
+    .map(v=>'— '+kbBrandLabel(v).toUpperCase()+' —\n'+getKB(v)).join('\n\n');
   const prompt=`You are generating 5 LinkedIn snippets derived from a single blog post. Each snippet will be posted on a different day of the week, in a specified voice, with a specific angle. Each must be distinct from the others — do not repeat phrasing, opening lines, or the same factual pull.
 
-BUSINESS FACTS:
-${getKB()}
+BUSINESS FACTS — BY BRAND (a snippet may use ONLY the facts listed under its own assigned voice; never borrow another brand’s):
+${kbBlock}
 
 VOICE REFERENCE (follow strictly for each snippet's assigned voice):
 ${voiceRef}
@@ -7546,7 +7606,7 @@ async function rerollSpinDay(idx){
   const bridgeRule=r.crossVoice?`\n- CROSS-VOICE: open with a 1-2 sentence voice-natural narrative bridge crediting ${sourceDisplay} — by name or relationship, never a formal citation, never "↳"/"Re:"/"Reposting:", never quoting the original verbatim. The bridge IS line one, so it must deliver the new snippet's answer, not tease it.`:`\n- SAME-VOICE: no bridge — treat the source as your own prior thinking; don't credit yourself.`;
   const igRule=(r.voice!=='eridion')?`\n- Also return "ig_intro": 1-2 voice-natural sentences establishing ${VOICE_DISPLAY_NAMES[r.voice]||r.voice} as the speaker when this cross-posts to the @eridion Instagram handle — natural opening flow, never a "↳ From:"/"Posted by:" tag.${(r.voice==='quinta'||r.voice==='practice')?' GEO entity rule: the finished caption must say "Quinta & Co" by name somewhere — in the intro or the body.':''}`:`\n- Return "ig_intro" as an empty string "" (the voice already matches the channel).`;
 
-  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(r.voice)}\n\nBUSINESS FACTS:\n${getKB()}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nThis source was spun into a 5-day week of LinkedIn snippets. The author REJECTED the ${r.day} snippet and wants a fresh one.\n\nREJECTED SNIPPET (do NOT reuse its angle, opening, or factual pull):\n---\n${r.text}\n---\n\nTHE OTHER DAYS (already keeping these — do NOT overlap with their content, openings, or factual pulls):\n${othersBlock||'(none)'}\n\n✦ YOUR TASK:\nWrite ONE replacement LinkedIn snippet for ${r.day} in the ${r.voice.toUpperCase()} voice.\n- Pull from a DIFFERENT part of the source than the rejected snippet did — a different section, claim, number, or story beat.\n- The day's original rhetorical angle was "${r.angleLabel||'open'}" — keep it only if the new material suits it; otherwise take the strongest natural approach for the new pull.\n- 80-200 words${r.crossVoice?' (up to 220 with the bridge)':''}. Stay factually consistent with the source — no invented data.${bridgeRule}${igRule}\n- 3-5 relevant hashtags (aim for 3-4); avoid repeating more than one hashtag from the other days.${direction?`\n- ADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}\n\nReturn ONLY valid JSON, no preamble, no markdown fences:\n{"text":"full post text","ig_intro":"","hashtags":["#foo","#bar","#baz"]}`;
+  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(r.voice)}\n\nBUSINESS FACTS FOR ${r.voice.toUpperCase()}:\n${getKB(r.voice)}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nThis source was spun into a 5-day week of LinkedIn snippets. The author REJECTED the ${r.day} snippet and wants a fresh one.\n\nREJECTED SNIPPET (do NOT reuse its angle, opening, or factual pull):\n---\n${r.text}\n---\n\nTHE OTHER DAYS (already keeping these — do NOT overlap with their content, openings, or factual pulls):\n${othersBlock||'(none)'}\n\n✦ YOUR TASK:\nWrite ONE replacement LinkedIn snippet for ${r.day} in the ${r.voice.toUpperCase()} voice.\n- Pull from a DIFFERENT part of the source than the rejected snippet did — a different section, claim, number, or story beat.\n- The day's original rhetorical angle was "${r.angleLabel||'open'}" — keep it only if the new material suits it; otherwise take the strongest natural approach for the new pull.\n- 80-200 words${r.crossVoice?' (up to 220 with the bridge)':''}. Stay factually consistent with the source — no invented data.${bridgeRule}${igRule}\n- 3-5 relevant hashtags (aim for 3-4); avoid repeating more than one hashtag from the other days.${direction?`\n- ADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}\n\nReturn ONLY valid JSON, no preamble, no markdown fences:\n{"text":"full post text","ig_intro":"","hashtags":["#foo","#bar","#baz"]}`;
 
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:1200,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
