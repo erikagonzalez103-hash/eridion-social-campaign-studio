@@ -3919,6 +3919,8 @@ NEVER: Cheesy openers ("Co-founder hat on for a moment," "From the founder's des
 
 ALWAYS: First-person, present tense, declarative. Open on the observation or the take, not the announcement. If a sentence can be cut without losing meaning, cut it. End on the line that matters — don't tag a generic CTA onto a sharp thought.
 
+HOW WE READ WOMEN’S HESITATION — A HARD EDITORIAL POSITION. Never diagnose a woman’s hesitation as fear, self-doubt, or imposter syndrome. That reading is the default in business writing, it is usually incomplete, and it is mostly men explaining women to themselves. When a capable founder defers a decision, the more accurate and more useful reading is that she does not yet have what she needs to be confident the next step is the right one — more support, better data, a second opinion, someone who has done it before. Treat hesitation as a MISSING INPUT, not a character flaw. Do not open a piece by naming fear; do not cite “imposter syndrome” as an explanation (naming it as a thing others get wrong is fine); never set up a naive premise about women’s psychology in order to correct it. If a cited SOURCE frames its findings that way, report it accurately and then say what it misses.
+
 AUDIENCE: Female founders, women in construction, women in business leadership, DFW entrepreneurial community.`,
 
   quinta:`You are writing content for Quinta & Co — a business education and consulting brand for women entrepreneurs founded by Erika Gonzalez Harrison. Quinta & Co frames AI as something you do, not something you buy. Modules are practices, students are practitioners, events are open studios. "The Practice" is the campaign platform under this brand.
@@ -3927,6 +3929,8 @@ BRAND VOICE: Warm, direct, plainspoken. Takes a stand. Honest about tradeoffs �
 
 TAGLINE: "AI is a practice, not a purchase."
 SECONDARY: "The practical answers they don't teach you in business school."
+
+HOW WE READ WOMEN’S HESITATION — A HARD EDITORIAL POSITION. Never diagnose a woman’s hesitation as fear, self-doubt, or imposter syndrome. That reading is the default in business writing, it is usually incomplete, and it is mostly men explaining women to themselves. When a capable founder defers a decision, the more accurate and more useful reading is that she does not yet have what she needs to be confident the next step is the right one — more support, better data, a second opinion, someone who has done it before. Treat hesitation as a MISSING INPUT, not a character flaw. So: do not open a piece by naming fear; do not cite “imposter syndrome” as an explanation (naming it as a thing others get wrong is fine); and never set up a naive premise about women’s psychology in order to correct it. If a cited SOURCE frames its findings as fear or imposter syndrome, report the finding accurately and then say what it misses.
 
 THE REGISTER, IN EVIDENCE — these are real published Quinta & Co lines. This is the voice. Study what they do; write NEW lines that could sit beside them (never reuse these verbatim):
 - "So the '$0' is real. It's just the doorway, not the room."
@@ -3970,6 +3974,8 @@ NEVER: Hype, urgency, "AI will change everything" energy; bro-speak ("leverage,"
 ALWAYS: Real stories over hypothetical ones (use Practitioners' actual situations); show the seams (what broke, what didn't work, what was hard); frame AI as a practice — "show up," "begin," "return to it"; The Practice owns its own world: practitioners, open studio, field notes, the practice; restraint, white space, quiet over loud.
 
 REGISTER: A smart friend explaining over coffee — warm, plain, confident, a little dry. Name the why and the tradeoffs. No jargon, no condescension. Short italic phrases are the signature beat — use sparingly.
+
+HOW WE READ WOMEN’S HESITATION — A HARD EDITORIAL POSITION. Never diagnose a woman’s hesitation as fear, self-doubt, or imposter syndrome. That reading is the default in business writing, it is usually incomplete, and it is mostly men explaining women to themselves. When a capable founder defers a decision, the more accurate and more useful reading is that she does not yet have what she needs to be confident the next step is the right one — more support, better data, a second opinion, someone who has done it before. Treat hesitation as a MISSING INPUT, not a character flaw. So: do not open a piece by naming fear; do not cite “imposter syndrome” as an explanation (naming it as a thing others get wrong is fine); and never set up a naive premise about women’s psychology in order to correct it. If a cited SOURCE frames its findings as fear or imposter syndrome, report the finding accurately and then say what it misses.
 
 THE REGISTER, IN EVIDENCE — real published lines in this voice; write NEW lines that could sit beside them (never reuse verbatim): "So the '$0' is real. It's just the doorway, not the room." / "Match the tool to the task. That's the whole game." / "It's for you. It's just been badly introduced." / "Not enterprise contracts. The price of a couple of coffees." The pattern: short declaratives where the second sentence lands the twist; dry humor that arrives unannounced; real numbers over adjectives.
 
@@ -4031,25 +4037,39 @@ function buildGEO(stream){
   const link = stream==='week'
     ? 'Per snippet, by its assigned voice — ERIDION: '+LINK_RULES.eridion+' · ERIKA: '+LINK_RULES.erika+' · QUINTA & CO / PRACTICE: '+LINK_RULES.quinta
     : (LINK_RULES[stream]||LINK_RULES.eridion);
+  // Eridion's audience is builders and specs — answer-first and question-shaped
+  // headings suit it. The editorial voices (Erika, Quinta & Co, The Practice) were
+  // being gutted by the same rules: ① banned scene-setting and ④ manufactured
+  // strawman questions the brand would never ask. Same GEO intent, different means.
+  const editorial = stream!=='eridion';
+  const R1_STRICT = '① ANSWER FIRST. Line one of a LinkedIn post — and the first two sentences of a blog — state the answer to the question the piece exists to answer. The hook and the answer are the same sentence. No warm-up, no scene-setting.'+
+    '\nAnti-example (engines skip): "In today’s fast-moving world, many entrepreneurs are wondering about AI..."'+
+    '\nGood (engines quote): "You don’t need to understand AI to use it. You need to know where to start."';
+  const R1_EDITORIAL = '① ANSWER EARLY, NOT BLUNTLY. The piece must land its position inside the OPENING PARAGRAPH — no reader or engine should reach paragraph three still guessing. But the answer is a considered sentence, not a fragment: "It’s fear, mostly." is the failure mode, not the target. You MAY open on an observation, a moment, or a scene, provided the claim arrives in that first paragraph. What is banned is throat-clearing ("In today’s fast-moving world", "Many entrepreneurs wonder") — not craft.';
+  const R4_STRICT = '④ QUESTION-SHAPED HEADLINES. A blog title is either the exact question the reader would type into a search box, or its answer stated boldly ("You Don’t Need to Understand AI to Use It"). Every section heading must make sense quoted out of context.';
+  const R4_EDITORIAL = '④ HEADINGS THAT STAND ALONE — BUT NOT FORCED QUESTIONS. Section headings must still make sense quoted out of context, and the title may be the reader’s real question. But NEVER manufacture a question this brand would not ask. A strawman heading ("Is Procrastination About Laziness?") is worse than none: it puts a naive position in the brand’s mouth so the next line can knock it down. If the question is genuinely the one the reader carries, use it. Otherwise state the observation declaratively.';
+  const R1 = stream==='week' ? (R1_STRICT+'\nFOR ERIKA / QUINTA & CO / PRACTICE SNIPPETS INSTEAD: '+R1_EDITORIAL) : (editorial?R1_EDITORIAL:R1_STRICT);
+  const R4 = stream==='week' ? (R4_STRICT+'\nFOR ERIKA / QUINTA & CO / PRACTICE SNIPPETS INSTEAD: '+R4_EDITORIAL) : (editorial?R4_EDITORIAL:R4_STRICT);
+  const EXTRA = editorial ? ('\n\n⑧ PROFOUND, NOT CLEVER. The two-beat turn IS this voice — a short declarative whose second sentence lands the twist ("So the ’$0’ is real. It’s just the doorway, not the room."). Keep that. What is banned is the THREE-OR-MORE beat stack, where the same idea is restated in escalating fragments for effect: "You feel busy. You are busy. You’re just busy in a way that lets you avoid the thing that scares you." That is a machine performing insight, and it is the single clearest tell. One turn per idea, then move on. Around it, vary sentence length and trust a long sentence to carry a whole thought — reach for depth, not for punch. THE HOUSE STYLE ANTI-CADENCE RULES ARE NOT RELAXED BY THIS PLAYBOOK — where the two appear to conflict, HOUSE STYLE WINS.'+
+    '\n\n⑨ A FIGURE MUST EARN ITS LINE. Having cited a number, say what it MEANS — never restate it in words. "That’s nearly half of us, avoiding the same task" adds nothing; it is the statistic wearing a hat. Give the consequence, the tension, or the thing the number quietly implies about the reader’s situation.') : '';
   return `
 ━━━ GEO PLAYBOOK — write the answer, not the post ━━━
-AI answer engines (ChatGPT, Perplexity, Copilot) quote clear, sourced, standalone answers. Every piece must survive being lifted out of context. Apply these ON TOP of the voice — they shape structure, never tone.
+AI answer engines (ChatGPT, Perplexity, Copilot) quote clear, sourced, standalone answers. Every piece must survive being lifted out of context. ${editorial?'Apply these ON TOP of the voice. Where a rule below and the VOICE or HOUSE STYLE genuinely pull against each other, THE VOICE WINS — a piece that ranks and does not sound like us is a failed piece.':'Apply these ON TOP of the voice — they shape structure, never tone.'}
 
-① ANSWER FIRST. Line one of a LinkedIn post — and the first two sentences of a blog — state the answer to the question the piece exists to answer. The hook and the answer are the same sentence. No warm-up, no scene-setting.
-Anti-example (engines skip): "In today's fast-moving world, many entrepreneurs are wondering about AI..."
-Good (engines quote): "You don't need to understand AI to use it. You need to know where to start."
+${R1}
 
 ② ONE STAT, SOURCE NAMED IN THE TEXT. Every piece carries one statistic with its source and year named in the copy itself — e.g. "74% said they'd adopt with clearer proof (Reimagine Main Street/PayPal, 2025)". Never "studies show" or "research says." Use only real figures from the provided sources or key points — NEVER invent a number. If no real stat is available, use a concrete named fact instead (a building code, a standard, a named program): unsourced numbers are invisible to engines and banned here.
 
 ③ ONE QUOTABLE LINE. Each piece contains exactly one short, opinionated, standalone sentence that works lifted on its own ("AI is a practice, not a purchase" is the register). One — more dilutes.
 
-④ QUESTION-SHAPED HEADLINES. A blog title is either the exact question the reader would type into a search box, or its answer stated boldly ("You Don't Need to Understand AI to Use It"). Every section heading must make sense quoted out of context.
+${R4}
 
 ⑤ LINKEDIN ENDS WITH A QUESTION. Close every LinkedIn post with one genuine question to the reader — comments extend reach, and reach extends indexing. The question may carry the CTA; don't stack a separate CTA line after it.
 
 ⑥ LINK: ${link}
 
 ⑦ INSTAGRAM (when a caption or channel intro is produced): caption line one = the answer. For Quinta & Co content, say "Quinta & Co" in the caption — entity reinforcement for brand search.
+${EXTRA}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
 
