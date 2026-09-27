@@ -5059,7 +5059,14 @@ const TOPIC_BRIEFS={
   eridion:`AUDIENCE: custom home builders, architects, and interior designers in DFW and Central Arkansas.
 GOAL: earn enough professional trust that a builder or architect sends Eridion a set of plans to bid on. Follower count is NOT the goal — qualified trust is.
 A WINNING TOPIC sits close to the moment a pro chooses a glass sub: real project numbers, a detail teardown, spec/code intel that prevents a callback, labor or market data that hits their schedule or budget, or a question builders actually ask before hiring a glazing sub.
-A LOSING TOPIC: general-homeowner content, follower-bait, or anything a glass sub without deep field experience could write just as well.`,
+A LOSING TOPIC: general-homeowner content, follower-bait, or anything a glass sub without deep field experience could write just as well.
+FRAME ROTATION — READ THE BURNED LIST AND CHANGE SHAPE. These five frames are all legitimate, and you must ROTATE them. Check which frame the last few suggestions used and pick a DIFFERENT one this week:
+  1. SPEC / SEQUENCE INTEL — what a builder must confirm or spec before a trade leaves. (Powerful, but overused: if the last two used it, it is off the table.)
+  2. MONEY — real project numbers, what a decision actually costs, where budgets get eaten, what a change order really runs.
+  3. MARKET / LABOR DATA — lead times, capacity, material pricing, permit or starts data that hits their schedule..
+  4. TEARDOWN / POST-MORTEM — a specific failure or near-miss and the detail that caused it; what the photos show.
+  5. THE ARGUMENT — a position the trade disagrees on, argued from field experience. Contrarian, defensible, not safe.
+A suggestion that reuses last week's frame with a different product swapped in (shower → stair → mirror wall → wine cellar) is a DUPLICATE, however different the subject looks.`,
   erika:`AUDIENCE: construction-industry peers, fellow business owners, and women in the trades, mostly on LinkedIn.
 GOAL: grow Erika Harrison's following and credibility as a female founder in construction.
 A WINNING TOPIC is a leadership or business-journey angle with a specific lived detail — the kind a non-follower saves or shares because it names something they've felt but never said out loud.`,
@@ -5102,15 +5109,29 @@ function topicKeywords(t){
   return new Set(String(t).toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/)
     .filter(w=>w.length>2&&!TOPIC_STOPWORDS.has(w)).map(w=>w.replace(/s$/,'')));
 }
+// Two headlines can share a FORMULA while describing different subjects —
+// "...Must Spec Before Framing Closes for a Glass Stair System" versus the same
+// sentence with a mirror wall in it scored 0.583 against a 0.60 threshold and
+// sailed through, week after week. So check the skeleton as well as the
+// subject: a shared opening run of words is the tell a product swap cannot hide.
+function topicSkeleton(t){
+  return String(t).toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean);
+}
 function findDuplicateTopic(topic,avoid){
   const kt=topicKeywords(topic);
+  const st=topicSkeleton(topic);
   if(!kt.size) return null;
   for(const past of avoid){
     const kp=topicKeywords(past);
     if(!kp.size) continue;
     let shared=0;
     for(const w of kt) if(kp.has(w)) shared++;
-    if(shared/Math.min(kt.size,kp.size)>=0.6) return past;
+    if(shared/Math.min(kt.size,kp.size)>=0.55) return past;   // was 0.60 — formula repeats landed just under it
+    // Same opening five words = same template, whatever follows it.
+    const sp=topicSkeleton(past);
+    let run=0;
+    while(run<5 && run<st.length && run<sp.length && st[run]===sp[run]) run++;
+    if(run>=5) return past;
   }
   return null;
 }
@@ -5129,6 +5150,7 @@ async function suggestTopic(){
   const libTopics=library.filter(it=>it.voice===currentStream).map(it=>it.topic||it.title||'').filter(Boolean).reverse();
   const avoid=[...new Set([...recentSuggestions(currentStream),...libTopics])].slice(0,60);
   const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const recent5=recentSuggestions(currentStream).slice(0,5);   // shapes to avoid repeating
 
   const prompt=`You are the editorial brain for a small content studio. Pick THE single best blog topic for this week and hand back exactly what the writer needs to start — nothing else.
 
@@ -5142,6 +5164,10 @@ ${getKB()}
 EDITORIAL GOAL FOR THIS BRAND:
 ${TOPIC_BRIEFS[currentStream]||''}
 
+RECENT HEADLINE SHAPES — DO NOT REUSE THE CONSTRUCTION:
+${recent5.length?recent5.map(t=>'- '+t).join('\n'):'(none yet)'}
+Read those as TEMPLATES, not titles. If your headline opens the same way, asks the same kind of question, or is the same sentence with a different product dropped in, it is a duplicate — rewrite it around a different frame entirely (see FRAME ROTATION in the editorial goal). Vary the opening word too: if the last two began "What", do not begin with "What".
+
 ALREADY COVERED — these subjects are BURNED:
 ${avoid.length?avoid.map(t=>'- '+t).join('\n'):'(nothing yet)'}
 Burned means the underlying SUBJECT, not just the exact title. A new headline, a fresh angle, a new stat, or the fact that the subject is trending again this week does NOT un-burn it — trending is how the same topic sneaks back in, and it is still a duplicate. If a candidate answers the same core question a burned entry answered, kill it and move to the next candidate. If the BUSINESS CONTEXT above lists past blog topics, treat those as burned too.
@@ -5152,7 +5178,7 @@ HOW TO CHOOSE (do all of this internally — show none of it in your output):
 3. Kill any candidate whose core subject is burned (see the list above) — no matter how strongly it is trending.
 4. Kill any candidate that can't yield at least 5 DIFFERENT standalone claims — this blog becomes a full week of social snippets, so a one-idea topic is disqualified no matter how smart it sounds.
 5. Kill any candidate a generic content writer could cover just as well — the winner should need this brand's specific position, data, or field experience.
-6. Of what survives, pick the one that best serves the editorial goal above. Ties go to the NARROWER topic, every time.
+6. Of what survives, pick the one that best serves the editorial goal above AND uses a different FRAME from the recent headlines above. Narrower wins a tie only when the frame is already fresh — never narrow your way into last week's sentence with a new product in it.
 7. FINAL CHECK before answering: compare your winner against the burned list one last time. Same core subject = discard it and return the next survivor instead.
 
 Return ONLY valid JSON, no preamble, no markdown fences:
