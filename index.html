@@ -6037,6 +6037,7 @@ function renderImagePicker(containerId, itemId){
         : `<div class="img-picker-meta" style="margin-bottom:10px"><div style="color:var(--medium-gray)">Buffer needs an image on every post (LinkedIn included). Upload one — or select several for a carousel.</div></div>`
       }
       <div class="img-picker-actions">
+        <button class="img-picker-btn primary" onclick="openImageChat('${itemId}')">✦ Create / Revise image</button>
         <input type="file" id="${fileInputId}" accept="image/*" multiple style="display:none" onchange="handleImagePickerUpload(event,'${itemId}','${containerId}')">
         <button class="img-picker-btn primary" onclick="document.getElementById('${fileInputId}').click()">${hasImg?'＋ Add Images':'📷 Upload Image(s)'}</button>
         <select id="${containerId}-fmt" class="img-picker-btn" title="What kind of visual the prompt should build — Auto reads the post and decides" style="cursor:pointer">
@@ -6054,7 +6055,7 @@ function renderImagePicker(containerId, itemId){
         ${hasImg?`<button class="img-picker-btn danger" onclick="removeImageFromLibraryItem('${itemId}')">Remove All</button>`:''}
       </div>
       <div class="img-picker-progress" id="${progressId}"></div>
-      ${!getImgBBKey()?`<div class="img-picker-hint">⚠ ImgBB key not set — upload won't work yet. <a href="#" onclick="event.preventDefault();toggleKeys();" style="color:var(--navy)">Add it in API Keys</a> (free at api.imgbb.com).</div>`:''}
+      <div class="img-picker-hint">Images are hosted in your photo storage. Existing upload and prompt tools remain available.</div>
     </div>
   `;
 }
@@ -8271,6 +8272,7 @@ function renderLibrary(){
               <button class="lib-menu-item" onclick="copyFromLibrary('${it.id}');closeLibMenus()">Copy Text</button>
               ${it.first_comment?`<button class="lib-menu-item" onclick="copyFirstComment('${it.id}');closeLibMenus()">Copy First Comment</button>`:''}
               <button class="lib-menu-item" onclick="openImageAttachModal('${it.id}');closeLibMenus()">🖼 ${hasImage?'Edit Image':'Add Image'}</button>
+              <button class="lib-menu-item" onclick="openImageChat('${it.id}');closeLibMenus()">✦ Create / Revise image</button>
             </div>
           </div>
           ${((it.blog_text&&it.blog_text.length>200)||(it.linkedin_text&&it.linkedin_text.length>200))?`
@@ -10546,7 +10548,214 @@ function fixWeekDays(){
 }
 function closePromptPack(){ document.getElementById('prompt-pack-modal').classList.remove('open'); }
 
-// Step 3 — the review grid.
+// ── Conversational image studio. Image sessions travel with Library exports. ──
+const IMAGE_GUIDANCE_KEY='eridion_image_guidance_v1';
+let imageChatPostId=null, imageChatBusy=false, imageChatRecovery=null;
+function imageVisualVoice(it){ return (it.cross_voice||it.bridge_from)?(it.bridge_from||it.voice||'eridion'):(it.voice||'eridion'); }
+function imageSourcePost(it){ return library.find(x=>x.id===it.parent_id)||it; }
+function imageChatState(it){
+  return it.imageChat || {turns:[],versions:[],activeId:null,pending:null,undo:[]};
+}
+function imageChatCommit(id,change){
+  const index=library.findIndex(x=>x.id===id);
+  if(index<0) throw new Error('This post is no longer in the Library.');
+  const next=JSON.parse(JSON.stringify(library[index]));
+  change(next);
+  const stored=JSON.parse(localStorage.getItem(LIB_KEY)||'null');
+  const copy=Array.isArray(stored)?stored:library.slice();
+  const savedIndex=copy.findIndex(x=>x.id===id);
+  if(savedIndex<0||JSON.stringify(copy[savedIndex])!==JSON.stringify(library[index]))throw new Error('This post changed in another tab. Export your Library and reload before continuing.');
+  copy[savedIndex]=next;
+  // Persist BEFORE mutating the live post. Quota failures never masquerade as success.
+  localStorage.setItem(LIB_KEY,JSON.stringify(copy));
+  Object.assign(library[index],next);
+  return library[index];
+}
+function imageGuidance(){ try{return JSON.parse(localStorage.getItem(IMAGE_GUIDANCE_KEY)||'{}');}catch(_){return {};} }
+function imageChatContext(it){
+  const source=imageSourcePost(it),voice=imageVisualVoice(it);
+  const plain=s=>{const el=document.createElement('div');el.innerHTML=String(s||'');return el.textContent||'';};
+  return {title:it.title||'',caption:plain(it.linkedin_text||it.blog_text),sourceTitle:source.title||'',
+    sourceBlog:plain(source.blog_text||source.linkedin_text),sourceBlogUrl:source.blogUrl||it.blogUrl||'',
+    brandBrief:BRAND_IMAGE_BRIEFS[voice]||'',businessFacts:getKB(voice),
+    brandGuidance:imageGuidance()[voice]||'',campaignGuidance:source.imageCampaignGuidance?.[voice]||''};
+}
+function imageChatEndpoint(){return WORKER.replace(/\/api\/messages$/,'/api/image-chat');}
+function imageChatSuggestionKey(it){
+  const value=JSON.stringify([imageChatContext(it),getBrandRefs(imageVisualVoice(it))]);
+  let hash=2166136261;for(let i=0;i<value.length;i++)hash=Math.imul(hash^value.charCodeAt(i),16777619);
+  return String(hash>>>0);
+}
+async function suggestImageChat(){
+  if(imageChatBusy)return;
+  return sendImageChat({kind:'suggestion',action:'discuss',message:'Read the supplied original post and source blog. Give me ONE useful starting visual direction: recommended format, a concrete scene or layout, exact short image copy if any, and one sentence on why it supports the post’s audience, payoff and CTA. Keep it under 170 words. If a base image already exists, acknowledge it and suggest how to build on it. Do not generate an image yet. Do not ask me to invent the concept.'});
+}
+async function createImageChatIdea(){
+  const it=library.find(x=>x.id===imageChatPostId),idea=imageChatState(it).suggestion;
+  if(!idea){imageChatNotice('Let Studio suggest a direction first.');return;}
+  document.getElementById('ic-action').value='create';
+  return sendImageChat({action:'create',message:'Create one image from this suggested direction. Preserve the post’s original payoff and the supplied brand guidance.\n\n'+idea});
+}
+function imageChatNotice(message){document.getElementById('ic-status').textContent=message;}
+function imageChatSafeUrl(url){try{const u=new URL(url);return u.protocol==='https:'?u.href:'';}catch(_){return '';}}
+function imageChatMount(){
+  if(document.getElementById('image-chat-dialog'))return;
+  const style=document.createElement('style');
+  style.textContent=`#image-chat-dialog{border:1px solid var(--border);border-radius:14px;padding:0;width:min(1100px,96vw);max-height:94vh;background:var(--bg,#fafaf6);color:var(--text,#243238)}#image-chat-dialog::backdrop{background:#101c32a6}.ic-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;gap:16px;justify-content:space-between;align-items:start}.ic-head h2{margin:0 0 6px;font-size:22px;text-wrap:balance}.ic-meta{font-size:12px;line-height:1.5;color:var(--text-muted)}.ic-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.85fr);gap:24px;padding:24px}.ic-preview{width:100%;max-height:420px;object-fit:contain;background:#e9e9e3;border-radius:8px}.ic-versions{display:flex;overflow:auto;gap:8px;margin:12px 0}.ic-version{flex:0 0 84px;padding:4px;border:2px solid transparent;border-radius:6px;background:transparent;color:inherit;cursor:pointer}.ic-version[aria-pressed=true]{border-color:var(--navy,#153862)}.ic-version img{width:72px;height:72px;object-fit:cover}.ic-version span{display:block;font-size:11px}.ic-thread{height:270px;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px}.ic-turn{white-space:pre-wrap;font-size:13px;line-height:1.55;padding:10px;margin:0 0 8px;border-radius:6px;overflow-wrap:anywhere}.ic-turn.user{background:#eef1ee}.ic-turn strong{display:block;font-size:11px;margin-bottom:4px}.ic-controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.ic-controls select{min-width:0;max-width:100%;padding:8px}.ic-label{display:block;font-size:12px;font-weight:600;margin:12px 0 6px}#image-chat-dialog textarea{box-sizing:border-box;width:100%;min-height:84px;resize:vertical;padding:10px;font:inherit;border:1px solid var(--border);border-radius:6px;background:#fff;color:#243238}#ic-status{font-size:12px;line-height:1.5;min-height:32px;margin-top:12px;white-space:pre-wrap}.ic-empty{padding:50px 24px;background:#edf0eb;text-align:center;border-radius:8px;line-height:1.6}.ic-compare{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ic-compare img{width:100%;object-fit:contain}.ic-check{font-size:12px;line-height:1.5;display:flex;align-items:start;gap:8px;margin:12px 0}.ic-check input{margin-top:3px}.ic-source{font-size:12px;line-height:1.6;max-height:180px;overflow:auto;white-space:pre-wrap}#ic-guidance{min-height:65px}.ic-head button{flex-shrink:0}@media(max-width:760px){.ic-grid{grid-template-columns:1fr;padding:16px}.ic-thread{height:200px}.ic-head{padding:16px}}`;
+  document.head.appendChild(style);
+  const postStyle=document.createElement('style');
+  postStyle.textContent='.ic-post,.ic-idea{padding:14px;border:1px solid var(--border);border-radius:8px;background:#fff;margin-bottom:16px}.ic-post h3,.ic-idea h3{font-size:14px;margin:0 0 10px}.ic-post-copy{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.65;max-height:270px;overflow:auto;color:#243238}.ic-idea-copy{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.6;color:#243238}.ic-grid>section{min-width:0}.ic-head{position:sticky;top:0;z-index:2;background:var(--bg,#fafaf6)}';
+  document.head.appendChild(postStyle);
+  const dialog=document.createElement('dialog'); dialog.id='image-chat-dialog';
+  dialog.innerHTML=`<div class="ic-head"><div><h2 id="ic-title">Create / Revise image</h2><div id="ic-meta" class="ic-meta"></div></div><button class="action-btn" onclick="closeImageChat()">Close</button></div>
+  <div class="ic-grid"><section aria-label="Post and image versions"><div class="ic-post"><h3>Your original post</h3><div id="ic-post-copy" class="ic-post-copy"></div></div><div id="ic-preview"></div><div id="ic-versions" class="ic-versions" aria-label="Saved versions"></div>
+  <div class="ic-controls"><button class="action-btn" id="ic-compare-button" onclick="imageChatCompare()">Compare before / after</button><a id="ic-download" class="action-btn" target="_blank" rel="noopener">Open / download</a></div><div id="ic-comparison"></div>
+  <label class="ic-label" for="ic-slot">Use this version as</label><select id="ic-slot" style="width:100%;padding:8px"></select>
+  <label class="ic-check"><input id="ic-reviewed" type="checkbox">I checked the copy, logo, margins and connection to the source blog.</label>
+  <div class="ic-controls"><button class="action-btn" id="ic-use" onclick="imageChatUse()">Use for this post</button><button class="action-btn" id="ic-undo" onclick="imageChatUndo()">Undo image selection</button></div>
+  <details><summary class="ic-label">Source &amp; brand context</summary><div id="ic-source" class="ic-source"></div></details></section>
+  <section aria-label="Image conversation"><div class="ic-idea"><h3>A starting idea for this post</h3><div id="ic-idea-copy" class="ic-idea-copy" aria-live="polite"></div><div class="ic-controls"><button class="action-btn" id="ic-create-idea" onclick="createImageChatIdea()">Create this idea</button><button class="action-btn" id="ic-suggest" onclick="suggestImageChat()">Suggest another direction</button></div></div><div id="ic-thread" class="ic-thread" role="log" aria-live="polite"></div>
+  <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea>
+  <div class="ic-controls"><select id="ic-action" aria-label="Image action"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
+  <div class="ic-controls"><button class="action-btn" id="ic-send" onclick="sendImageChat()">Send</button><button class="action-btn" id="ic-recover" onclick="recoverImageChat()" hidden>Check last request</button><button class="action-btn" id="ic-save-recovery" onclick="saveImageChatRecovery()" hidden>Save returned version</button></div>
+  <div id="ic-status" role="status"></div>
+  <details><summary class="ic-label">Carry a correction into later posts</summary><label class="ic-label" for="ic-guidance-scope">Apply to</label><select id="ic-guidance-scope" onchange="loadImageGuidance()"><option value="campaign">This source-blog campaign only</option><option value="brand">This brand only</option></select><label class="ic-label" for="ic-guidance">Reusable direction</label><textarea id="ic-guidance" maxlength="3000" placeholder="For example: keep people candid and imperfect; avoid staged stock poses."></textarea><button class="action-btn" onclick="saveImageGuidance()">Save direction</button><div class="ic-meta">Saved only for the scope above. Post-specific edits stay in this conversation.</div></details></section></div>`;
+  dialog.addEventListener('cancel',e=>{if(imageChatBusy){e.preventDefault();imageChatNotice('The request is still running. Please wait for the result.');}});
+  document.body.appendChild(dialog);
+}
+async function openImageChat(id){
+  if(imageChatBusy){showToast('An image request is still running.','error');return;}
+  const it=library.find(x=>x.id===id);if(!it)return;
+  imageChatMount(); imageChatPostId=id;
+  try{
+    imageChatCommit(id,next=>{
+      const state=next.imageChat=imageChatState(next);
+      for(const url of getItemImageUrls(next))if(!state.versions.some(v=>v.url===url))state.versions.push({id:crypto.randomUUID(),url,label:'Original '+(state.versions.length+1),createdAt:Date.now(),parentId:null});
+      if(!state.activeId&&state.versions.length)state.activeId=state.versions[0].id;
+    });
+  }catch(e){showToast('Could not save image session: '+e.message,'error');return;}
+  document.getElementById('ic-message').value='';document.getElementById('ic-action').value='discuss';
+  document.getElementById('ic-guidance-scope').value='campaign';loadImageGuidance();renderImageChat();
+  const dialog=document.getElementById('image-chat-dialog');if(!dialog.open)dialog.showModal();
+  imageChatNotice('Checking image connection…');
+  try{
+    const r=await fetch(imageChatEndpoint(),{signal:AbortSignal.timeout(10000)});const d=await r.json();
+    if(imageChatPostId!==id)return;
+    imageChatNotice(r.ok&&d.ready&&d.revision==='2026-09-27.1'?'Ready. Discuss a direction, or choose Create / Revise. New versions stay separate until you use one.':'Image chat is not enabled on the worker yet. Existing upload and prompt tools still work.');
+    document.getElementById('ic-send').disabled=!(r.ok&&d.ready&&d.revision==='2026-09-27.1')||!!imageChatState(it).pending;
+    if(r.ok&&d.ready&&d.revision==='2026-09-27.1'&&!imageChatState(it).pending&&document.getElementById('image-chat-dialog').open){
+      if(!imageChatState(it).suggestion||imageChatState(it).suggestionKey!==imageChatSuggestionKey(it))await suggestImageChat();
+    }
+  }catch(e){if(imageChatPostId===id){imageChatNotice('Cannot reach image chat. Your saved content is unchanged.');document.getElementById('ic-send').disabled=true;}}
+}
+function closeImageChat(){if(imageChatBusy){imageChatNotice('Please wait for this request to finish.');return;}document.getElementById('image-chat-dialog').close();}
+function renderImageChat(){
+  const it=library.find(x=>x.id===imageChatPostId);if(!it)return;
+  const state=imageChatState(it),active=state.versions.find(v=>v.id===state.activeId),voice=imageVisualVoice(it),source=imageSourcePost(it),refs=getBrandRefs(voice);
+  document.getElementById('ic-title').textContent=it.title||'Create / Revise image';
+  document.getElementById('ic-meta').textContent=kbBrandLabel(voice)+' · '+refs.length+' brand reference'+(refs.length===1?'':'s')+' · saved with this post';
+  const context=imageChatContext(it);
+  document.getElementById('ic-post-copy').textContent=context.caption||'No post copy is saved yet.';
+  document.getElementById('ic-idea-copy').textContent=state.suggestion||(imageChatBusy?'Reading your post and preparing a visual direction…':'Studio will suggest a direction from this post. You can refine it here before making an image.');
+  document.getElementById('ic-create-idea').disabled=!state.suggestion||imageChatBusy||!!state.pending;
+  document.getElementById('ic-suggest').disabled=imageChatBusy||!!state.pending;
+  document.getElementById('ic-preview').innerHTML=active?`<img class="ic-preview" src="${escapeHTML(imageChatSafeUrl(active.url))}" alt="Selected image version"><div class="ic-meta">${escapeHTML(active.label)}${active.size?' · '+escapeHTML(active.size):''}</div>`:'<div class="ic-empty">Start with the post.<br>Discuss a direction, then create an image.</div>';
+  document.getElementById('ic-versions').innerHTML=state.versions.map((v,i)=>`<button class="ic-version" aria-pressed="${v.id===state.activeId}" onclick="selectImageChatVersion(${i})"><img src="${escapeHTML(imageChatSafeUrl(v.url))}" alt="${escapeHTML(v.label)}"><span>${escapeHTML(v.label)}</span></button>`).join('');
+  document.getElementById('ic-thread').innerHTML=state.turns.length?state.turns.map(t=>`<div class="ic-turn ${t.role==='user'?'user':'assistant'}"><strong>${t.role==='user'?'You':'Studio'}</strong>${escapeHTML(t.displayText||t.text)}</div>`).join(''):'<div class="ic-meta">Your post and source blog are here. Studio is preparing a starting idea; you can refine it in this conversation.</div>';
+  const thread=document.getElementById('ic-thread');thread.scrollTop=thread.scrollHeight;
+  const urls=getItemImageUrls(it);document.getElementById('ic-slot').innerHTML=urls.map((_,i)=>`<option value="${i}">Replace image ${i+1}</option>`).join('')+'<option value="append">Add as a new image / carousel slide</option>';
+  document.getElementById('ic-use').disabled=!active||imageChatBusy;
+  document.getElementById('ic-undo').disabled=!state.undo?.length||imageChatBusy;
+  document.getElementById('ic-compare-button').disabled=!active?.parentId;
+  const download=document.getElementById('ic-download');download.hidden=!active;if(active)download.href=imageChatSafeUrl(active.url);
+  document.getElementById('ic-reviewed').checked=false;document.getElementById('ic-comparison').innerHTML='';
+  document.getElementById('ic-source').textContent='Source: '+(source.title||'This post')+'\n'+(source.blogUrl||'No source blog URL saved')+'\n\n'+context.sourceBlog+'\n\n'+(BRAND_IMAGE_BRIEFS[voice]||'');
+  document.getElementById('ic-recover').hidden=!state.pending;
+  document.getElementById('ic-save-recovery').hidden=!(imageChatRecovery&&imageChatRecovery.id===it.id);
+}
+function selectImageChatVersion(index){
+  if(imageChatBusy)return;
+  try{imageChatCommit(imageChatPostId,it=>{const s=imageChatState(it);s.activeId=s.versions[index].id;});renderImageChat();imageChatNotice('Selected as the base for the next revision. The post’s attached images have not changed.');}catch(e){imageChatNotice('Could not save selection: '+e.message);}
+}
+function imageChatCompare(){
+  const state=imageChatState(library.find(x=>x.id===imageChatPostId)),v=state.versions.find(x=>x.id===state.activeId),parent=state.versions.find(x=>x.id===v?.parentId);if(!parent)return;
+  document.getElementById('ic-comparison').innerHTML=`<div class="ic-compare"><div><span class="ic-meta">Before</span><img src="${escapeHTML(imageChatSafeUrl(parent.url))}" alt="Previous version"></div><div><span class="ic-meta">Selected</span><img src="${escapeHTML(imageChatSafeUrl(v.url))}" alt="Selected version"></div></div>`;
+}
+function refreshImageChatPost(){renderLibrary();renderCalendar();refreshAllOpenImagePickers();renderImageChat();}
+function imageChatUse(){
+  if(imageChatBusy)return;
+  if(!document.getElementById('ic-reviewed').checked){imageChatNotice('Review the image, then tick the copy / logo / margins check.');return;}
+  const slot=document.getElementById('ic-slot').value;
+  try{
+    imageChatCommit(imageChatPostId,it=>{
+      const s=imageChatState(it),v=s.versions.find(x=>x.id===s.activeId);if(!v)throw Error('Choose a version.');
+      const urls=getItemImageUrls(it);s.undo=s.undo||[];s.undo.push({urls:urls.slice(),source:it.imageSource||'',credit:it.imageCredit||''});
+      if(slot==='append'){if(urls.length>=10)throw Error('This post already has ten images. Replace a slide instead.');urls.push(v.url);}else{const n=Number(slot);if(n<0||n>=urls.length)throw Error('Image slot changed. Reopen the post.');urls[n]=v.url;}
+      it.imageUrls=urls;it.selectedImageUrl=urls[0];it.image_url=urls[0];it.imageSource='openai';it.imageCredit='';it.imageAttachedAt=Date.now();s.finalId=v.id;
+    });refreshImageChatPost();imageChatNotice('Image selected for this post. Nothing has been sent to Buffer.');
+  }catch(e){imageChatNotice('Could not save image selection: '+e.message);}
+}
+function imageChatUndo(){
+  if(imageChatBusy)return;
+  try{imageChatCommit(imageChatPostId,it=>{const s=imageChatState(it),old=s.undo?.pop();if(!old)return;it.imageUrls=old.urls;it.selectedImageUrl=old.urls[0]||'';it.image_url=old.urls[0]||'';it.imageSource=old.source;it.imageCredit=old.credit;s.finalId=null;});refreshImageChatPost();imageChatNotice('Previous attached images restored. All generated versions are still available.');}catch(e){imageChatNotice('Could not restore images: '+e.message);}
+}
+function loadImageGuidance(){
+  const it=library.find(x=>x.id===imageChatPostId);if(!it)return;const voice=imageVisualVoice(it),source=imageSourcePost(it);
+  document.getElementById('ic-guidance').value=document.getElementById('ic-guidance-scope').value==='brand'?(imageGuidance()[voice]||''):(source.imageCampaignGuidance?.[voice]||'');
+}
+function saveImageGuidance(){
+  const it=library.find(x=>x.id===imageChatPostId),voice=imageVisualVoice(it),source=imageSourcePost(it),text=document.getElementById('ic-guidance').value.trim();
+  try{if(document.getElementById('ic-guidance-scope').value==='brand'){const g=imageGuidance();g[voice]=text;localStorage.setItem(IMAGE_GUIDANCE_KEY,JSON.stringify(g));}else{imageChatCommit(source.id,next=>{next.imageCampaignGuidance={...(next.imageCampaignGuidance||{}),[voice]:text};});}imageChatNotice('Saved for '+kbBrandLabel(voice)+(document.getElementById('ic-guidance-scope').value==='brand'?' across posts.':' within this source-blog campaign.'));}catch(e){imageChatNotice('Could not save direction: '+e.message);}
+}
+function imageChatAccept(id,result){
+  if(result.status==='pending')throw Error('Still working. Use “Check last request” in a moment.');
+  if(result.status!=='completed')throw Error(result.error||'The image request did not finish.');
+  imageChatCommit(id,it=>{
+    const s=imageChatState(it),pending=s.pending;if(!pending)return;
+    s.turns.push({role:'user',text:pending.message,...(pending.kind==='suggestion'?{displayText:'Suggest a visual direction for this post.'}:{})},{role:'assistant',text:result.text||'New image version ready.'});
+    if(pending.action==='discuss'){s.suggestion=result.text||'';s.suggestionKey=pending.suggestionKey;}
+    for(const img of result.images||[]){const version={id:crypto.randomUUID(),url:img.url,size:img.size,label:'Version '+(s.versions.filter(v=>v.label.startsWith('Version')).length+1),parentId:pending.action==='revise'?pending.baseId:null,createdAt:Date.now(),requestId:pending.requestId,revisedPrompt:img.revisedPrompt||''};s.versions.push(version);s.activeId=version.id;}
+    s.pending=null;
+  });
+  imageChatRecovery=null;
+}
+async function sendImageChat(options={}){
+  if(imageChatBusy)return;
+  const id=imageChatPostId,it=library.find(x=>x.id===id),s=imageChatState(it),message=(options.message||document.getElementById('ic-message').value).trim(),action=options.action||document.getElementById('ic-action').value;
+  if(!message){imageChatNotice('Write a request first.');return;}
+  if(s.pending){imageChatNotice('Check the last request before starting another.');return;}
+  const base=s.versions.find(v=>v.id===s.activeId);if(action==='revise'&&!base){imageChatNotice('Choose an existing image, or create one first.');return;}
+  const pending={requestId:crypto.randomUUID(),message,action,baseId:base?.id||null,startedAt:Date.now(),kind:options.kind||'chat',suggestionKey:action==='discuss'?imageChatSuggestionKey(it):null};
+  const payload={...pending,voice:imageVisualVoice(it),baseUrl:base?.url||null,size:document.getElementById('ic-size').value,context:imageChatContext(it),references:getBrandRefs(imageVisualVoice(it)),history:s.turns};
+  try{imageChatCommit(id,next=>{next.imageChat.pending=pending;});}catch(e){imageChatNotice('Could not save this request; nothing was sent: '+e.message);return;}
+  imageChatBusy=true;document.getElementById('ic-send').disabled=true;renderImageChat();imageChatNotice(action==='discuss'?'Thinking through the post…':'Creating your image. This can take a few minutes; keep this window open.');
+  try{
+    const r=await fetch(imageChatEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(260000)});
+    const result=await r.json();
+    if(!r.ok||result.status==='failed'){
+      imageChatCommit(id,next=>{next.imageChat.pending=null;});throw Error(result.error||'Image request failed ('+r.status+').');
+    }
+    if(result.status==='completed')imageChatRecovery={id,result};imageChatAccept(id,result);document.getElementById('ic-message').value='';imageChatNotice('Saved. Review the result, continue the conversation, or choose a version for this post.');
+  }catch(e){imageChatNotice(e.message+'\nIf the request may still be running, use “Check last request” before generating again.');}
+  finally{imageChatBusy=false;renderImageChat();document.getElementById('ic-send').disabled=!!imageChatState(library.find(x=>x.id===id)).pending;}
+}
+async function recoverImageChat(){
+  if(imageChatBusy)return;
+  const id=imageChatPostId,pending=imageChatState(library.find(x=>x.id===id)).pending;if(!pending)return;
+  imageChatBusy=true;imageChatNotice('Checking the saved request…');
+  try{
+    const r=await fetch(imageChatEndpoint()+'?requestId='+encodeURIComponent(pending.requestId),{signal:AbortSignal.timeout(10000)}),result=await r.json();
+    if(result.status==='pending')throw Error('Still working. Check again in a moment.');
+    if(result.status==='unknown'&&Date.now()-pending.startedAt<300000)throw Error('No result yet. Give the original request up to five minutes before trying again.');
+    if(!r.ok||result.status==='failed'||result.status==='unknown'){imageChatCommit(id,next=>{next.imageChat.pending=null;});throw Error(result.error||'No saved result found. You can send the request again.');}
+    imageChatRecovery={id,result};imageChatAccept(id,result);imageChatNotice('Recovered and saved the result. No second generation was started.');
+  }catch(e){imageChatNotice(e.message);}
+  finally{imageChatBusy=false;renderImageChat();document.getElementById('ic-send').disabled=!!imageChatState(library.find(x=>x.id===id)).pending;}
+}
+function saveImageChatRecovery(){
+  if(!imageChatRecovery)return;
+  try{imageChatAccept(imageChatRecovery.id,imageChatRecovery.result);renderImageChat();document.getElementById('ic-send').disabled=false;imageChatNotice('Returned version saved.');}catch(e){imageChatNotice('Storage is still full. Export the Library before freeing browser storage. Returned image is available below.');const result=imageChatRecovery.result;document.getElementById('ic-preview').innerHTML=(result.images||[]).map(x=>`<a href="${escapeHTML(imageChatSafeUrl(x.url))}" target="_blank" rel="noopener">Open returned image</a>`).join('');}
+}
 
 
 
