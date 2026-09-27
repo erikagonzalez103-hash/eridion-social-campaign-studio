@@ -10449,6 +10449,9 @@ function renderRefs(){
 // ── Brand mark UI (lives on the Brand Refs screen) ──
 function renderLogoPanel(){
   const cfg=logoFor(currentStream);
+  // Self-heal: the rule used to be seeded only at upload time, so logos added
+  // before it existed never got one. Seed on sight instead of on upload.
+  if(cfg.light||cfg.dark) seedNoWordmarkGuidance(currentStream);
   const slots=document.getElementById('logo-slots'); if(!slots) return;
   const cell=(kind,label,hint)=>{
     const url=cfg[kind];
