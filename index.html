@@ -3803,6 +3803,14 @@ function claudeText(data){
   return ((data&&data.content)||[]).filter(b=>b&&b.type==='text').map(b=>b.text||'').join('\n').trim();
 }
 async function callClaude(body, onStatus, retries=2){
+  // Extended-thinking models (Opus 5 / Sonnet 5) spend max_tokens on thinking
+  // BEFORE writing. Budgets here were sized for non-thinking models, so a small
+  // one can be consumed entirely and the reply arrives truncated or empty. Floor
+  // every request so there is always room left for the actual answer.
+  if(body && typeof body==='object'){
+    const needsRoom = Array.isArray(body.tools) && body.tools.length ? 12000 : 3000;
+    body = Object.assign({}, body, {max_tokens: Math.max(Number(body.max_tokens)||0, needsRoom)});
+  }
   let lastErr='';
   for(let attempt=0;attempt<=retries;attempt++){
     if(attempt>0){
@@ -3853,7 +3861,16 @@ async function callClaude(body, onStatus, retries=2){
 function extractJSONFromResponse(apiResp){
   const text=(apiResp.content||[]).filter(b=>b&&b.type==='text').map(b=>b.text).join('\n');
   const jsonStr=extractJsonObject(text);
-  if(!jsonStr) throw new Error('the AI reply contained no JSON — try again');
+  if(!jsonStr){
+    // Say WHY. 'max_tokens' means the budget ran out mid-answer (thinking eats it);
+    // an empty text block after a thinking block means it never reached the prose.
+    const stop=(apiResp&&apiResp.stop_reason)||'unknown';
+    const kinds=((apiResp&&apiResp.content)||[]).map(b=>b&&b.type).join('+')||'none';
+    console.error('No JSON in reply. stop_reason=',stop,'blocks=',kinds,'text=',text);
+    throw new Error(stop==='max_tokens'
+      ? 'the reply was cut off before it finished (token budget) — try again'
+      : 'the AI reply contained no JSON (stop: '+stop+', blocks: '+kinds+') — try again');
+  }
   return JSON.parse(jsonStr);
 }
 
