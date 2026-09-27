@@ -3808,7 +3808,10 @@ async function callClaude(body, onStatus, retries=2){
   // one can be consumed entirely and the reply arrives truncated or empty. Floor
   // every request so there is always room left for the actual answer.
   if(body && typeof body==='object'){
-    const needsRoom = Array.isArray(body.tools) && body.tools.length ? 12000 : 3000;
+    // max_tokens is a CEILING, not a charge - billing is on tokens actually
+    // generated - so a generous floor costs nothing and prevents truncation.
+    // Spin Week alone emits five full snippets as JSON and was capped at 4000.
+    const needsRoom = Array.isArray(body.tools) && body.tools.length ? 16000 : 8000;
     body = Object.assign({}, body, {max_tokens: Math.max(Number(body.max_tokens)||0, needsRoom)});
   }
   let lastErr='';
