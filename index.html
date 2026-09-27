@@ -3795,6 +3795,13 @@ const MODEL_UTILITY = 'claude-sonnet-5';
 // NOTE: WORKER already includes the /api/messages path.
 const TRANSIENT_API_ERRORS=['rate_limit_error','overloaded_error','api_error','timeout_error'];
 
+// Extended-thinking models (Opus 5) return a leading {type:'thinking'} block, so
+// content[0].text is undefined and every naive first-block read came back empty
+// — which surfaced as "Draft failed: Empty response" the moment MODEL_CREATIVE
+// moved to opus-5. Always concatenate the TEXT blocks, never index into [0].
+function claudeText(data){
+  return ((data&&data.content)||[]).filter(b=>b&&b.type==='text').map(b=>b.text||'').join('\n').trim();
+}
 async function callClaude(body, onStatus, retries=2){
   let lastErr='';
   for(let attempt=0;attempt<=retries;attempt++){
@@ -4970,7 +4977,7 @@ ${ctaFinal}`;
 
   try {
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
-    const text=data.content?.[0]?.text||'';
+    const text=claudeText(data);
     if(!text) throw new Error('Empty response');
 
     if(format==='blog+linkedin'){
@@ -5480,7 +5487,7 @@ ${ctaFinal}`;
 
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
-    const text=data.content?.[0]?.text||'';
+    const text=claudeText(data);
     if(!text) throw new Error('Empty response');
 
     // Reuse the same parsing as generateContent
@@ -5670,8 +5677,8 @@ Return ONLY the rewritten blog post. No preamble, no code fences.` : null;
 
     const [liData, blogData] = await Promise.all(calls);
 
-    const newLI = liData.content?.[0]?.text || '';
-    const newBlog = blogData ? (blogData.content?.[0]?.text || '') : '';
+    const newLI = claudeText(liData);
+    const newBlog = blogData ? (claudeText(blogData)) : '';
 
     if(!newLI || newLI.length < 20) { showToast('Empty response — try again','error'); return; }
 
@@ -6180,7 +6187,7 @@ Return ONLY the prompt as a single paragraph. No preamble, no formatting, no "He
       { model: MODEL_UTILITY, max_tokens: 600, messages: [{ role: 'user', content: prompt }] },
       btn ? (m => { btn.textContent = m; }) : null
     );
-    const result = (data.content?.[0]?.text || '').trim();
+    const result = claudeText(data);
     if(!result) throw new Error('Empty response');
     await navigator.clipboard.writeText(result);
     showToast('✦ Image prompt copied — paste into ChatGPT/DALL·E','success');
@@ -6675,7 +6682,7 @@ async function deAiDraft(){
   const prompt=`${voice}\n${HOUSE_STYLE}\n\nYou are editing an EXISTING post to remove AI-tell phrasing and cadence. Apply the HOUSE WRITING STANDARDS above aggressively to the draft below — this is a cleanup pass, not a rewrite of the substance.\n\nDRAFT:\n---\n${current}\n---\n\nReturn the same post with the worn phrases and AI cadence removed: keep the voice, keep every fact and number, keep roughly the same length and structure, and do not introduce new claims or a different point. If a line already sounds human, leave it alone. Return ONLY the cleaned-up post — no preamble, no commentary, no quotes around it.`;
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:1000,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
-    const text=(data.content?.[0]?.text||'').trim();
+    const text=claudeText(data);
     if(!text) throw new Error('Empty response');
     generatedLinkedIn=text;
     liOut.innerHTML=''; liOut.textContent=text;
@@ -6943,7 +6950,7 @@ ${content}
 
   try{
     const d=await callClaude({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
-    const text=d.content?.[0]?.text||'';
+    const text=claudeText(d);
     const bm=text.match(/===BRIEFING===([\s\S]*?)===TALKING POINTS===/i);
     const tm=text.match(/===TALKING POINTS===([\s\S]*?)$/i);
     briefingText=bm?bm[1].trim():text;
@@ -7057,7 +7064,7 @@ async function askResearch(){
   el.textContent='Researching...'; el.className='research-answer loading';
   try{
     const d=await callClaude({model:MODEL_UTILITY,max_tokens:1000,messages:[{role:'user',content:`Erika Harrison is co-founder of Eridion Glass, luxury glass subcontractor Dallas TX. She published:\n---\n${content}\n---\nShe asks: "${q}"\n\nAnswer in plain conversational language. Include: (1) clear 2-3 sentence explanation, (2) source/basis, (3) one sentence she could say confidently on a panel. Tight and practical.`}]},m=>{el.textContent=m;});
-    const answer=d.content?.[0]?.text||'';
+    const answer=claudeText(d);
     el.textContent=answer; el.className='research-answer';
     researchHistory.unshift({question:q,answer});
     renderResearchHistory();
@@ -7242,7 +7249,7 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
 
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:900,messages:[{role:'user',content:prompt}]},m=>{resultsEl.innerHTML=`<div class="spin-loading">${escapeHTML(m)}</div>`;});
-    const rawText=(data.content?.[0]?.text||'').trim();
+    const rawText=claudeText(data);
     if(!rawText) throw new Error('Empty response');
 
     // Split off IG intro if present
@@ -10015,7 +10022,7 @@ ${days}
 Return ONLY valid JSON, no preamble, no markdown fences:
 {"days":[${ARC_DAY_JSON}]}`;
   const data=await callClaude({model:MODEL_CREATIVE,max_tokens:8000,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
-  const txt=(data.content?.[0]?.text||'');
+  const txt=(claudeText(data));
   const jsonStr=extractJsonObject(txt);
   if(!jsonStr){
     console.error('Arc raw response (no JSON found):\n', txt);
@@ -10536,7 +10543,7 @@ This week's theme (for continuity): ${topic}
 Voice: master tradesperson talking to a peer — precise, confident, specifics over adjectives (field-verify, set to spec, low-iron, frameless, fabricate). No hype, no "we pride ourselves", no world-class/cutting-edge, no emojis. 2-4 sentences. Return ONLY the caption text, nothing else.
 ${HOUSE_STYLE}`;
       const data=await callClaude({model:MODEL_CREATIVE,max_tokens:400,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
-      const cap=((data&&data.content&&data.content[0]&&data.content[0].text)||'').trim();
+      const cap=claudeText(data);
       if(!cap) continue;
       const entry=addToLibrary({ voice:'eridion', bucket, format:'linkedin', topic,
         title:'Real install · '+(a.category||'Eridion')+' — '+topic.slice(0,30),
