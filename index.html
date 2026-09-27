@@ -3239,6 +3239,20 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div style="margin-top:8px;color:var(--medium-gray);font-size:12px">Favorites that only exist on Instagram? Use <strong>＋ Add by URL</strong> with the image address.</div>
           </div>
 
+          <div class="panel-title">Brand mark <span id="logo-status" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)"></span></div>
+          <div style="background:#F0F4F8;border:1px solid #D9DEE5;border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.6;color:#2f3a45;margin-bottom:16px">
+            Stamped onto every image attached to a post for this brand, so it can’t be lifted and reused. The corner is chosen per image — whichever is quietest, so it never lands on the subject or the copy.
+            <div style="margin-top:8px;color:var(--medium-gray);font-size:12px">Upload a <strong>transparent PNG</strong>. Two versions if you have them: a light one for dark photos and a dark one for bright photos — the right one is picked per image. One is fine.</div>
+          </div>
+          <div id="logo-slots" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px"></div>
+          <div id="logo-controls" style="display:none;gap:18px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+            <label style="font-size:11px;color:var(--text-muted)">Size <input type="range" id="logo-scale" min="6" max="28" step="1" oninput="onLogoTune()" style="vertical-align:middle"> <span id="logo-scale-val" style="font-family:var(--font-mono);font-size:11px"></span></label>
+            <label style="font-size:11px;color:var(--text-muted)">Opacity <input type="range" id="logo-opacity" min="30" max="100" step="5" oninput="onLogoTune()" style="vertical-align:middle"> <span id="logo-opacity-val" style="font-family:var(--font-mono);font-size:11px"></span></label>
+            <button class="action-btn" onclick="previewLogoOnPhotos()">▶ Preview on real photos</button>
+            <button class="action-btn" onclick="removeBrandLogo()" style="color:var(--red,#b3261e)">Remove logo</button>
+          </div>
+          <div id="logo-preview" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px"></div>
+
           <div class="panel-title">Your reference set <span id="refs-count" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)"></span></div>
           <div id="refs-picked"></div>
 
@@ -5916,6 +5930,47 @@ function validateImageUrl(url){
 
 // Set image on a library item and persist. `source` is one of:
 // 'upload' | 'unsplash' | 'url' | 'image-ideas'
+// Stamp the brand mark on every image as it is attached. Fire-and-forget on top
+// of the existing attach so nothing blocks or breaks if the overlay fails — a
+// missing logo is a far smaller problem than a lost attachment. The unbranded
+// URL is kept on the item so it is always reversible.
+async function applyBrandMark(itemId){
+  const it=library.find(x=>x.id===itemId); if(!it) return;
+  const voice=it.voice||currentStream;
+  const cfg=logoFor(voice);
+  if(!cfg.light && !cfg.dark) return;                 // this brand has no mark
+  const urls=getItemImageUrls(it); if(!urls.length) return;
+  it.imageUnbranded=it.imageUnbranded||{};
+  const done=[]; let changed=false;
+  for(const u of urls){
+    if(it.imageUnbranded[u]){ done.push(u); continue; }        // already stamped
+    try{
+      const r=await buildBrandedImage(u, voice);
+      if(!r){ done.push(u); continue; }
+      const f=new File([r.blob], 'branded-'+Date.now()+'.png', {type:'image/png'});
+      const up=await uploadImageToImgBB(f);
+      it.imageUnbranded[up.url]=u;                             // branded -> original
+      done.push(up.url); changed=true;
+    }catch(e){ console.warn('brand mark skipped for an image:', e.message); done.push(u); }
+  }
+  if(!changed) return;
+  it.imageUrls=done; it.selectedImageUrl=done[0]; it.image_url=done[0];
+  persistLibrary(); renderLibrary();
+  if(typeof refreshAllOpenImagePickers==='function') refreshAllOpenImagePickers();
+  showToast('Brand mark added','success');
+}
+// Put the original, unstamped images back.
+function removeBrandMarkFrom(itemId){
+  const it=library.find(x=>x.id===itemId); if(!it||!it.imageUnbranded) return false;
+  const urls=getItemImageUrls(it).map(u=>it.imageUnbranded[u]||u);
+  it.imageUrls=urls; it.selectedImageUrl=urls[0]; it.image_url=urls[0];
+  delete it.imageUnbranded;
+  persistLibrary(); renderLibrary();
+  if(typeof refreshAllOpenImagePickers==='function') refreshAllOpenImagePickers();
+  showToast('Original images restored','success');
+  return true;
+}
+
 function attachImageToLibraryItem(itemId, url, source, credit){
   const it=library.find(x=>x.id===itemId);
   if(!it) return false;
@@ -5931,6 +5986,7 @@ function attachImageToLibraryItem(itemId, url, source, credit){
   if(typeof renderCalendar==='function') renderCalendar();
   // Refresh any open picker instances (they all read from the item)
   refreshAllOpenImagePickers();
+  applyBrandMark(itemId);   // automatic, non-blocking
   return true;
 }
 
@@ -10180,6 +10236,110 @@ function buildPromptForDay(voice, format, spec, fallbackText){
 }
 const WEEKDAY_ORDER = {Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6,Sunday:7};
 // ══════════════════════════════════════════════════════════════════════
+// ── BRAND LOGO OVERLAY ──
+// Stamps the real logo file onto a finished image so it cannot be lifted and
+// reused. NOT an AI job — image models garble logos, which is why the prompt
+// builders forbid drawing them. This composites the actual PNG on a canvas, so
+// it comes out exact every time.
+// Placement is content-aware: a fixed corner covers the subject or the copy
+// sooner or later. Each candidate corner is scored for BUSYNESS (luminance
+// variance); flat regions are empty background, and copy — being high-contrast
+// — scores busy and is avoided for free. Quietest corner wins, and the light or
+// dark logo is chosen from that corner's brightness.
+// R2 sends CORS headers, so the canvas is not tainted and export works.
+const LOGO_KEY='eridion_brand_logos';
+const LOGO_DEFAULTS={scale:0.14, margin:0.035, opacity:0.92};   // scale = logo width as a fraction of image width
+
+function loadLogos(){
+  try{ const o=JSON.parse(localStorage.getItem(LOGO_KEY)||'{}'); return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; }
+}
+function saveLogos(o){
+  try{ localStorage.setItem(LOGO_KEY, JSON.stringify(o)); }
+  catch(e){ showToast('Could not save logo settings (storage full?)','error'); }
+}
+function logoFor(voice){
+  const all=loadLogos(); const v=all[voice||currentStream]||{};
+  return Object.assign({}, LOGO_DEFAULTS, v);
+}
+function setLogoFor(voice, patch){
+  const all=loadLogos();
+  all[voice]=Object.assign({}, all[voice]||{}, patch);
+  saveLogos(all); return all[voice];
+}
+
+// Cross-origin load so the pixels can be read back off the canvas.
+function loadImageCORS(url){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=()=>resolve(img);
+    img.onerror=()=>reject(new Error('could not load image (CORS or 404)'));
+    img.src=url;
+  });
+}
+
+// Mean luminance + variance for a rectangle of the sampled canvas.
+function regionStats(ctx, x, y, w, h){
+  const d=ctx.getImageData(Math.max(0,Math.round(x)),Math.max(0,Math.round(y)),Math.max(1,Math.round(w)),Math.max(1,Math.round(h))).data;
+  let sum=0,sumSq=0,n=0;
+  for(let i=0;i<d.length;i+=4){
+    const lum=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];
+    sum+=lum; sumSq+=lum*lum; n++;
+  }
+  if(!n) return {mean:128, variance:0};
+  const mean=sum/n;
+  return {mean, variance: Math.max(0, sumSq/n - mean*mean)};
+}
+
+// Score every candidate corner; return the quietest.
+function pickLogoSpot(img, boxW, boxH, marginPx){
+  const SAMPLE=240;   // corner emptiness survives downscaling, and this keeps it fast
+  const k=Math.min(1, SAMPLE/Math.max(img.naturalWidth, img.naturalHeight));
+  const sw=Math.max(1,Math.round(img.naturalWidth*k)), sh=Math.max(1,Math.round(img.naturalHeight*k));
+  const c=document.createElement('canvas'); c.width=sw; c.height=sh;
+  const cx=c.getContext('2d',{willReadFrequently:true});
+  cx.drawImage(img,0,0,sw,sh);
+  const bw=boxW*k, bh=boxH*k, m=marginPx*k;
+  const spots=[
+    {name:'bottom-right', x:sw-m-bw, y:sh-m-bh},
+    {name:'bottom-left',  x:m,       y:sh-m-bh},
+    {name:'top-right',    x:sw-m-bw, y:m},
+    {name:'top-left',     x:m,       y:m}
+  ];
+  let best=null;
+  for(const sp of spots){
+    const st=regionStats(cx, sp.x, sp.y, bw, bh);
+    // Mild preference for the bottom when scores are close - a mark is expected
+    // there and reads least like damage.
+    const score = st.variance * (sp.name.indexOf('bottom')===0 ? 0.92 : 1.0);
+    if(!best || score < best.score) best={score, mean:st.mean, variance:st.variance, name:sp.name, x:sp.x/k, y:sp.y/k};
+  }
+  return best;
+}
+
+// Composite and return a PNG Blob. null when the brand has no logo saved.
+async function buildBrandedImage(imageUrl, voice){
+  const cfg=logoFor(voice);
+  if(!cfg.light && !cfg.dark) return null;
+  const img=await loadImageCORS(imageUrl);
+  const W=img.naturalWidth, H=img.naturalHeight;
+  const boxW=Math.round(W*cfg.scale);
+  const marginPx=Math.round(Math.min(W,H)*cfg.margin);
+  let spot=pickLogoSpot(img, boxW, boxW, marginPx);      // square probe first
+  const wantDark = spot.mean > 140;                      // bright corner takes the dark logo
+  const logo=await loadImageCORS(wantDark ? (cfg.dark||cfg.light) : (cfg.light||cfg.dark));
+  const boxH=Math.round(boxW * (logo.naturalHeight/logo.naturalWidth));
+  spot=pickLogoSpot(img, boxW, boxH, marginPx);          // re-score at the true aspect
+  const out=document.createElement('canvas'); out.width=W; out.height=H;
+  const octx=out.getContext('2d');
+  octx.drawImage(img,0,0);
+  octx.globalAlpha=Math.max(0.05,Math.min(1,Number(cfg.opacity)||LOGO_DEFAULTS.opacity));
+  octx.drawImage(logo, Math.round(spot.x), Math.round(spot.y), boxW, boxH);
+  octx.globalAlpha=1;
+  const blob=await new Promise(r=>out.toBlob(r,'image/png'));
+  if(!blob) throw new Error('could not export the branded image');
+  return {blob, spot:spot.name, usedDark:wantDark, variance:Math.round(spot.variance), size:[W,H]};
+}
 // ── BRAND REFERENCE SET ──
 // The cards whose LOOK should be matched, picked per brand voice. This is the
 // durable answer to "start a new ChatGPT session and re-upload the brand
@@ -10233,6 +10393,7 @@ function collectRefCandidates(voice){
 }
 
 function renderRefs(){
+  renderLogoPanel();
   const voice=currentStream;
   const nameEl=document.getElementById('refs-brand-name');
   if(nameEl) nameEl.textContent=(document.querySelector('.stream-btn.'+voice+' .stream-title')||{}).textContent||voice;
@@ -10280,6 +10441,78 @@ function renderRefs(){
           </div>
         </div>`).join('')+`</div>`
     : `<div class="placeholder-card"><p>${library.some(it=>(it.voice||'')===currentStream)?'Every image for this brand has been judged.':'No Library posts with images for this brand yet.'} You can still add favorites with <strong>＋ Add by URL</strong>.</p></div>`;
+}
+
+// ── Brand mark UI (lives on the Brand Refs screen) ──
+function renderLogoPanel(){
+  const cfg=logoFor(currentStream);
+  const slots=document.getElementById('logo-slots'); if(!slots) return;
+  const cell=(kind,label,hint)=>{
+    const url=cfg[kind];
+    return '<div style="width:210px;border:1px solid var(--hairline,#E6E8EC);border-radius:8px;padding:10px">'
+      +'<div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px">'+label+'</div>'
+      +(url
+        ? '<div style="background:'+(kind==='light'?'#1B2A4A':'#EDEFF2')+';border-radius:6px;padding:12px;text-align:center"><img src="'+url+'" style="max-width:100%;max-height:60px"></div>'
+        : '<div style="background:var(--off-white,#F5F6F8);border-radius:6px;padding:22px 10px;text-align:center;font-size:11px;color:var(--text-muted)">none yet</div>')
+      +'<div style="font-size:10px;color:var(--text-muted);margin:6px 0 8px;line-height:1.4">'+hint+'</div>'
+      +'<button class="action-btn" style="width:100%;font-size:11px" onclick="pickLogoFile(&quot;'+kind+'&quot;)">'+(url?'Replace':'Upload')+'</button>'
+      +'</div>';
+  };
+  slots.innerHTML = cell('light','Light logo','For dark photos')+cell('dark','Dark logo','For bright photos');
+  const has=!!(cfg.light||cfg.dark);
+  document.getElementById('logo-controls').style.display = has?'flex':'none';
+  document.getElementById('logo-status').textContent = has
+    ? '· on — stamped on every image attached to '+kbBrandLabel(currentStream)
+    : '· none set for '+kbBrandLabel(currentStream)+' — images are attached untouched';
+  const sc=document.getElementById('logo-scale'), op=document.getElementById('logo-opacity');
+  if(sc){ sc.value=Math.round(cfg.scale*100); document.getElementById('logo-scale-val').textContent=Math.round(cfg.scale*100)+'% of width'; }
+  if(op){ op.value=Math.round(cfg.opacity*100); document.getElementById('logo-opacity-val').textContent=Math.round(cfg.opacity*100)+'%'; }
+}
+function onLogoTune(){
+  const sc=Number(document.getElementById('logo-scale').value)/100;
+  const op=Number(document.getElementById('logo-opacity').value)/100;
+  setLogoFor(currentStream,{scale:sc,opacity:op});
+  document.getElementById('logo-scale-val').textContent=Math.round(sc*100)+'% of width';
+  document.getElementById('logo-opacity-val').textContent=Math.round(op*100)+'%';
+}
+function pickLogoFile(kind){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/png,image/svg+xml,image/webp';
+  inp.onchange=async e=>{
+    const f=e.target.files&&e.target.files[0]; if(!f) return;
+    setStatus('Uploading logo…',true);
+    try{
+      const up=await uploadImageToImgBB(f);
+      setLogoFor(currentStream,{[kind]:up.url});
+      renderLogoPanel();
+      showToast(kbBrandLabel(currentStream)+' '+kind+' logo saved','success');
+    }catch(err){ showToast('Logo upload failed: '+(err.message||err),'error'); }
+    finally{ setStatus('Ready',false); }
+  };
+  inp.click();
+}
+function removeBrandLogo(){
+  if(!confirm('Remove the brand mark for '+kbBrandLabel(currentStream)+'? New images will be attached untouched.')) return;
+  const all=loadLogos(); delete all[currentStream]; saveLogos(all);
+  renderLogoPanel();
+  document.getElementById('logo-preview').innerHTML='';
+  showToast('Brand mark removed','success');
+}
+// Show the result on real photos rather than describing it.
+async function previewLogoOnPhotos(){
+  const box=document.getElementById('logo-preview');
+  box.innerHTML='<div style="font-size:12px;color:var(--text-muted)">Rendering…</div>';
+  try{
+    await loadCatalog();
+    const assets=((CATALOG&&CATALOG.assets)||[]).filter(a=>a.grade==='hero').slice(0,3);
+    if(!assets.length){ box.innerHTML='<div style="font-size:12px;color:var(--text-muted)">No catalog photos to preview on.</div>'; return; }
+    const cards=[];
+    for(const a of assets){
+      const r=await buildBrandedImage(catalogUrl(a,false), currentStream);
+      if(!r) break;
+      cards.push('<div style="width:200px"><img src="'+URL.createObjectURL(r.blob)+'" style="width:100%;border:1px solid var(--hairline,#E6E8EC);border-radius:6px;display:block"><div style="font-size:10px;color:var(--text-muted);margin-top:4px">'+r.spot+' · '+(r.usedDark?'dark':'light')+' logo</div></div>');
+    }
+    box.innerHTML=cards.join('')||'<div style="font-size:12px;color:var(--text-muted)">Upload a logo first.</div>';
+  }catch(e){ box.innerHTML='<div style="font-size:12px;color:var(--red,#b3261e)">Preview failed: '+escapeHTML(String(e.message||e))+'</div>'; }
 }
 
 function refPick(i){
