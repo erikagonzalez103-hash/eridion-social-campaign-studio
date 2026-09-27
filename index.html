@@ -3784,7 +3784,7 @@ const WORKER = 'https://frosty-base-f01e.erikagonzalez103.workers.dev/api/messag
 // UTILITY  = mechanical/structured tasks (SEO + Substack JSON, image queries, briefs) — speed over prose; Opus would be wasted spend.
 // If a CREATIVE (Opus) call errors, the worker may be whitelisting models — enable claude-opus-4-8 there.
 const MODEL_CREATIVE = 'claude-opus-4-8';
-const MODEL_UTILITY = 'claude-sonnet-4-6';
+const MODEL_UTILITY = 'claude-sonnet-5';
 
 // ═══ HARDENED CLAUDE CALL — timeout, retries, real error surfacing ═══
 // The worker proxies Anthropic verbatim: always HTTP 200 with the API's JSON
