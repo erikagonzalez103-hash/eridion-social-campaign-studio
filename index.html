@@ -10293,7 +10293,10 @@ function regionStats(ctx, x, y, w, h){
 
 // Score every candidate corner; return the quietest.
 function pickLogoSpot(img, boxW, boxH, marginPx){
-  const SAMPLE=240;   // corner emptiness survives downscaling, and this keeps it fast
+  // 240 was too coarse: thin, letter-spaced type (an existing wordmark) vanishes
+  // at that scale and the corner scores as flat, so the mark landed on top of it.
+  // Only four small rects are sampled, so a larger working copy costs little.
+  const SAMPLE=1000;
   const k=Math.min(1, SAMPLE/Math.max(img.naturalWidth, img.naturalHeight));
   const sw=Math.max(1,Math.round(img.naturalWidth*k)), sh=Math.max(1,Math.round(img.naturalHeight*k));
   const c=document.createElement('canvas'); c.width=sw; c.height=sh;
@@ -10483,6 +10486,7 @@ function pickLogoFile(kind){
     try{
       const up=await uploadImageToImgBB(f);
       setLogoFor(currentStream,{[kind]:up.url});
+      seedNoWordmarkGuidance(currentStream);
       renderLogoPanel();
       showToast(kbBrandLabel(currentStream)+' '+kind+' logo saved','success');
     }catch(err){ showToast('Logo upload failed: '+(err.message||err),'error'); }
@@ -10490,6 +10494,24 @@ function pickLogoFile(kind){
   };
   inp.click();
 }
+// The image generator keeps DRAWING a wordmark (“ERIDION GLASS” set as type),
+// which both duplicates the real mark and occupies the corner it should go in.
+// Its system instructions live in the worker, so changing them is a production
+// deploy - but brandGuidance is browser-local and is sent with every request.
+// Uploading a logo therefore also tells the generator to stop drawing one.
+const NO_WORDMARK_RULE='Never render the brand name, a wordmark, a logo or any company lettering inside the image. Studio stamps the real logo file on afterwards. Leave one corner visually quiet and uncluttered - the foot of a text panel is ideal - so the real mark has somewhere clean to sit.';
+function seedNoWordmarkGuidance(voice){
+  try{
+    const g=imageGuidance();
+    const cur=String(g[voice]||'');
+    if(cur.indexOf('Never render the brand name')>=0) return false;
+    g[voice]=(cur.trim()?cur.trim()+'\n\n':'')+NO_WORDMARK_RULE;
+    localStorage.setItem(IMAGE_GUIDANCE_KEY, JSON.stringify(g));
+    showToast('Told the image tool to stop drawing a wordmark','success');
+    return true;
+  }catch(e){ return false; }
+}
+
 function removeBrandLogo(){
   if(!confirm('Remove the brand mark for '+kbBrandLabel(currentStream)+'? New images will be attached untouched.')) return;
   const all=loadLogos(); delete all[currentStream]; saveLogos(all);
@@ -10982,7 +11004,13 @@ function imageChatUse(){
       const urls=getItemImageUrls(it);s.undo=s.undo||[];s.undo.push({urls:urls.slice(),source:it.imageSource||'',credit:it.imageCredit||''});
       if(slot==='append'){if(urls.length>=10)throw Error('This post already has ten images. Replace a slide instead.');urls.push(v.url);}else{const n=Number(slot);if(n<0||n>=urls.length)throw Error('Image slot changed. Reopen the post.');urls[n]=v.url;}
       it.imageUrls=urls;it.selectedImageUrl=urls[0];it.image_url=urls[0];it.imageSource='openai';it.imageCredit='';it.imageAttachedAt=Date.now();s.finalId=v.id;
-    });refreshImageChatPost();imageChatNotice('Image selected for this post. Nothing has been sent to Buffer.');
+    });refreshImageChatPost();
+    // imageChatUse writes it.imageUrls directly rather than going through
+    // attachImageToLibraryItem, so the automatic brand mark has to be invoked
+    // here too - otherwise images from the creator tool are the one path that
+    // never gets stamped.
+    applyBrandMark(imageChatPostId);
+    imageChatNotice('Image selected for this post. Nothing has been sent to Buffer.');
   }catch(e){imageChatNotice('Could not save image selection: '+e.message);}
 }
 function imageChatUndo(){
