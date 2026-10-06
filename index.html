@@ -3825,7 +3825,13 @@ async function callClaude(body, onStatus, retries=2){
     // max_tokens is a CEILING, not a charge - billing is on tokens actually
     // generated - so a generous floor costs nothing and prevents truncation.
     // Spin Week alone emits five full snippets as JSON and was capped at 4000.
-    const needsRoom = Array.isArray(body.tools) && body.tools.length ? 16000 : 8000;
+    // Measured, not guessed: a Spin Week call on Opus 5 spent 6,202 tokens
+    // THINKING out of an 8,000 budget - 78% - leaving ~1,800 for five snippets
+    // of JSON, so it truncated mid-output every time. Thinking scales with task
+    // complexity and cannot be known up front, so the ceiling has to be well
+    // clear of it. max_tokens is a CEILING, not a charge, so this costs nothing
+    // when a reply is short. 32000 verified accepted by claude-opus-5.
+    const needsRoom = Array.isArray(body.tools) && body.tools.length ? 32000 : 24000;
     body = Object.assign({}, body, {max_tokens: Math.max(Number(body.max_tokens)||0, needsRoom)});
   }
   let lastErr='';
@@ -3837,7 +3843,11 @@ async function callClaude(body, onStatus, retries=2){
       if(onStatus) onStatus('Retrying…');
     }
     const controller=typeof AbortController!=='undefined'?new AbortController():null;
-    const timer=controller?setTimeout(()=>controller.abort(),120000):null;
+    // Thinking models are materially slower on large generations - a measured
+    // Spin Week run takes ~86s, and a longer source blog means more thinking.
+    // 120s left almost no headroom, so a slow week aborted and looked like a
+    // failure. The status line keeps the user informed while it works.
+    const timer=controller?setTimeout(()=>controller.abort(),240000):null;
     try{
       const response=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller?controller.signal:undefined});
       if(timer) clearTimeout(timer);
