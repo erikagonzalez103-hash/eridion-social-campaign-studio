@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Expanded:wght@500;700&family=Inter:ital,wght@0,400;0,500;1,400;1,500&family=Cinzel:wght@400;500;600&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 /* ====================================================================
    Eridion Studio — Editorial rebrand
@@ -2155,7 +2154,6 @@ textarea { min-height: 80px; line-height: 1.6; }
   padding: 2px 8px;
   border: 1px solid var(--hairline);
 }
-.ii-svg-preview {
   background: var(--navy);
   padding: 0; margin-bottom: 12px;
   aspect-ratio: 1;
@@ -2163,8 +2161,6 @@ textarea { min-height: 80px; line-height: 1.6; }
   overflow: hidden;
   position: relative;
 }
-.ii-svg-preview.landscape { aspect-ratio: 16 / 9; }
-.ii-svg-preview svg { width: 100%; height: 100%; display: block; }
 .ii-concept-body { font-size: 13px; color: var(--medium-gray); line-height: 1.65; margin-bottom: 12px; flex: 1; }
 .ii-concept-body.scroll { max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
 .ii-concept-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
@@ -2297,7 +2293,6 @@ textarea { min-height: 80px; line-height: 1.6; }
 
   /* Image grid on mobile */
   .image-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
-  .ii-svg-preview { aspect-ratio: 1; }
 
   /* SEO package values */
   .seo-package-header { padding: 14px; }
@@ -2826,17 +2821,12 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               <button class="action-btn" onclick="testBufferConnection()" style="flex:1;min-width:120px">🔌 Test Connection</button>
               <button class="action-btn" onclick="fetchBufferChannels()" style="flex:1;min-width:120px;color:var(--navy);border-color:var(--navy)">📡 Fetch My Channels</button>
-              <button class="action-btn" onclick="testLinkedInMention()" style="flex:1;min-width:120px" title="Creates one throwaway post a year out to see whether Buffer&#39;s API turns a LinkedIn Page URL into a real mention">🔗 Test LI Mention</button>
             </div>
             <div id="buffer-status-line" style="margin-top:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;color:var(--medium-gray);min-height:13px"></div>
           </div>
           <div class="field">
             <label class="field-label">Zapier Webhook URL <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(legacy fallback — only used if Buffer Token blank)</span></label>
             <input type="password" id="zapier-webhook" placeholder="https://hooks.zapier.com/hooks/catch/..." />
-          </div>
-          <div class="field">
-            <label class="field-label">ImgBB API Key <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(image hosting for Buffer)</span></label>
-            <input type="password" id="imgbb-key" placeholder="Free key at api.imgbb.com" />
           </div>
           <div style="margin-top:8px;margin-bottom:12px;">
             <button class="action-btn" onclick="saveKeys()" style="width:100%">Save Keys Locally</button>
@@ -5822,7 +5812,7 @@ function selectImage(url,credit,el){
 }
 
 async function handleUpload(e){
-  // Image tab "upload" — uploads each selected file to ImgBB and stores the
+  // Image tab "upload" — uploads each selected file to R2 and stores the
   // public URLs in selectedImageUrls (ordered). selectedImageUrl mirrors the
   // first so all single-image read sites keep working. Selecting several
   // files builds a carousel.
@@ -5833,7 +5823,7 @@ async function handleUpload(e){
   try{
     for(let i=0;i<files.length;i++){
       creditEl.textContent=files.length>1?`Uploading ${i+1} of ${files.length}…`:'Uploading…';
-      const {url, displayUrl}=await uploadImageToImgBB(files[i]);
+      const {url, displayUrl}=await uploadImage(files[i]);
       urls.push(url);
       if(i===0){ prev.src=displayUrl||url; prev.classList.add('visible'); }
     }
@@ -5854,7 +5844,7 @@ async function handleUpload(e){
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ── IMGBB UPLOAD + REUSABLE IMAGE PICKER ───────────────────────────
+// ── IMAGE UPLOAD (R2) + REUSABLE IMAGE PICKER ───────────────────────────
 // ═══════════════════════════════════════════════════════════════════
 // Single source of truth for getting a public image URL onto a library item.
 // Used by: view-post modal, lib-card "🖼 Image" button, Image Ideas modal
@@ -5862,13 +5852,8 @@ async function handleUpload(e){
 // Result URL persists on item.selectedImageUrl so buildBufferPayload can
 // pick it up unchanged.
 
-const IMGBB_ENDPOINT='https://api.imgbb.com/1/upload';
 const ALLOWED_IMG_EXT=/\.(jpe?g|png|webp|gif)$/i;
-const MAX_UPLOAD_BYTES=32*1024*1024; // ImgBB free-tier limit
-
-function getImgBBKey(){
-  return (document.getElementById('imgbb-key')?.value||localStorage.getItem('imgbb_key')||'').trim();
-}
+const MAX_UPLOAD_BYTES=32*1024*1024; // worker /api/upload ceiling
 
 // Primary uploader: host the image on the user's own Cloudflare R2 bucket via
 // the worker's /api/upload route. R2 serves a stable public URL that Buffer AND
@@ -5876,7 +5861,7 @@ function getImgBBKey(){
 // intermittently failed to read. Falls back to ImgBB only if the /api/upload
 // route isn't deployed yet (404) or the worker is unreachable, so nothing
 // breaks before the worker is updated.
-async function uploadImageToImgBB(file){
+async function uploadImage(file){
   if(!file) throw new Error('No file selected');
   if(file.size>MAX_UPLOAD_BYTES) throw new Error('File over 32MB');
   if(!file.type.startsWith('image/')) throw new Error('That doesn\'t look like an image');
@@ -5887,19 +5872,19 @@ async function uploadImageToImgBB(file){
     // Filename rides as a query param (not a custom header) so the request only
     // uses the Content-Type header the worker's CORS already allows — a custom
     // X-Filename header would need to be in the allow-headers list or the
-    // preflight fails and we'd silently fall back to ImgBB.
+    // preflight fails.
     res=await fetch(endpoint,{
       method:'POST',
       headers:{ 'Content-Type': file.type||'image/png' },
       body:file
     });
   }catch(e){
-    // Worker unreachable — fall back to ImgBB so uploads still work.
-    return uploadViaImgBB(file);
+    // Worker unreachable — fail loudly; there is no second host.
+    throw new Error('Image host unreachable (/api/upload). Check the worker; images are not uploaded to ImgBB any more - its URLs were rejected by both Buffer and Wix.');
   }
   if(res.status===404){
-    // /api/upload not deployed yet — fall back to ImgBB.
-    return uploadViaImgBB(file);
+    // /api/upload not reachable.
+    throw new Error('Image host unreachable (/api/upload). Check the worker; images are not uploaded to ImgBB any more - its URLs were rejected by both Buffer and Wix.');
   }
   const json=await res.json().catch(()=>null);
   if(!res.ok || !json || !json.ok || !json.url){
@@ -5909,27 +5894,6 @@ async function uploadImageToImgBB(file){
   return { url: json.url, displayUrl: json.url, deleteUrl: null, thumb: json.url };
 }
 // Legacy ImgBB uploader — kept as a fallback only. Requires the ImgBB key.
-async function uploadViaImgBB(file){
-  const key=getImgBBKey();
-  if(!key){
-    throw new Error('Image host not reachable. Add the /api/upload route to your worker (recommended), or set an ImgBB key in API Keys as a fallback.');
-  }
-  if(file.size>MAX_UPLOAD_BYTES) throw new Error('File over 32MB — ImgBB free tier limit');
-  const fd=new FormData();
-  fd.append('image', file);
-  const res=await fetch(`${IMGBB_ENDPOINT}?key=${encodeURIComponent(key)}`,{ method:'POST', body:fd });
-  const json=await res.json().catch(()=>null);
-  if(!res.ok || !json || !json.success){
-    const msg=json?.error?.message||json?.error||`ImgBB returned ${res.status}`;
-    throw new Error(msg);
-  }
-  return {
-    url: json.data.url,
-    displayUrl: json.data.display_url || json.data.url,
-    deleteUrl: json.data.delete_url || null,
-    thumb: json.data.thumb?.url || json.data.url,
-  };
-}
 
 // Validate a pasted URL: must look like a real http(s) URL pointing to a
 // supported image extension. Buffer requires .jpg/.jpeg/.png/.gif (.webp
@@ -5969,7 +5933,7 @@ async function applyBrandMark(itemId){
       const r=await buildBrandedImage(u, voice, {designed});
       if(!r){ done.push(u); continue; }
       const f=new File([r.blob], 'branded-'+Date.now()+'.png', {type:'image/png'});
-      const up=await uploadImageToImgBB(f);
+      const up=await uploadImage(f);
       it.imageUnbranded[up.url]=u;                             // branded -> original
       done.push(up.url); changed=true;
     }catch(e){ console.warn('brand mark skipped for an image:', e.message); done.push(u); }
@@ -6354,8 +6318,8 @@ async function handleImagePickerUpload(event, itemId, containerId){
   const urls=[];
   try{
     for(let i=0;i<files.length;i++){
-      setP(files.length>1?`Uploading ${i+1} of ${files.length} to ImgBB…`:'Uploading to ImgBB…',false);
-      const {url}=await uploadImageToImgBB(files[i]);
+      setP(files.length>1?`Uploading ${i+1} of ${files.length}…`:'Uploading…',false);
+      const {url}=await uploadImage(files[i]);
       urls.push(url);
     }
     addImagesToLibraryItem(itemId, urls, 'upload', 'Your photo (uploaded '+new Date().toLocaleDateString()+')');
@@ -6971,15 +6935,13 @@ function _persistKeys(){
   const uk=document.getElementById('unsplash-key')?.value;
   const wk=document.getElementById('wix-key')?.value;
   const ws=document.getElementById('wix-site-id')?.value;
-  const zw=document.getElementById('zapier-webhook')?.value;
-  const ib=document.getElementById('imgbb-key')?.value;
   const bt=document.getElementById('buffer-token')?.value;
   const bp=document.getElementById('buffer-proxy-url')?.value;
+  const zw=document.getElementById('zapier-webhook')?.value;   // legacy Buffer fallback, still wired
   if(uk) localStorage.setItem('unsplash_key',uk);
   if(wk) localStorage.setItem('wix_key',wk);
   if(ws) localStorage.setItem('wix_site_id',ws);
   if(zw) localStorage.setItem('zapier_webhook',zw);
-  if(ib) localStorage.setItem('imgbb_key',ib);
   if(bt) localStorage.setItem('buffer_token',bt);
   if(bp) localStorage.setItem('buffer_proxy_url',bp);
   // Channel IDs: write whatever's in the fields (allows manual edit)
@@ -6999,7 +6961,7 @@ function saveKeys(){
 // Wire all key/ID inputs to auto-persist on every keystroke. Idempotent —
 // safe to call multiple times. Called once after loadKeys() at DOM ready.
 function wireAutoSaveKeys(){
-  const ids = ['unsplash-key','wix-key','wix-site-id','zapier-webhook','imgbb-key',
+  const ids = ['unsplash-key','wix-key','wix-site-id',
                'buffer-token','buffer-proxy-url',
                'ch-eridion-li','ch-erika-li','ch-quinta-li','ch-eridion-ig','ch-quinta-ig'];
   ids.forEach(id => {
@@ -7014,14 +6976,12 @@ function loadKeys(){
   const wk=localStorage.getItem('wix_key');
   const ws=localStorage.getItem('wix_site_id');
   const zw=localStorage.getItem('zapier_webhook');
-  const ib=localStorage.getItem('imgbb_key');
   const bt=localStorage.getItem('buffer_token');
   const bp=localStorage.getItem('buffer_proxy_url');
   if(uk) document.getElementById('unsplash-key').value=uk;
   if(wk) document.getElementById('wix-key').value=wk;
-  if(ws) document.getElementById('wix-site-id').value=ws;
   if(zw) document.getElementById('zapier-webhook').value=zw;
-  if(ib && document.getElementById('imgbb-key')) document.getElementById('imgbb-key').value=ib;
+  if(ws) document.getElementById('wix-site-id').value=ws;
   if(bt && document.getElementById('buffer-token')) document.getElementById('buffer-token').value=bt;
   if(bp && document.getElementById('buffer-proxy-url')) document.getElementById('buffer-proxy-url').value=bp;
   try{
@@ -9064,7 +9024,7 @@ async function qpHandleImageUpload(e){
   try{
     for(let i=0;i<files.length;i++){
       statusEl.textContent = files.length>1 ? `Uploading ${i+1} of ${files.length}…` : 'Uploading…';
-      const {url} = await uploadImageToImgBB(files[i]);
+      const {url} = await uploadImage(files[i]);
       urls.push(url);
       if(i===0){
         document.getElementById('qp-image-url').value = url;
@@ -9482,50 +9442,6 @@ async function fetchBufferChannels(){
   }
 }
 
-// Resolve channel ID for a given voice + channel kind. Returns null if not
-// configured, with the caller deciding whether that's a hard error.
-// ── Does Buffer's API convert a pasted LinkedIn Page URL into a real mention? ──
-// Buffer's help centre documents that behaviour for their web COMPOSER; whether
-// the GraphQL API does the same is undocumented, and it decides how the mentions
-// directory has to format LinkedIn posts. So: create one throwaway post a year
-// out, then look at it in Buffer's queue. A mention renders as the company name;
-// no conversion leaves the raw URL sitting there.
-async function testLinkedInMention(){
-  const ch=getBufferChannels();
-  const channelId=ch.eridion_li||ch.quinta_li||ch.erika_li;
-  if(!channelId){ showToast('No LinkedIn channel ID — hit "Fetch My Channels" first','error'); return; }
-  const pageUrl=(window.prompt(
-    'Paste the LinkedIn Page URL of a company to try tagging.\n\n'+
-    'IMPORTANT: LinkedIn only lets a Page tag companies/people who FOLLOW that page, '+
-    'so pick one you know follows you — otherwise a failed tag tells us nothing about the API.\n\n'+
-    'e.g. https://www.linkedin.com/company/quinta-and-co/'
-  )||'').trim();
-  if(!pageUrl) return;
-  if(!/^https?:\/\/(www\.)?linkedin\.com\//i.test(pageUrl)){ showToast('That’s not a linkedin.com URL','error'); return; }
-  const when=new Date(); when.setFullYear(when.getFullYear()+1);
-  const text=`MENTION TEST — delete me.\n\nTagging: ${pageUrl}`;
-  setStatus('Creating test post in Buffer…',true);
-  try{
-    const created=await createBufferPost({channelId, text, scheduledForIso:when.toISOString(), channelKind:'linkedin'});
-    console.log('Buffer mention test — full response:', created);
-    const echoed=(created&&created.text)||'';
-    const converted=echoed && echoed.indexOf(pageUrl)<0;   // URL gone from the echo = something rewrote it
-    showToast(converted
-      ? 'Created — Buffer REWROTE the URL in the returned text. Check the queue to confirm it’s a mention.'
-      : 'Created — Buffer echoed the URL unchanged. Check the queue: raw link = no API conversion.', 'success');
-    window.prompt(
-      'Test post created, scheduled '+when.toLocaleDateString()+'.\n\n'+
-      'NOW: open Buffer’s queue and look at it.\n'+
-      '  • Shows the COMPANY NAME highlighted → the API does convert. \n'+
-      '  • Shows the raw URL → it does not; mentions need Buffer’s composer.\n\n'+
-      'Then DELETE the test post.\n\nText Buffer returned:',
-      echoed||'(no text returned — see console)');
-  }catch(e){
-    console.error('Buffer mention test failed:', e);
-    showToast('Test failed: '+(e&&e.message||e),'error');
-  } finally { setStatus('Ready',false); }
-}
-
 function getChannelIdFor(voice, kind){
   const ch = getBufferChannels();
   if(kind === 'instagram'){
@@ -9589,55 +9505,9 @@ function _composeText(item, channelKind){
 // specific time, optionally with one image attached. Returns the new
 // Buffer post ID on success, throws on failure.
 async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduledForIso, channelKind, igType, firstComment}){
-  // Build the GraphQL mutation. Use variables for everything user-supplied
-  // to avoid escaping issues (especially in the post text).
-  const mutation = `
-    mutation CreatePost($input: CreatePostInput!) {
-      createPost(input: $input) {
-        ... on PostActionSuccess { post { id text } }
-        ... on MutationError { message }
-      }
-    }
-  `;
-  const input = {
-    text,
-    channelId,
-    schedulingType: 'automatic',
-    mode: 'customScheduled',
-    dueAt: scheduledForIso,
-  };
-  // Normalize to an ordered list of image URLs. Accept either a single
-  // imageUrl (back-compat) or an imageUrls array (carousel). Apply platform
-  // constraints:
-  //  • Instagram: a carousel is 2–10 images and only applies to type "post";
-  //    story and reel take a single asset, so trim to the first.
-  //  • LinkedIn: multiple images post fine as a native multi-image post.
-  let mediaUrls = (Array.isArray(imageUrls) && imageUrls.length)
-    ? imageUrls.slice()
-    : (imageUrl ? [imageUrl] : []);
-  if(channelKind==='instagram'){
-    mediaUrls = ((igType||'post')!=='post') ? mediaUrls.slice(0,1) : mediaUrls.slice(0,10);
-  }
-  if(mediaUrls.length){
-    // Buffer API breaking change effective May 25, 2026: assets is an ordered
-    // array [{ image: { url } }]. More than one entry = carousel / multi-image.
-    // See migration guide: developers.buffer.com/guides/assets-input-migration.html
-    input.assets = mediaUrls.map(u=>({ image: { url: u } }));
-  }
-  // Instagram requires metadata.instagram.{type, shouldShareToFeed}. The
-  // type enum is post / story / reel (lowercase). shouldShareToFeed is a
-  // required Boolean. See: developers.buffer.com/types/InstagramPostMetadataInput.html
-  const igTypeValue = (channelKind === 'instagram') ? (igType || 'post') : null;
-  if(igTypeValue){
-    input.metadata = { instagram: { type: igTypeValue, shouldShareToFeed: true } };
-  }
-  // First comment — where the links go, since neither LinkedIn nor Instagram
-  // will hyperlink a company name in the post body.
-  //   LinkedIn  → LinkedInPostMetadataInput.firstComment. Works.
-  //   Instagram → the field exists on InstagramPostMetadataInput, but Buffer's
-  //     own changelog reports it is SILENTLY IGNORED and comes back null. We
-  //     still send it (costs nothing, fixed the day they fix it) and keep the
-  //     manual copy button as the real Instagram path.
+  // NOTE: only `inlineMutation` below is ever sent. A parallel `input` object
+  // and a variables-based `mutation` used to sit here, built and then silently
+  // discarded - editing them changed nothing, which cost a release. Removed.
   // NOTE: the `input` object above is NOT what gets sent — only `inlineMutation`
   // below is. So the metadata literal has to be built here, as a string.
   const fc=(firstComment||'').trim();
@@ -10653,7 +10523,7 @@ function pickLogoFile(kind){
     const f=e.target.files&&e.target.files[0]; if(!f) return;
     setStatus('Uploading logo…',true);
     try{
-      const up=await uploadImageToImgBB(f);
+      const up=await uploadImage(f);
       setLogoFor(currentStream,{[kind]:up.url});
       seedNoWordmarkGuidance(currentStream);
       renderLogoPanel();
@@ -10925,7 +10795,7 @@ async function attachFinishedImage(event, i){
   if(!getImgBBKey()){ showToast('Add your ImgBB key in API Keys','error'); if(typeof toggleKeys==='function') toggleKeys(); event.target.value=''; return; }
   setStatus('Hosting your image…',true);
   try{
-    const {url}=await uploadImageToImgBB(file);
+    const {url}=await uploadImage(file);
     attachImageToLibraryItem(e.itemId, url, 'chatgpt', 'Made in ChatGPT');
     showToast(e.day+' image attached ✓','success');
     renderPromptPack();
