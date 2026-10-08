@@ -11126,7 +11126,9 @@ async function imageChatFormatBrief(it, fmt, note){
 
 async function sendImageChat(options={}){
   if(imageChatBusy)return;
-  const id=imageChatPostId,it=library.find(x=>x.id===id),s=imageChatState(it),message=(options.message||document.getElementById('ic-message').value).trim(),action=options.action||document.getElementById('ic-action').value;
+  const id=imageChatPostId,it=library.find(x=>x.id===id),s=imageChatState(it),action=options.action||document.getElementById('ic-action').value;
+  // let, not const: a selected format REPLACES this with the generated brief.
+  let message=(options.message||document.getElementById('ic-message').value).trim();
   const fmtEl=document.getElementById('ic-format');
   const chosenFmt=(options.format||(fmtEl?fmtEl.value:'freeform'));
   const formatted = action==='create' && chosenFmt && chosenFmt!=='freeform';
