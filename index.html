@@ -2683,7 +2683,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 13:56</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 14:27</span></div>
     </div>
   </header>
 
@@ -3242,7 +3242,7 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div class="panel-title">Brand mark <span id="logo-status" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)"></span></div>
           <div style="background:#F0F4F8;border:1px solid #D9DEE5;border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.6;color:#2f3a45;margin-bottom:16px">
             Stamped onto every image attached to a post for this brand, so it can’t be lifted and reused. The corner is chosen per image — whichever is quietest, so it never lands on the subject or the copy.
-            <div style="margin-top:8px;color:var(--medium-gray);font-size:12px">Upload a <strong>transparent PNG</strong>. Two versions if you have them: a light one for dark photos and a dark one for bright photos — the right one is picked per image. One is fine.</div>
+            <div style="margin-top:8px;color:var(--medium-gray);font-size:12px">Upload the <strong>inline (horizontal) logo</strong> as a <strong>transparent PNG</strong> — it sits centred in a reserved band at the top of designed cards, so a wide lockup reads far better than a stacked one. Two versions if you have them: a light one for dark images and a dark one for bright — the right one is picked per image. One is fine.</div>
           </div>
           <div id="logo-slots" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px"></div>
           <div id="logo-controls" style="display:none;gap:18px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
@@ -5963,7 +5963,9 @@ async function applyBrandMark(itemId){
   for(const u of urls){
     if(it.imageUnbranded[u]){ done.push(u); continue; }        // already stamped
     try{
-      const r=await buildBrandedImage(u, voice);
+      const TYPOGRAPHIC=['quote','stat','infographic','chart','carousel'];
+      const designed = TYPOGRAPHIC.indexOf(it.imageAssetFormat||'')>=0;
+      const r=await buildBrandedImage(u, voice, {designed});
       if(!r){ done.push(u); continue; }
       const f=new File([r.blob], 'branded-'+Date.now()+'.png', {type:'image/png'});
       const up=await uploadImageToImgBB(f);
@@ -10071,7 +10073,7 @@ const ASSET_FORMATS = ['quote','stat','infographic','chart','carousel','stock','
 // Quote Card, Technical Diagram, Data Story, Narrative Carousel).
 const ASSET_FMT_LABEL = {quote:'Editorial quote card',stat:'Data story (stat)',infographic:'Technical diagram',chart:'Data story',carousel:'Narrative carousel',stock:'Editorial photography (stock)',image:'Editorial photography',reel:'🎬 Short-form / Reel'};
 
-const QUALITY_BAR = "You are a senior graphic designer with 10+ years of experience, executing a social brief written by a digital strategist with 15+ years at a top-3 global agency. The result must look ART-DIRECTED and premium: confident visual hierarchy, deliberate asymmetry and composition, refined typography and spacing, depth and texture where it serves the idea, and ONE clear focal point. Never a flat, centered, 'default template' or clip-art look. Editorial, considered, scroll-stopping for the right reasons.\n\nMEET OR EXCEED current premium editorial social standards: design mobile-first — instantly legible at grid-thumbnail size and in bright sunlight (large, bold, wide type; NEVER thin or low-contrast — strong contrast is non-negotiable). Lead with one oversized, confident headline that reads at a glance, set against generous negative space — magazine-cover restraint, never a crowded flyer. Render 1:1 square at high resolution, but compose for a vertical feed: the profile grid crops a square to a centered 3:4 frame, trimming roughly an eighth off EACH side, so keep all critical text and the key subject inside the center three-quarters of the width with comfortable margins, clear of the edges where platform UI overlaps. Crisp, clean export. A genuine thumb-stopper.\n\nTYPE SIZE WINS OVER CONTENT — THIS IS THE MOST IMPORTANT RULE ON THIS BRIEF. Every word given below is a MAXIMUM, not a target. Lay the card out at a type size that is comfortably readable as a small thumbnail on a phone, then see what fits. If it does not all fit at that size, CUT CONTENT — drop the closing line first, then trim the supporting points, then shorten the labels. NEVER reduce the type size to make more copy fit, never tighten leading or tracking to squeeze in another line, and never add a word that was not given to you. A card carrying three elements in big confident type is CORRECT and a card carrying eight elements in small type is a FAILURE, even though the second one says more. When in doubt, leave something out.\n\nMINIMUM TYPE SIZES - THESE ARE HARD FLOORS, NOT SUGGESTIONS. Social graphics are read on a phone at about a third of their true size, so sizes are given as a percentage of the image's HEIGHT and hold at any resolution. Hero number or main headline: 10-16% of image height. Secondary headline: 6-9%. Body and supporting lines: 4-5%. Labels, eyebrows, captions, attributions, CTAs and URLs: 3% MINIMUM. NOTHING on the canvas may be smaller than 3% of the image height - that is roughly 40px on a 1350px-tall post, and it is the smallest type a person can comfortably read on a phone. For reference at 1080x1350: a headline is 110-200px, body is 55-70px, and the smallest label is 40px. If the words will not fit at these sizes, CUT WORDS - never reduce the type below the floor. SAFE AREA - KEEP ALL FOUR EDGES CLEAR. Platforms crop and overlay the edges: Instagram's profile grid centre-crops a 4:5 post to a square, and feed UI, captions and buttons sit over the top and bottom bands. Leave a clear margin with NOTHING in it - no text, no logo, no key subject, no part of a box or rule: at least 8% of the image width on the LEFT and RIGHT, 10% of the height at the TOP, and 12% at the BOTTOM where the caption and controls sit. At 1080x1350 that is roughly 86px left and right, 135px top, 162px bottom. Backgrounds, textures and incidental foliage MAY bleed to the edge - that is what the margin is for; it is the CONTENT that must stay inside. On any 4:5 or taller canvas, also keep the headline, the key figure and the CTA inside the CENTRE SQUARE, so the grid crop never removes them.\n\n";
+const QUALITY_BAR = "You are a senior graphic designer with 10+ years of experience, executing a social brief written by a digital strategist with 15+ years at a top-3 global agency. The result must look ART-DIRECTED and premium: confident visual hierarchy, deliberate asymmetry and composition, refined typography and spacing, depth and texture where it serves the idea, and ONE clear focal point. Never a flat, centered, 'default template' or clip-art look. Editorial, considered, scroll-stopping for the right reasons.\n\nMEET OR EXCEED current premium editorial social standards: design mobile-first — instantly legible at grid-thumbnail size and in bright sunlight (large, bold, wide type; NEVER thin or low-contrast — strong contrast is non-negotiable). Lead with one oversized, confident headline that reads at a glance, set against generous negative space — magazine-cover restraint, never a crowded flyer. Render 1:1 square at high resolution, but compose for a vertical feed: the profile grid crops a square to a centered 3:4 frame, trimming roughly an eighth off EACH side, so keep all critical text and the key subject inside the center three-quarters of the width with comfortable margins, clear of the edges where platform UI overlaps. Crisp, clean export. A genuine thumb-stopper.\n\nTYPE SIZE WINS OVER CONTENT — THIS IS THE MOST IMPORTANT RULE ON THIS BRIEF. Every word given below is a MAXIMUM, not a target. Lay the card out at a type size that is comfortably readable as a small thumbnail on a phone, then see what fits. If it does not all fit at that size, CUT CONTENT — drop the closing line first, then trim the supporting points, then shorten the labels. NEVER reduce the type size to make more copy fit, never tighten leading or tracking to squeeze in another line, and never add a word that was not given to you. A card carrying three elements in big confident type is CORRECT and a card carrying eight elements in small type is a FAILURE, even though the second one says more. When in doubt, leave something out.\n\nMINIMUM TYPE SIZES - THESE ARE HARD FLOORS, NOT SUGGESTIONS. Social graphics are read on a phone at about a third of their true size, so sizes are given as a percentage of the image's HEIGHT and hold at any resolution. Hero number or main headline: 10-16% of image height. Secondary headline: 6-9%. Body and supporting lines: 4-5%. Labels, eyebrows, captions, attributions, CTAs and URLs: 3% MINIMUM. NOTHING on the canvas may be smaller than 3% of the image height - that is roughly 40px on a 1350px-tall post, and it is the smallest type a person can comfortably read on a phone. For reference at 1080x1350: a headline is 110-200px, body is 55-70px, and the smallest label is 40px. If the words will not fit at these sizes, CUT WORDS - never reduce the type below the floor. SAFE AREA - KEEP ALL FOUR EDGES CLEAR. Platforms crop and overlay the edges: Instagram's profile grid centre-crops a 4:5 post to a square, and feed UI, captions and buttons sit over the top and bottom bands. Reserve the TOP band for the brand mark: the studio stamps the real logo centred there afterwards, so leave it genuinely empty - no headline, no rule, no decoration creeping up into it. Leave a clear margin with NOTHING in it - no text, no logo, no key subject, no part of a box or rule: at least 8% of the image width on the LEFT and RIGHT, 10% of the height at the TOP, and 12% at the BOTTOM where the caption and controls sit. At 1080x1350 that is roughly 86px left and right, 135px top, 162px bottom. Backgrounds, textures and incidental foliage MAY bleed to the edge - that is what the margin is for; it is the CONTENT that must stay inside. On any 4:5 or taller canvas, also keep the headline, the key figure and the CTA inside the CENTRE SQUARE, so the grid crop never removes them.\n\n";
 
 // Brand "style briefs" injected into gpt-image-1 prompts so generated images/infographics
 // come out on-brand automatically — the studio equivalent of "my ChatGPT has my guidelines."
@@ -10305,9 +10307,10 @@ const WEEKDAY_ORDER = {Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturd
 // dark logo is chosen from that corner's brightness.
 // R2 sends CORS headers, so the canvas is not tainted and export works.
 const LOGO_KEY='eridion_brand_logos';
-// margin was 0.035, which puts the stamp INSIDE the band platforms crop and
-// overlay - the same safe area the card prompts now mandate. 0.08 clears it.
-const LOGO_DEFAULTS={scale:0.14, margin:0.08, opacity:0.92};   // scale = logo width as a fraction of image width
+// margin 0.08 clears the band platforms crop and overlay. scale was 0.14, which
+// rendered a wide inline wordmark tiny enough to read as an afterthought; 0.26
+// of the canvas width gives it the presence of a masthead.
+const LOGO_DEFAULTS={scale:0.26, margin:0.08, opacity:0.95};   // scale = logo width as a fraction of image width
 
 function loadLogos(){
   try{ const o=JSON.parse(localStorage.getItem(LOGO_KEY)||'{}'); return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; }
@@ -10421,18 +10424,40 @@ function knockOutLogoBackground(img){
 }
 
 // Composite and return a PNG Blob. null when the brand has no logo saved.
-async function buildBrandedImage(imageUrl, voice){
+async function buildBrandedImage(imageUrl, voice, opts){
+  opts=opts||{};
   const cfg=logoFor(voice);
   if(!cfg.light && !cfg.dark) return null;
   const img=await loadImageCORS(imageUrl);
   const W=img.naturalWidth, H=img.naturalHeight;
   const boxW=Math.round(W*cfg.scale);
   const marginPx=Math.round(Math.min(W,H)*cfg.margin);
-  let spot=pickLogoSpot(img, boxW, boxW, marginPx);      // square probe first
-  const wantDark = spot.mean > 140;                      // bright corner takes the dark logo
+  // A composed card is not a photograph. Hunting for the quietest CORNER made the
+  // mark look dropped on afterwards, because the card was designed without
+  // knowing one was coming. Designed formats get a fixed TOP-CENTRE position in a
+  // band the prompt reserves, so it reads as a masthead rather than a sticker.
+  // Photographs keep the content-aware corner search, where a corner mark is the
+  // idiom and a fixed position would land on the subject.
+  const designed = !!opts.designed;
+  let spot = designed ? null : pickLogoSpot(img, boxW, boxW, marginPx);   // square probe first
+  // For a fixed top-centre mark, read the brightness of the band it will sit in.
+  const bandMean = designed ? regionStats(
+      (()=>{ const c=document.createElement('canvas'); c.width=W; c.height=H;
+             const x=c.getContext('2d',{willReadFrequently:true}); x.drawImage(img,0,0); return x; })(),
+      W*0.3, Math.max(0,(H>W? (H-W)/2 : 0)) + marginPx*0.5, W*0.4, boxW*0.4).mean
+    : spot.mean;
+  const wantDark = bandMean > 140;
   const logo=await loadImageCORS(wantDark ? (cfg.dark||cfg.light) : (cfg.light||cfg.dark));
   const boxH=Math.round(boxW * (logo.naturalHeight/logo.naturalWidth));
-  spot=pickLogoSpot(img, boxW, boxH, marginPx);          // re-score at the true aspect
+  if(designed){
+    // Centre it, and sit it just below the 1:1 crop line on any taller canvas -
+    // Instagram's profile grid removes the top 10% of a 4:5 post, so a mark in the
+    // very top band survives the feed and vanishes from the grid.
+    const cropTop = H>W ? (H-W)/2 : 0;
+    spot = {name:'top-centre', x:(W-boxW)/2, y: cropTop + Math.round(marginPx*0.6), mean:bandMean, variance:0};
+  } else {
+    spot=pickLogoSpot(img, boxW, boxH, marginPx);        // re-score at the true aspect
+  }
   const out=document.createElement('canvas'); out.width=W; out.height=H;
   const octx=out.getContext('2d');
   octx.drawImage(img,0,0);
@@ -11224,7 +11249,7 @@ async function imageChatFormatBrief(it, fmt, note){
   // the brand brief as context.brandBrief and carries its own quality rules - and
   // together they push the message past the server's hard 4,000-character limit
   // (backend/image-chat.js). Strip them, keep the one rule that is genuinely ours.
-  const TYPE_RULE='MINIMUM TYPE SIZES - THESE ARE HARD FLOORS, NOT SUGGESTIONS. Social graphics are read on a phone at about a third of their true size, so sizes are given as a percentage of the image’s HEIGHT and hold at any resolution. Hero number or main headline: 10-16% of image height. Secondary headline: 6-9%. Body and supporting lines: 4-5%. Labels, eyebrows, captions, attributions, CTAs and URLs: 3% MINIMUM. NOTHING on the canvas may be smaller than 3% of the image height - that is roughly 40px on a 1350px-tall post, and it is the smallest type a person can comfortably read on a phone. For reference at 1080x1350: a headline is 110-200px, body is 55-70px, and the smallest label is 40px. If the words will not fit at these sizes, CUT WORDS - never reduce the type below the floor. SAFE AREA - KEEP ALL FOUR EDGES CLEAR. Platforms crop and overlay the edges: Instagram’s profile grid centre-crops a 4:5 post to a square, and feed UI, captions and buttons sit over the top and bottom bands. Leave a clear margin with NOTHING in it - no text, no logo, no key subject, no part of a box or rule: at least 8% of the image width on the LEFT and RIGHT, 10% of the height at the TOP, and 12% at the BOTTOM where the caption and controls sit. At 1080x1350 that is roughly 86px left and right, 135px top, 162px bottom. Backgrounds, textures and incidental foliage MAY bleed to the edge - that is what the margin is for; it is the CONTENT that must stay inside. On any 4:5 or taller canvas, also keep the headline, the key figure and the CTA inside the CENTRE SQUARE, so the grid crop never removes them.';
+  const TYPE_RULE='MINIMUM TYPE SIZES - THESE ARE HARD FLOORS, NOT SUGGESTIONS. Social graphics are read on a phone at about a third of their true size, so sizes are given as a percentage of the image’s HEIGHT and hold at any resolution. Hero number or main headline: 10-16% of image height. Secondary headline: 6-9%. Body and supporting lines: 4-5%. Labels, eyebrows, captions, attributions, CTAs and URLs: 3% MINIMUM. NOTHING on the canvas may be smaller than 3% of the image height - that is roughly 40px on a 1350px-tall post, and it is the smallest type a person can comfortably read on a phone. For reference at 1080x1350: a headline is 110-200px, body is 55-70px, and the smallest label is 40px. If the words will not fit at these sizes, CUT WORDS - never reduce the type below the floor. SAFE AREA - KEEP ALL FOUR EDGES CLEAR. Platforms crop and overlay the edges: Instagram’s profile grid centre-crops a 4:5 post to a square, and feed UI, captions and buttons sit over the top and bottom bands. Reserve the TOP band for the brand mark: the studio stamps the real logo centred there afterwards, so leave it genuinely empty - no headline, no rule, no decoration creeping up into it. Leave a clear margin with NOTHING in it - no text, no logo, no key subject, no part of a box or rule: at least 8% of the image width on the LEFT and RIGHT, 10% of the height at the TOP, and 12% at the BOTTOM where the caption and controls sit. At 1080x1350 that is roughly 86px left and right, 135px top, 162px bottom. Backgrounds, textures and incidental foliage MAY bleed to the edge - that is what the margin is for; it is the CONTENT that must stay inside. On any 4:5 or taller canvas, also keep the headline, the key figure and the CTA inside the CENTRE SQUARE, so the grid crop never removes them.';
   let brief = buildPromptForDay(voice, chosen, specFromDecision(d), text);
   brief = brief.split(QUALITY_BAR).join('');
   const bb = BRAND_IMAGE_BRIEFS[voice];
@@ -11268,6 +11293,7 @@ async function sendImageChat(options={}){
     try{
       const b=await imageChatFormatBrief(it, chosenFmt, message);
       message=b.brief;
+      try{ imageChatCommit(id,n=>{ n.imageAssetFormat=b.format; }); }catch(_){}
       formatNote=(ASSET_FMT_LABEL[b.format]||b.format)+(b.rationale?' — '+b.rationale:'');
     }catch(e){ imageChatBusy=false; document.getElementById('ic-send').disabled=false; imageChatNotice('Could not build the brief: '+e.message); return; }
     imageChatBusy=false; document.getElementById('ic-send').disabled=false;
