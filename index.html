@@ -10958,6 +10958,22 @@ function imageChatSuggestionKey(it){
   let hash=2166136261;for(let i=0;i<value.length;i++)hash=Math.imul(hash^value.charCodeAt(i),16777619);
   return String(hash>>>0);
 }
+// The suggestion and every create carry the post's prior conversation, so once a
+// direction is established everything after it 'picks up where we left off'.
+// This clears that thread so the next idea is read from the post copy alone. The
+// images already attached to the post are untouched - only the conversation goes.
+function resetImageChatThread(){
+  const it=library.find(x=>x.id===imageChatPostId); if(!it) return;
+  const n=((it.imageChat||{}).versions||[]).length;
+  if(!confirm('Forget this post’s image conversation and start from the post copy alone?'+(n?('\n\n'+n+' generated version'+(n===1?'':'s')+' will be cleared from the panel. Any image already attached to the post stays attached.'):'')))return;
+  try{
+    imageChatCommit(imageChatPostId,next=>{ next.imageChat={turns:[],versions:[],activeId:null,pending:null,undo:[],suggestion:'',suggestionKey:''}; });
+  }catch(e){ imageChatNotice('Could not reset: '+e.message); return; }
+  renderImageChat();
+  imageChatNotice('Cleared. Reading the post fresh…');
+  suggestImageChat();
+}
+
 async function suggestImageChat(){
   if(imageChatBusy)return;
   const it=library.find(x=>x.id===imageChatPostId);
@@ -10992,7 +11008,7 @@ function imageChatMount(){
   <label class="ic-check"><input id="ic-reviewed" type="checkbox">I checked the copy, logo, margins and connection to the source blog.</label>
   <div class="ic-controls"><button class="action-btn" id="ic-use" onclick="imageChatUse()">Use for this post</button><button class="action-btn" id="ic-undo" onclick="imageChatUndo()">Undo image selection</button></div>
   <details><summary class="ic-label">Source &amp; brand context</summary><div id="ic-source" class="ic-source"></div></details></section>
-  <section aria-label="Image conversation"><div class="ic-idea"><h3>A starting idea for this post</h3><div id="ic-idea-copy" class="ic-idea-copy" aria-live="polite"></div><div class="ic-controls"><button class="action-btn" id="ic-create-idea" onclick="createImageChatIdea()">Create this idea</button><button class="action-btn" id="ic-suggest" onclick="suggestImageChat()">Suggest another direction</button></div></div><div id="ic-thread" class="ic-thread" role="log" aria-live="polite"></div>
+  <section aria-label="Image conversation"><div class="ic-idea"><h3>A starting idea for this post</h3><div id="ic-idea-copy" class="ic-idea-copy" aria-live="polite"></div><div class="ic-controls"><button class="action-btn" id="ic-create-idea" onclick="createImageChatIdea()">Create this idea</button><button class="action-btn" id="ic-suggest" onclick="suggestImageChat()">Suggest another direction</button><button class="action-btn" onclick="resetImageChatThread()" title="Forget this post’s image conversation and start from the post copy alone">↺ Start fresh</button></div></div><div id="ic-thread" class="ic-thread" role="log" aria-live="polite"></div>
   <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea>
   <div class="ic-controls"><select id="ic-action" aria-label="Image action"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-format" aria-label="Asset format" title="What KIND of asset to make"><option value="auto">✦ Format: Auto — read the post and choose</option><option value="image">Editorial photo</option><option value="quote">Quote card</option><option value="stat">Stat card</option><option value="infographic">Infographic / diagram</option><option value="chart">Chart (real numbers)</option><option value="carousel">Carousel slide</option><option value="reel">Reel cover frame</option><option value="freeform">Free-form — my words only</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
   <div class="ic-controls"><button class="action-btn" id="ic-send" onclick="sendImageChat()">Send</button><button class="action-btn" id="ic-recover" onclick="recoverImageChat()" hidden>Check last request</button><button class="action-btn" id="ic-save-recovery" onclick="saveImageChatRecovery()" hidden>Save returned version</button></div>
@@ -11185,7 +11201,13 @@ async function sendImageChat(options={}){
     imageChatBusy=false; document.getElementById('ic-send').disabled=false;
   }
   const pending={requestId:crypto.randomUUID(),message,action,baseId:base?.id||null,startedAt:Date.now(),kind:options.kind||'chat',suggestionKey:action==='discuss'?imageChatSuggestionKey(it):null};
-  const payload={...pending,voice:imageVisualVoice(it),baseUrl:base?.url||null,size:document.getElementById('ic-size').value,context:imageChatContext(it),references:getBrandRefs(imageVisualVoice(it)),history:s.turns};
+  // A format brief is self-contained and deliberately a NEW direction. Sending
+  // the prior conversation with it drags the answer straight back to whatever
+  // was already on the post - the art director reads ten turns about a cream
+  // still-life and 'builds on the existing still life' again. Withhold history
+  // (and any base image) for a formatted create; keep both for everything else,
+  // where continuity is the point.
+  const payload={...pending,voice:imageVisualVoice(it),baseUrl:formatted?null:(base?.url||null),size:document.getElementById('ic-size').value,context:imageChatContext(it),references:getBrandRefs(imageVisualVoice(it)),history:formatted?[]:s.turns};
   try{imageChatCommit(id,next=>{next.imageChat.pending=pending;});}catch(e){imageChatNotice('Could not save this request; nothing was sent: '+e.message);return;}
   imageChatBusy=true;document.getElementById('ic-send').disabled=true;renderImageChat();imageChatNotice(action==='discuss'?'Thinking through the post…':('Creating your image'+(formatNote?' — '+formatNote:'')+'. This can take a few minutes; keep this window open.'));
   try{
