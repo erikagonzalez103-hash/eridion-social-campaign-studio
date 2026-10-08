@@ -11120,7 +11120,18 @@ async function imageChatFormatBrief(it, fmt, note){
   const data=await callClaude({model:MODEL_CREATIVE,max_tokens:3000,messages:[{role:'user',content:prompt}]});
   const d=extractJSONFromResponse(data);
   const chosen = picking ? (ASSET_FORMATS.includes(d.format)?d.format:'image') : fmt;
-  const brief = buildPromptForDay(voice, chosen, specFromDecision(d), text);
+  // buildPromptForDay() front-loads QUALITY_BAR and BRAND_IMAGE_BRIEFS[voice] for
+  // the clipboard/ChatGPT path. Both are redundant here - the worker already gets
+  // the brand brief as context.brandBrief and carries its own quality rules - and
+  // together they push the message past the server's hard 4,000-character limit
+  // (backend/image-chat.js). Strip them, keep the one rule that is genuinely ours.
+  const TYPE_RULE='TYPE SIZE WINS OVER CONTENT: lay the piece out at a size that is comfortably readable as a phone-sized thumbnail, then CUT content to fit. Never shrink the type to fit more words in. Render every word given exactly and spell it correctly.';
+  let brief = buildPromptForDay(voice, chosen, specFromDecision(d), text);
+  brief = brief.split(QUALITY_BAR).join('');
+  const bb = BRAND_IMAGE_BRIEFS[voice];
+  if(bb) brief = brief.split(bb).join('');
+  brief = TYPE_RULE + '\n\n' + brief.trim();
+  if(brief.length>3900) brief = brief.slice(0,3900).replace(/\s+\S*$/,'');   // server rejects >4000
   return {format:chosen, rationale:String(d.rationale||''), brief};
 }
 
