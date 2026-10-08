@@ -11130,7 +11130,17 @@ async function imageChatFormatBrief(it, fmt, note){
   brief = brief.split(QUALITY_BAR).join('');
   const bb = BRAND_IMAGE_BRIEFS[voice];
   if(bb) brief = brief.split(bb).join('');
-  brief = TYPE_RULE + '\n\n' + brief.trim();
+  // The worker does not pass this straight to the image model - it is an art
+  // director that WEIGHS this message against context.brandBrief. Quinta's brief
+  // says 'PRIMARY visual language: quiet EDITORIAL PHOTOGRAPHY', and that was
+  // beating the format instruction: every request came back as the same cream
+  // still-life with no copy on it. A typographic format has to say outright that
+  // the brand's photography default does not apply to THIS piece.
+  const TYPOGRAPHIC = ['quote','stat','infographic','chart','carousel'];
+  const assertion = TYPOGRAPHIC.indexOf(chosen)>=0
+    ? 'MAKE A '+String(ASSET_FMT_LABEL[chosen]||chosen).toUpperCase()+'. This is a DESIGNED TYPOGRAPHIC PIECE, not a photograph. The words specified below MUST appear in the image, rendered as the subject - an image with no text on it is a failed result. Where the brand brief names photography as its primary visual language, that does NOT apply to this piece: follow the brand for palette, type and restraint only. Do not substitute a still-life, a desk scene or any photograph for the card.'
+    : 'MAKE A PHOTOGRAPHIC IMAGE in this brand. Do not render headlines, captions or any overlaid copy on it.';
+  brief = assertion + '\n\n' + TYPE_RULE + '\n\n' + brief.trim();
   if(brief.length>3900) brief = brief.slice(0,3900).replace(/\s+\S*$/,'');   // server rejects >4000
   return {format:chosen, rationale:String(d.rationale||''), brief};
 }
