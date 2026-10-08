@@ -2683,7 +2683,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 14:27</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 14:30</span></div>
     </div>
   </header>
 
@@ -10310,7 +10310,11 @@ const LOGO_KEY='eridion_brand_logos';
 // margin 0.08 clears the band platforms crop and overlay. scale was 0.14, which
 // rendered a wide inline wordmark tiny enough to read as an afterthought; 0.26
 // of the canvas width gives it the presence of a masthead.
-const LOGO_DEFAULTS={scale:0.26, margin:0.08, opacity:0.95};   // scale = logo width as a fraction of image width
+// heightScale drives the size: a 12:1 inline lockup sized by WIDTH comes out
+// only ~1.7% of the canvas height - below the 3% floor the type rules demand,
+// and unreadable on a phone. Size by height, then cap the width so a long
+// lockup cannot run the full canvas.
+const LOGO_DEFAULTS={heightScale:0.028, maxWidth:0.44, minWidth:0.13, margin:0.08, opacity:0.95};
 
 function loadLogos(){
   try{ const o=JSON.parse(localStorage.getItem(LOGO_KEY)||'{}'); return (o&&typeof o==='object')?o:{}; }catch(e){ return {}; }
@@ -10430,7 +10434,7 @@ async function buildBrandedImage(imageUrl, voice, opts){
   if(!cfg.light && !cfg.dark) return null;
   const img=await loadImageCORS(imageUrl);
   const W=img.naturalWidth, H=img.naturalHeight;
-  const boxW=Math.round(W*cfg.scale);
+  let boxW=Math.round(W*0.26);   // provisional, re-derived from the logo's aspect below
   const marginPx=Math.round(Math.min(W,H)*cfg.margin);
   // A composed card is not a photograph. Hunting for the quietest CORNER made the
   // mark look dropped on afterwards, because the card was designed without
@@ -10448,7 +10452,15 @@ async function buildBrandedImage(imageUrl, voice, opts){
     : spot.mean;
   const wantDark = bandMean > 140;
   const logo=await loadImageCORS(wantDark ? (cfg.dark||cfg.light) : (cfg.light||cfg.dark));
-  const boxH=Math.round(boxW * (logo.naturalHeight/logo.naturalWidth));
+  // Size from the logo's own aspect: target a readable HEIGHT, then clamp width.
+  const aspect = logo.naturalWidth/Math.max(1,logo.naturalHeight);
+  let boxH2 = Math.round(H * (cfg.heightScale||LOGO_DEFAULTS.heightScale));
+  let boxW2 = Math.round(boxH2 * aspect);
+  const capW = W*(cfg.maxWidth||LOGO_DEFAULTS.maxWidth);
+  const floorW = W*(cfg.minWidth||LOGO_DEFAULTS.minWidth);
+  if(boxW2 > capW){ boxW2 = Math.round(capW); boxH2 = Math.round(boxW2/aspect); }
+  if(boxW2 < floorW){ boxW2 = Math.round(floorW); boxH2 = Math.round(boxW2/aspect); }
+  boxW = boxW2; const boxH = boxH2;
   if(designed){
     // Centre it, and sit it just below the 1:1 crop line on any taller canvas -
     // Instagram's profile grid removes the top 10% of a 4:5 post, so a mark in the
