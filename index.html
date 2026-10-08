@@ -2683,7 +2683,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 13:28</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 13:39</span></div>
     </div>
   </header>
 
@@ -10106,13 +10106,13 @@ function brandInfographicPrompt(voice, spec, fallbackText){
   // its label ship in one instruction but land on the card as two separate strings.
   const elementCount=[head, (spec.hero_stat||spec.stat_number), (spec.sub_label||spec.stat_label), (pts.length?'':closing)].filter(Boolean).length+pts.length;
   L.push("TEXT BUDGET: this card carries EXACTLY "+elementCount+" text element"+(elementCount===1?"":"s")+" — the ones listed above and NOTHING else. Do not add a title, a caption, a tagline, a source line, a URL, a date, or filler labels. Use only the words given, render EACH one EXACTLY and spelled correctly (double-check: LIGHT, frameless, antiqued, transmission), no invented words, no stray dashes before numbers.");
-  L.push("Set those "+elementCount+" element"+(elementCount===1?"":"s")+" LARGE — the headline and any number should be big enough to read at a glance in a phone feed without zooming. If they will not all fit at that size, drop the closing line, then the smallest point, until they do. Lots of calm space is the goal, not a fault. Output the finished card only — no UI, and no rendered logo/wordmark (a small hand-drawn sprout is fine for Quinta).");
+  L.push("Set those "+elementCount+" element"+(elementCount===1?"":"s")+" LARGE — the headline and any number should be big enough to read at a glance in a phone feed without zooming. If they will not all fit at that size, cut the smallest supporting point first, then SHORTEN the closing line — do not delete it: on a stat card that line is what makes the number mean anything without the caption. The number and that line are the last two things standing. Lots of calm space is the goal, not a fault. Output the finished card only — no UI, and no rendered logo/wordmark (a small hand-drawn sprout is fine for Quinta).");
   return L.join("\n");
 }
 // Per-format field definitions + the day-spec JSON shape — shared by the
 // weekly arc prompt AND the per-day format-override prompt so they never drift.
 const ARC_FORMAT_DEFS=`- "quote": a single sharp line from the post works as a pull-quote card. Fields: quote_text (<=110 chars, drawn from the post — a quote long enough to need small type is the wrong quote; find the sharpest fragment, not the fullest sentence), attribution (the author/brand name, or "").
-- "stat": the day centers on ONE number or result. The number is the whole card — it should fill it. Fields: stat_number (the figure alone, e.g. "72%", "3×", "$1M+", "24 in"), stat_label (UPPERCASE, <=24 chars, what it measures — NOT a sentence). Optionally closing_line (<=8 words, a single short sign-off; omit it unless it genuinely lands). THREE text elements maximum. Do not restate the number in words, do not add a headline above it.
+- "stat": the day turns on ONE number — but a number alone is a decoration, not a stat card. It MUST read as a complete thought to someone who never sees the caption. Fields: stat_number (the figure alone, e.g. "16×", "72%", "$3,500"), stat_label (UPPERCASE, <=28 chars, what the figure MEASURES — not a sentence), and closing_line (REQUIRED, <=14 words): the line that makes the number mean something standing alone — the comparison it is against, or the consequence of it. "16×" + "SAME PILE OF RECEIPTS" fails this test: sixteen times WHAT? Write instead the version that lands cold: e.g. hero "$3,500", label "A YEAR BEHIND", closing "The same receipts cost $300 if you file them now." Four text elements, no more. Do not restate the number in words and do not add a second headline above it.
 - "infographic": the day lists a FEW discrete points or standards. Fields: infographic_title (<=40 chars — the claim, UPPERCASE), infographic_points = array of EXACTLY 2-3 {"value" (<=8 chars), "label" (<=4 words)}. Three points is the ceiling, not the goal — two well-chosen points beat three padded ones. If the post offers five points, pick the best 2-3 and DROP the rest; a crowded card is worse than an incomplete one. Do not add a closing line to this format.
 - "chart": the day compares 2-4 numbers (e.g. 91% vs 83% light transmission, or a before/after). PREFER this over stat/infographic whenever the point is a quantitative comparison — it's rendered as a real, accurate bar chart. Fields: chart_headline (the SCROLL-STOPPING hook/takeaway, <=8 words — the story, NOT the metric name; e.g. "The clarity the high end now notices"), chart_title (the small metric label/eyebrow, e.g. "Visible light transmitted", <=30 chars), chart_items = array of 2-3 {"label","value"} (value like "91%" or "20 yrs"; label 1-2 words), chart_caption (OPTIONAL, <=12 words — the "so what"; omit it entirely rather than padding, and never write two sentences).
 - "carousel": the day tells a LONGER story worth multiple slides — a step-by-step, a before/after, a 3-part argument. Carousels earn more clicks, so use one when a day genuinely has a sequence (not every day). Fields: carousel_slides = array of 3-5 {"slide_title" (<=6 words), "slide_body" (<=12 words)}, building a clear narrative across slides. A slide is a billboard, not a paragraph — if a thought needs 20 words, split it across two slides or cut it. For Quinta & Co / Practice voice days, shape the carousel as Q&A pairs (GEO playbook): slide 1 poses the question the post answers, slide 2 states the answer plainly, later slides deepen it.
@@ -10993,6 +10993,30 @@ async function createImageChatIdea(){
   // and discard the direction she just approved.
   return sendImageChat({action:'create',format:'freeform',message:'Create one image from this suggested direction. Preserve the post’s original payoff and the supplied brand guidance.\n\n'+idea});
 }
+// Was an <a target=_blank> pointing at the R2 URL. R2 serves PNGs inline and the
+// download attribute is ignored cross-origin, so it opened the image in a tab
+// instead of saving it. Fetch the bytes and save a same-origin blob instead.
+async function downloadImageChatVersion(){
+  const it=library.find(x=>x.id===imageChatPostId); if(!it) return;
+  const st=imageChatState(it), v=st.versions.find(x=>x.id===st.activeId);
+  if(!v){ imageChatNotice('Choose a version first.'); return; }
+  const url=imageChatSafeUrl(v.url);
+  if(!url){ imageChatNotice('That image has no usable URL.'); return; }
+  imageChatNotice('Downloading…');
+  try{
+    const r=await fetch(url,{mode:'cors'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const blob=await r.blob();
+    const href=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const slug=String(it.title||'image').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50);
+    a.href=href; a.download=(slug||'image')+'-'+(v.label||v.id||'version')+'.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(href),10000);
+    imageChatNotice('Downloaded.');
+  }catch(e){ imageChatNotice('Download failed: '+e.message+' — right-click the image and Save image as…'); }
+}
+
 function imageChatNotice(message){document.getElementById('ic-status').textContent=message;}
 function imageChatSafeUrl(url){try{const u=new URL(url);return u.protocol==='https:'?u.href:'';}catch(_){return '';}}
 function imageChatMount(){
@@ -11006,7 +11030,7 @@ function imageChatMount(){
   const dialog=document.createElement('dialog'); dialog.id='image-chat-dialog';
   dialog.innerHTML=`<div class="ic-head"><div><h2 id="ic-title">Create / Revise image</h2><div id="ic-meta" class="ic-meta"></div></div><button class="action-btn" onclick="closeImageChat()">Close</button></div>
   <div class="ic-grid"><section aria-label="Post and image versions"><div class="ic-post"><h3>Your original post</h3><div id="ic-post-copy" class="ic-post-copy"></div></div><div id="ic-preview"></div><div id="ic-versions" class="ic-versions" aria-label="Saved versions"></div>
-  <div class="ic-controls"><button class="action-btn" id="ic-compare-button" onclick="imageChatCompare()">Compare before / after</button><a id="ic-download" class="action-btn" target="_blank" rel="noopener">Open / download</a></div><div id="ic-comparison"></div>
+  <div class="ic-controls"><button class="action-btn" id="ic-compare-button" onclick="imageChatCompare()">Compare before / after</button><button id="ic-download" class="action-btn" onclick="downloadImageChatVersion()">Download</button></div><div id="ic-comparison"></div>
   <label class="ic-label" for="ic-slot">Use this version as</label><select id="ic-slot" style="width:100%;padding:8px"></select>
   <label class="ic-check"><input id="ic-reviewed" type="checkbox">I checked the copy, logo, margins and connection to the source blog.</label>
   <div class="ic-controls"><button class="action-btn" id="ic-use" onclick="imageChatUse()">Use for this post</button><button class="action-btn" id="ic-undo" onclick="imageChatUndo()">Undo image selection</button></div>
@@ -11065,7 +11089,7 @@ function renderImageChat(){
   document.getElementById('ic-use').disabled=!active||imageChatBusy;
   document.getElementById('ic-undo').disabled=!state.undo?.length||imageChatBusy;
   document.getElementById('ic-compare-button').disabled=!active?.parentId;
-  const download=document.getElementById('ic-download');download.hidden=!active;if(active)download.href=imageChatSafeUrl(active.url);
+  const download=document.getElementById('ic-download');download.hidden=!active;
   document.getElementById('ic-reviewed').checked=false;document.getElementById('ic-comparison').innerHTML='';
   document.getElementById('ic-source').textContent='Source: '+(source.title||'This post')+'\n'+(source.blogUrl||'No source blog URL saved')+'\n\n'+context.sourceBlog+'\n\n'+(BRAND_IMAGE_BRIEFS[voice]||'');
   document.getElementById('ic-recover').hidden=!state.pending;
@@ -11168,9 +11192,10 @@ async function imageChatFormatBrief(it, fmt, note){
   // still-life with no copy on it. A typographic format has to say outright that
   // the brand's photography default does not apply to THIS piece.
   const TYPOGRAPHIC = ['quote','stat','infographic','chart','carousel'];
+  const STANDS_ALONE=' THE PIECE MUST MAKE SENSE WITH NO CAPTION. Someone scrolling sees the image before they read a word of the post, and stops only if the image itself tells them something. A figure, a claim or a line that needs the caption to be understood has failed. Carry the comparison or the consequence on the card itself.';
   const assertion = TYPOGRAPHIC.indexOf(chosen)>=0
-    ? 'MAKE A '+String(ASSET_FMT_LABEL[chosen]||chosen).toUpperCase()+'. This is a DESIGNED TYPOGRAPHIC PIECE, not a photograph. The words specified below MUST appear in the image, rendered as the subject - an image with no text on it is a failed result. Where the brand brief names photography as its primary visual language, that does NOT apply to this piece: follow the brand for palette, type and restraint only. Do not substitute a still-life, a desk scene or any photograph for the card.'
-    : 'MAKE A PHOTOGRAPHIC IMAGE in this brand. Do not render headlines, captions or any overlaid copy on it.';
+    ? 'MAKE A '+String(ASSET_FMT_LABEL[chosen]||chosen).toUpperCase()+'. This is a DESIGNED TYPOGRAPHIC PIECE, not a photograph. The words specified below MUST appear in the image, rendered as the subject - an image with no text on it is a failed result. Where the brand brief names photography as its primary visual language, that does NOT apply to this piece: follow the brand for palette, type and restraint only. Do not substitute a still-life, a desk scene or any photograph for the card.'+STANDS_ALONE
+    : 'MAKE A PHOTOGRAPHIC IMAGE in this brand. Do not render headlines, captions or any overlaid copy on it. The scene itself has to carry the idea — choose a subject that means something without words.';
   brief = assertion + '\n\n' + TYPE_RULE + '\n\n' + brief.trim();
   if(brief.length>3900) brief = brief.slice(0,3900).replace(/\s+\S*$/,'');   // server rejects >4000
   return {format:chosen, rationale:String(d.rationale||''), brief};
