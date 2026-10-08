@@ -2683,7 +2683,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 13:43</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 13:45</span></div>
     </div>
   </header>
 
@@ -10377,6 +10377,47 @@ function pickLogoSpot(img, boxW, boxH, marginPx){
   return best;
 }
 
+// A logo exported on a cream or sage ground pastes onto the photo as an ugly
+// opaque block. Rather than depend on perfectly cut files, knock the background
+// out here. Flood-fills inward from the BORDER only, so a colour that also
+// appears inside the mark (a counter in an O, a sage leaf) is never touched -
+// a plain global colour-removal would punch holes through the logo itself.
+// Already-transparent files are detected and returned untouched.
+function knockOutLogoBackground(img){
+  const w=img.naturalWidth, h=img.naturalHeight;
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const ctx=c.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0);
+  let d;
+  try{ d=ctx.getImageData(0,0,w,h); }catch(e){ return c; }   // tainted: use as-is
+  const px=d.data;
+  // Already has transparency along the border? Leave it alone.
+  let edgeAlpha=255;
+  for(let x=0;x<w;x++){ edgeAlpha=Math.min(edgeAlpha, px[(x)*4+3], px[((h-1)*w+x)*4+3]); }
+  for(let y=0;y<h;y++){ edgeAlpha=Math.min(edgeAlpha, px[(y*w)*4+3], px[(y*w+w-1)*4+3]); }
+  if(edgeAlpha<250) return c;
+  const at=(x,y)=>(y*w+x)*4;
+  const r0=px[at(0,0)], g0=px[at(0,0)+1], b0=px[at(0,0)+2];
+  const TOL=38;
+  const near=(i)=>Math.abs(px[i]-r0)<=TOL && Math.abs(px[i+1]-g0)<=TOL && Math.abs(px[i+2]-b0)<=TOL;
+  const seen=new Uint8Array(w*h);
+  const stack=[];
+  for(let x=0;x<w;x++){ stack.push([x,0]); stack.push([x,h-1]); }
+  for(let y=0;y<h;y++){ stack.push([0,y]); stack.push([w-1,y]); }
+  let cleared=0;
+  while(stack.length){
+    const [x,y]=stack.pop();
+    if(x<0||y<0||x>=w||y>=h) continue;
+    const k=y*w+x; if(seen[k]) continue; seen[k]=1;
+    const i=k*4; if(!near(i)) continue;
+    px[i+3]=0; cleared++;
+    stack.push([x+1,y]); stack.push([x-1,y]); stack.push([x,y+1]); stack.push([x,y-1]);
+  }
+  if(!cleared) return c;
+  ctx.putImageData(d,0,0);
+  return c;
+}
+
 // Composite and return a PNG Blob. null when the brand has no logo saved.
 async function buildBrandedImage(imageUrl, voice){
   const cfg=logoFor(voice);
@@ -10394,7 +10435,7 @@ async function buildBrandedImage(imageUrl, voice){
   const octx=out.getContext('2d');
   octx.drawImage(img,0,0);
   octx.globalAlpha=Math.max(0.05,Math.min(1,Number(cfg.opacity)||LOGO_DEFAULTS.opacity));
-  octx.drawImage(logo, Math.round(spot.x), Math.round(spot.y), boxW, boxH);
+  octx.drawImage(knockOutLogoBackground(logo), Math.round(spot.x), Math.round(spot.y), boxW, boxH);
   octx.globalAlpha=1;
   const blob=await new Promise(r=>out.toBlob(r,'image/png'));
   if(!blob) throw new Error('could not export the branded image');
