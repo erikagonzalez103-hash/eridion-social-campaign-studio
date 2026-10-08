@@ -10988,7 +10988,7 @@ function imageChatMount(){
   <details><summary class="ic-label">Source &amp; brand context</summary><div id="ic-source" class="ic-source"></div></details></section>
   <section aria-label="Image conversation"><div class="ic-idea"><h3>A starting idea for this post</h3><div id="ic-idea-copy" class="ic-idea-copy" aria-live="polite"></div><div class="ic-controls"><button class="action-btn" id="ic-create-idea" onclick="createImageChatIdea()">Create this idea</button><button class="action-btn" id="ic-suggest" onclick="suggestImageChat()">Suggest another direction</button></div></div><div id="ic-thread" class="ic-thread" role="log" aria-live="polite"></div>
   <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea>
-  <div class="ic-controls"><select id="ic-action" aria-label="Image action"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
+  <div class="ic-controls"><select id="ic-action" aria-label="Image action"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-format" aria-label="Asset format" title="What KIND of asset to make"><option value="auto">✦ Format: Auto — read the post and choose</option><option value="image">Editorial photo</option><option value="quote">Quote card</option><option value="stat">Stat card</option><option value="infographic">Infographic / diagram</option><option value="chart">Chart (real numbers)</option><option value="carousel">Carousel slide</option><option value="reel">Reel cover frame</option><option value="freeform">Free-form — my words only</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
   <div class="ic-controls"><button class="action-btn" id="ic-send" onclick="sendImageChat()">Send</button><button class="action-btn" id="ic-recover" onclick="recoverImageChat()" hidden>Check last request</button><button class="action-btn" id="ic-save-recovery" onclick="saveImageChatRecovery()" hidden>Save returned version</button></div>
   <div id="ic-status" role="status"></div>
   <details><summary class="ic-label">Carry a correction into later posts</summary><label class="ic-label" for="ic-guidance-scope">Apply to</label><select id="ic-guidance-scope" onchange="loadImageGuidance()"><option value="campaign">This source-blog campaign only</option><option value="brand">This brand only</option></select><label class="ic-label" for="ic-guidance">Reusable direction</label><textarea id="ic-guidance" maxlength="3000" placeholder="For example: keep people candid and imperfect; avoid staged stock poses."></textarea><button class="action-btn" onclick="saveImageGuidance()">Save direction</button><div class="ic-meta">Saved only for the scope above. Post-specific edits stay in this conversation.</div></details></section></div>`;
@@ -11097,16 +11097,59 @@ function imageChatAccept(id,result){
   });
   imageChatRecovery=null;
 }
+// The image creator kept producing the same look because nothing told it WHAT
+// KIND of asset to make - every request was free-form prose. The Prompt Pack
+// path already has this: eight asset formats, per-format field definitions
+// (ARC_FORMAT_DEFS) and buildPromptForDay() to turn a filled spec into a brief.
+// This reuses that machinery for a single post, with 'auto' letting the model
+// read the post and choose the format that actually suits it.
+async function imageChatFormatBrief(it, fmt, note){
+  const voice=imageVisualVoice(it);
+  const text=(it.blog_text||it.linkedin_text||it.title||'').slice(0,1500);
+  if(!text.trim()) throw new Error('This post has no copy to read yet.');
+  const picking = fmt==='auto';
+  const task = picking
+    ? 'Choose the ONE asset format that best suits this post, then fill that format’s fields. Pick from: '+ASSET_FORMATS.join(', ')+'. Choose on what the post ACTUALLY offers: a number or comparison wants stat or chart; a list of standards wants infographic; one sharp standalone line wants quote; a sequence or argument wants carousel; a real scene wants image or stock. Do NOT default to a photograph because it is easy. Put your one-sentence reason in “rationale”.'
+    : 'The author has chosen the format “'+fmt+'”. Use EXACTLY that format and fill only its fields.';
+  const prompt='You are an art director preparing the visual asset spec for ONE social post.'+
+    '\n\n'+task+
+    '\n\nFormat definitions (fill ONLY the chosen format’s fields; leave every other field an empty string or array):\n'+ARC_FORMAT_DEFS+
+    '\n\nTHE POST (voice: '+voice+'):\n---\n'+text+'\n---'+
+    (note?('\n\nEXTRA DIRECTION FROM THE AUTHOR (honour it): '+note):'')+
+    '\n\nReturn ONLY valid JSON, no preamble, no markdown fences:\n'+ARC_DAY_JSON;
+  const data=await callClaude({model:MODEL_CREATIVE,max_tokens:3000,messages:[{role:'user',content:prompt}]});
+  const d=extractJSONFromResponse(data);
+  const chosen = picking ? (ASSET_FORMATS.includes(d.format)?d.format:'image') : fmt;
+  const brief = buildPromptForDay(voice, chosen, specFromDecision(d), text);
+  return {format:chosen, rationale:String(d.rationale||''), brief};
+}
+
 async function sendImageChat(options={}){
   if(imageChatBusy)return;
   const id=imageChatPostId,it=library.find(x=>x.id===id),s=imageChatState(it),message=(options.message||document.getElementById('ic-message').value).trim(),action=options.action||document.getElementById('ic-action').value;
-  if(!message){imageChatNotice('Write a request first.');return;}
+  const fmtEl=document.getElementById('ic-format');
+  const chosenFmt=(options.format||(fmtEl?fmtEl.value:'freeform'));
+  const formatted = action==='create' && chosenFmt && chosenFmt!=='freeform';
+  // With a format selected the brief is generated, so a typed message is optional
+  // - it becomes extra direction layered on top.
+  if(!message && !formatted){imageChatNotice('Write a request first.');return;}
   if(s.pending){imageChatNotice('Check the last request before starting another.');return;}
   const base=s.versions.find(v=>v.id===s.activeId);if(action==='revise'&&!base){imageChatNotice('Choose an existing image, or create one first.');return;}
+  let formatNote='';
+  if(formatted){
+    imageChatBusy=true; document.getElementById('ic-send').disabled=true;
+    imageChatNotice(chosenFmt==='auto'?'Reading the post and choosing a format…':'Writing the '+(ASSET_FMT_LABEL[chosenFmt]||chosenFmt)+' brief…');
+    try{
+      const b=await imageChatFormatBrief(it, chosenFmt, message);
+      message=b.brief;
+      formatNote=(ASSET_FMT_LABEL[b.format]||b.format)+(b.rationale?' — '+b.rationale:'');
+    }catch(e){ imageChatBusy=false; document.getElementById('ic-send').disabled=false; imageChatNotice('Could not build the brief: '+e.message); return; }
+    imageChatBusy=false; document.getElementById('ic-send').disabled=false;
+  }
   const pending={requestId:crypto.randomUUID(),message,action,baseId:base?.id||null,startedAt:Date.now(),kind:options.kind||'chat',suggestionKey:action==='discuss'?imageChatSuggestionKey(it):null};
   const payload={...pending,voice:imageVisualVoice(it),baseUrl:base?.url||null,size:document.getElementById('ic-size').value,context:imageChatContext(it),references:getBrandRefs(imageVisualVoice(it)),history:s.turns};
   try{imageChatCommit(id,next=>{next.imageChat.pending=pending;});}catch(e){imageChatNotice('Could not save this request; nothing was sent: '+e.message);return;}
-  imageChatBusy=true;document.getElementById('ic-send').disabled=true;renderImageChat();imageChatNotice(action==='discuss'?'Thinking through the post…':'Creating your image. This can take a few minutes; keep this window open.');
+  imageChatBusy=true;document.getElementById('ic-send').disabled=true;renderImageChat();imageChatNotice(action==='discuss'?'Thinking through the post…':('Creating your image'+(formatNote?' — '+formatNote:'')+'. This can take a few minutes; keep this window open.'));
   try{
     const r=await fetch(imageChatEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(260000)});
     const result=await r.json();
