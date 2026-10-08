@@ -3905,6 +3905,12 @@ let currentStream = 'eridion';
 let currentBucket = '';
 let generatedLinkedIn = '';
 let generatedBlog = '';
+// Which Library item the editor is currently showing. loadFromLibrary used to
+// copy an item's text into these globals and then forget where it came from, so
+// edits in Step 3/4 lived only in memory: they never reached the saved post, and
+// Spin Week - which reads spinSource.blog_text - kept using the stale copy.
+let editorLibraryId=null;
+let editorSaveTimer=null;
 let generatedHashtags = [];
 let selectedImageUrl = '';
 let selectedImageUrls = []; // carousel: ordered list; selectedImageUrl mirrors [0]
@@ -4971,6 +4977,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 // ── Generate Content ──
 async function generateContent() {
+  editorLibraryId=null;   // fresh content is not an edit of whatever post was loaded
   const topic=document.getElementById('topic-input').value.trim();
   const bullets=document.getElementById('bullets-input').value.trim();
   const format=document.getElementById('format-select').value;
@@ -5469,6 +5476,7 @@ function setPOVSet(k){
 
 // ── Draft Article from Curated Sources (Stage 2) ──
 async function draftFromResearch(){
+  editorLibraryId=null;   // fresh content is not an edit of whatever post was loaded
   const selected=researchSources.filter(s=>s.selected);
   if(!selected.length){showToast('Select at least one source first','error');return;}
   const pov=POV_SETS[currentPOVSet].povs.find(p=>p.id===selectedPOV);
@@ -6697,13 +6705,40 @@ function blogHtmlToMarkdown(html){
     .trim();
 }
 // Live-sync inline edits back to the variables that get saved.
+// Persist editor changes back onto the loaded Library post. Debounced so it
+// writes once typing settles rather than on every keystroke. This is what makes
+// a Step 4 blog edit survive - and what makes Spin Week read the edited text,
+// since it spins from the stored library item, not from the editor.
+function queueEditorSave(){
+  if(!editorLibraryId) return;
+  clearTimeout(editorSaveTimer);
+  editorSaveTimer=setTimeout(saveEditorToLibrary, 800);
+}
+function saveEditorToLibrary(){
+  if(!editorLibraryId) return false;
+  const it=library.find(x=>x.id===editorLibraryId);
+  if(!it){ editorLibraryId=null; return false; }
+  let changed=false;
+  if(typeof generatedLinkedIn==='string' && generatedLinkedIn!==it.linkedin_text){ it.linkedin_text=generatedLinkedIn; changed=true; }
+  if(typeof generatedBlog==='string' && generatedBlog!==it.blog_text){ it.blog_text=generatedBlog; changed=true; }
+  if(Array.isArray(generatedHashtags) && generatedHashtags.join(' ')!==(it.hashtags||[]).join(' ')){ it.hashtags=generatedHashtags.slice(); changed=true; }
+  if(!changed) return false;
+  it.edited_at=Date.now();
+  persistLibrary();
+  if(typeof renderLibrary==='function') renderLibrary();
+  setStatus('Saved to Library',false);
+  return true;
+}
+
 document.getElementById('linkedin-output').addEventListener('input',function(){
   generatedLinkedIn=this.innerText||this.textContent||'';
   updateCharCount();
+  queueEditorSave();
 });
 document.getElementById('blog-output').addEventListener('input',function(){
   generatedBlog=blogHtmlToMarkdown(this.innerHTML||'');
   renderBlogTellWarn();
+  queueEditorSave();
 });
 
 // ── Blog AI-tell warning ──
@@ -8308,7 +8343,18 @@ function saveCurrentToLibrary(){
     payload.imageSource=/imgbb|ibb\.co/i.test(urls[0])?'upload':(/unsplash/i.test(urls[0])?'unsplash':'url');
     payload.imageCredit=selectedImageCredit||'';
   }
+  // When the editor is showing a saved post, this is an UPDATE. It used to call
+  // addToLibrary() unconditionally, which minted a duplicate every time.
+  if(editorLibraryId && library.some(x=>x.id===editorLibraryId)){
+    saveEditorToLibrary();
+    const cur=library.find(x=>x.id===editorLibraryId);
+    if(payload.imageUrls){ cur.imageUrls=payload.imageUrls; cur.selectedImageUrl=payload.selectedImageUrl; cur.image_url=payload.image_url; cur.imageSource=payload.imageSource; cur.imageCredit=payload.imageCredit; persistLibrary(); }
+    renderLibrary();
+    showToast('Updated “'+((cur.title||'this post').slice(0,40))+'”','success');
+    return;
+  }
   const entry=addToLibrary(payload);
+  editorLibraryId=entry.id;   // further edits now update this new post
   renderLibrary();
   showToast(`Saved to library (${entry.voice})`,'success');
 }
@@ -8679,6 +8725,7 @@ function copyFirstComment(id){
 function loadFromLibrary(id){
   const it=library.find(x=>x.id===id);
   if(!it) return;
+  editorLibraryId=id;   // edits now flow back to this post
   generatedLinkedIn=it.linkedin_text||'';
   generatedBlog=it.blog_text||'';
   generatedHashtags=it.hashtags||[];
