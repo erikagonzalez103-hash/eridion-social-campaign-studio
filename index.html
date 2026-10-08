@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 15:30</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 16:07</span></div>
     </div>
   </header>
 
@@ -11187,7 +11187,16 @@ async function imageChatFormatBrief(it, fmt, note){
   // the brand brief as context.brandBrief and carries its own quality rules - and
   // together they push the message past the server's hard 4,000-character limit
   // (backend/image-chat.js). Strip them, keep the one rule that is genuinely ours.
-  const TYPE_RULE='MINIMUM TYPE SIZES - THESE ARE HARD FLOORS, NOT SUGGESTIONS. Social graphics are read on a phone at about a third of their true size, so sizes are given as a percentage of the image’s HEIGHT and hold at any resolution. Hero number or main headline: 10-16% of image height. Secondary headline: 6-9%. Body and supporting lines: 4-5%. Labels, eyebrows, captions, attributions, CTAs and URLs: 3% MINIMUM. NOTHING on the canvas may be smaller than 3% of the image height - that is roughly 40px on a 1350px-tall post, and it is the smallest type a person can comfortably read on a phone. For reference at 1080x1350: a headline is 110-200px, body is 55-70px, and the smallest label is 40px. If the words will not fit at these sizes, CUT WORDS - never reduce the type below the floor. SAFE AREA - KEEP ALL FOUR EDGES CLEAR. Platforms crop and overlay the edges: Instagram’s profile grid centre-crops a 4:5 post to a square, and feed UI, captions and buttons sit over the top and bottom bands. Reserve the TOP band for the brand mark: the studio stamps the real logo centred there afterwards, so leave it genuinely empty - no headline, no rule, no decoration creeping up into it. Leave a clear margin with NOTHING in it - no text, no logo, no key subject, no part of a box or rule: at least 8% of the image width on the LEFT and RIGHT, 10% of the height at the TOP, and 12% at the BOTTOM where the caption and controls sit. At 1080x1350 that is roughly 86px left and right, 135px top, 162px bottom. Backgrounds, textures and incidental foliage MAY bleed to the edge - that is what the margin is for; it is the CONTENT that must stay inside. On any 4:5 or taller canvas, also keep the headline, the key figure and the CTA inside the CENTRE SQUARE, so the grid crop never removes them.';
+  // The floors used to be stated only for a 1080x1350 portrait post. On any other
+  // canvas - a 1536x1024 blog hero, say - the model had no matching exemplar and
+  // guessed low. Compute the real pixel figures for the size actually selected.
+  // Leader-line CALLOUTS are the repeat offender: they are labels, but the model
+  // reads them as technical-drawing convention and shrinks them well under the
+  // floor, so they are now called out by name and given no exemption.
+  const szv=((document.getElementById('ic-size')||{}).value||'1024x1280').split('x');
+  const IW=Number(szv[0])||1024, IH=Number(szv[1])||1280;
+  const ph=p=>Math.round(IH*p/100), pw=p=>Math.round(IW*p/100), tall=IH/IW>=1.2;
+  const TYPE_RULE='MINIMUM TYPE SIZES - HARD FLOORS, NOT SUGGESTIONS. This canvas is '+IW+'x'+IH+'. Sizes are a percentage of image HEIGHT, and the pixel figures below are exact for THIS canvas - do not scale them from any other size. Main headline or hero number: 10-16% = '+ph(10)+'-'+ph(16)+'px. Secondary headline: 6-9% = '+ph(6)+'-'+ph(9)+'px. Body and supporting lines: 4-5% = '+ph(4)+'-'+ph(5)+'px. Labels, eyebrows, captions, attributions, CTAs and URLs: 3% = '+ph(3)+'px MINIMUM. THAT FLOOR INCLUDES ANNOTATION AND CALLOUT LABELS - the short texts on leader lines pointing at parts of a photo or diagram. They are the most common violation. A technical or architectural drawing style is NOT a reason to set them smaller: every callout is at least '+ph(3)+'px. NOTHING on this canvas may be smaller than '+ph(3)+'px. If the words will not fit, CUT WORDS or CUT CALLOUTS - never go below the floor. Three readable callouts beat six unreadable ones. SAFE AREA - KEEP ALL FOUR EDGES CLEAR. Reserve the TOP band for the brand mark: the studio stamps the real logo centred there afterwards, so leave it genuinely empty - no headline, no rule, no decoration creeping into it. Leave a margin with NOTHING in it - no text, no logo, no key subject, no part of a box or rule: at least '+pw(8)+'px on the LEFT and RIGHT, '+ph(10)+'px at the TOP, and '+ph(12)+'px at the BOTTOM where captions and controls sit. Backgrounds, textures and incidental foliage MAY bleed to the edge - that is what the margin is for; it is the CONTENT that must stay inside.'+(tall?' This canvas is 4:5 or taller, so Instagram’s profile grid will centre-crop it to a square: keep the headline, the key figure and the CTA inside the CENTRE SQUARE so the crop never removes them.':'');
   let brief = buildPromptForDay(voice, chosen, specFromDecision(d), text);
   brief = brief.split(QUALITY_BAR).join('');
   const bb = BRAND_IMAGE_BRIEFS[voice];
