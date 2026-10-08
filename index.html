@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 14:43</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 15:30</span></div>
     </div>
   </header>
 
@@ -10410,6 +10410,31 @@ function writeRefsFor(voice, obj){ const all=loadBrandRefs(); all[voice]=obj; sa
 // saved — they just don't ride along on a generation.
 function getBrandRefs(voice){ return refsFor(voice||currentStream).picked.slice(0,REF_SOFT_CAP); }
 
+// A reference is only useful if OpenAI can actually DOWNLOAD it. The worker hands
+// references over as URLs and OpenAI fetches them itself, so a single dead link
+// fails the whole generation with "Unable to download content from the provided
+// URL" - a message that points at nothing the user can see. Stale i.ibb.co picks
+// are the usual culprit: that host was abandoned once Buffer and Wix both
+// rejected its URLs, but its links still sit in older Library items. Probing with
+// Image() works cross-origin without CORS because we never read the pixels.
+function probeImageUrl(url,timeoutMs){
+  return new Promise(resolve=>{
+    let done=false; const img=new Image();
+    const finish=ok=>{ if(done)return; done=true; img.onload=img.onerror=null; resolve(ok); };
+    const timer=setTimeout(()=>finish(false),timeoutMs||6000);
+    img.onload=()=>{ clearTimeout(timer); finish(img.naturalWidth>0); };
+    img.onerror=()=>{ clearTimeout(timer); finish(false); };
+    img.src=url;
+  });
+}
+
+// Splits picked references into the ones worth sending and the ones to report.
+// Probed in parallel so the pre-flight costs one timeout, not one per reference.
+async function liveReferences(refs){
+  const checked=await Promise.all((refs||[]).map(async r=>({ref:r,ok:await probeImageUrl(r.url)})));
+  return {live:checked.filter(c=>c.ok).map(c=>c.ref),dead:checked.filter(c=>!c.ok).map(c=>c.ref)};
+}
+
 let refCandidates=[];   // index-addressed so URLs never go through HTML attributes
 
 // Every distinct image this brand has ever published, newest first, minus
@@ -11218,7 +11243,24 @@ async function sendImageChat(options={}){
   // still-life and 'builds on the existing still life' again. Withhold history
   // (and any base image) for a formatted create; keep both for everything else,
   // where continuity is the point.
-  const payload={...pending,voice:imageVisualVoice(it),baseUrl:formatted?null:(base?.url||null),size:document.getElementById('ic-size').value,context:imageChatContext(it),references:getBrandRefs(imageVisualVoice(it)),history:formatted?[]:s.turns};
+  // Pre-flight the URLs OpenAI will have to fetch. Dropping a dead reference
+  // costs nothing; sending one costs the entire generation.
+  let refs=getBrandRefs(imageVisualVoice(it));
+  let wantBase=formatted?null:(base?.url||null);
+  if(refs.length||wantBase){
+    imageChatNotice('Checking your brand references are still reachable…');
+    const {live,dead}=await liveReferences(refs);
+    refs=live;
+    if(wantBase&&!(await probeImageUrl(wantBase))){
+      wantBase=null;
+      showToast('The image being revised is no longer reachable, so this is a fresh create.','error');
+    }
+    if(dead.length){
+      const names=dead.map(d=>d.title||d.url).join(', ');
+      showToast(dead.length + ' brand reference' + (dead.length===1?'':'s') + ' could not be loaded and ' + (dead.length===1?'was':'were') + ' skipped: ' + names + '. Remove ' + (dead.length===1?'it':'them') + ' in Brand references.','error');
+    }
+  }
+  const payload={...pending,voice:imageVisualVoice(it),baseUrl:wantBase,size:document.getElementById('ic-size').value,context:imageChatContext(it),references:refs,history:formatted?[]:s.turns};
   try{imageChatCommit(id,next=>{next.imageChat.pending=pending;});}catch(e){imageChatNotice('Could not save this request; nothing was sent: '+e.message);return;}
   imageChatBusy=true;document.getElementById('ic-send').disabled=true;renderImageChat();imageChatNotice(action==='discuss'?'Thinking through the post…':('Creating your image'+(formatNote?' — '+formatNote:'')+'. This can take a few minutes; keep this window open.'));
   try{
