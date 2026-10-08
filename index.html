@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 14:41</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 14:43</span></div>
     </div>
   </header>
 
@@ -10792,7 +10792,9 @@ function copyAllDayPrompts(){
 async function attachFinishedImage(event, i){
   const e=promptPackEntries[i]; if(!e){ event.target.value=''; return; }
   const file=event.target.files&&event.target.files[0]; if(!file){ return; }
-  if(!getImgBBKey()){ showToast('Add your ImgBB key in API Keys','error'); if(typeof toggleKeys==='function') toggleKeys(); event.target.value=''; return; }
+  // Used to refuse unless an ImgBB key was set. Uploads have gone to R2 via the
+  // worker since 2026-08-30 and need no key, so the gate blocked a working path -
+  // and after ImgBB was removed it called a function that no longer exists.
   setStatus('Hosting your image…',true);
   try{
     const {url}=await uploadImage(file);
