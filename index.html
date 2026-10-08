@@ -2683,7 +2683,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 14:37</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 14:41</span></div>
     </div>
   </header>
 
@@ -10428,6 +10428,33 @@ function knockOutLogoBackground(img){
   return c;
 }
 
+// Brand files are routinely exported on a square canvas with the lockup floating
+// in the middle. Sizing off the FILE's aspect then treats a 3:1 wordmark as 1:1
+// and renders it as a block. Crop to the ink: the bounding box of everything
+// that is not transparent. Runs after the background knockout, so a flattened
+// export is trimmed just as well as a clean one.
+function trimLogoPadding(cnv){
+  const w=cnv.width, h=cnv.height;
+  const ctx=cnv.getContext('2d',{willReadFrequently:true});
+  let d; try{ d=ctx.getImageData(0,0,w,h); }catch(e){ return cnv; }
+  const px=d.data;
+  let minX=w, minY=h, maxX=-1, maxY=-1;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      if(px[(y*w+x)*4+3] > 8){
+        if(x<minX)minX=x; if(x>maxX)maxX=x;
+        if(y<minY)minY=y; if(y>maxY)maxY=y;
+      }
+    }
+  }
+  if(maxX<0 || (maxX-minX+1)===w && (maxY-minY+1)===h) return cnv;   // nothing to trim
+  const tw=maxX-minX+1, th=maxY-minY+1;
+  if(tw<8 || th<4) return cnv;                                        // implausible - leave alone
+  const out=document.createElement('canvas'); out.width=tw; out.height=th;
+  out.getContext('2d').drawImage(cnv, minX, minY, tw, th, 0, 0, tw, th);
+  return out;
+}
+
 // Composite and return a PNG Blob. null when the brand has no logo saved.
 async function buildBrandedImage(imageUrl, voice, opts){
   opts=opts||{};
@@ -10454,7 +10481,8 @@ async function buildBrandedImage(imageUrl, voice, opts){
   const wantDark = bandMean > 140;
   const logo=await loadImageCORS(wantDark ? (cfg.dark||cfg.light) : (cfg.light||cfg.dark));
   // Size from the logo's own aspect: target a readable HEIGHT, then clamp width.
-  const aspect = logo.naturalWidth/Math.max(1,logo.naturalHeight);
+  const logoArt = trimLogoPadding(knockOutLogoBackground(logo));   // crop to the ink
+  const aspect = logoArt.width/Math.max(1,logoArt.height);
   let boxH2 = Math.round(H * (cfg.heightScale||LOGO_DEFAULTS.heightScale));
   let boxW2 = Math.round(boxH2 * aspect);
   const capW = W*(cfg.maxWidth||LOGO_DEFAULTS.maxWidth);
@@ -10475,7 +10503,7 @@ async function buildBrandedImage(imageUrl, voice, opts){
   const octx=out.getContext('2d');
   octx.drawImage(img,0,0);
   octx.globalAlpha=Math.max(0.05,Math.min(1,Number(cfg.opacity)||LOGO_DEFAULTS.opacity));
-  octx.drawImage(knockOutLogoBackground(logo), Math.round(spot.x), Math.round(spot.y), boxW, boxH);
+  octx.drawImage(logoArt, Math.round(spot.x), Math.round(spot.y), boxW, boxH);
   octx.globalAlpha=1;
   const blob=await new Promise(r=>out.toBlob(r,'image/png'));
   if(!blob) throw new Error('could not export the branded image');
