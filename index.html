@@ -2683,7 +2683,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 13:06</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 13:28</span></div>
     </div>
   </header>
 
@@ -10988,7 +10988,10 @@ async function createImageChatIdea(){
   const it=library.find(x=>x.id===imageChatPostId),idea=imageChatState(it).suggestion;
   if(!idea){imageChatNotice('Let Studio suggest a direction first.');return;}
   document.getElementById('ic-action').value='create';
-  return sendImageChat({action:'create',message:'Create one image from this suggested direction. Preserve the post’s original payoff and the supplied brand guidance.\n\n'+idea});
+  // format:'freeform' deliberately. This button means “make THE idea I just read”,
+  // so the Format select must not swap that idea for a freshly generated brief
+  // and discard the direction she just approved.
+  return sendImageChat({action:'create',format:'freeform',message:'Create one image from this suggested direction. Preserve the post’s original payoff and the supplied brand guidance.\n\n'+idea});
 }
 function imageChatNotice(message){document.getElementById('ic-status').textContent=message;}
 function imageChatSafeUrl(url){try{const u=new URL(url);return u.protocol==='https:'?u.href:'';}catch(_){return '';}}
