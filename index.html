@@ -2683,7 +2683,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · Click-to-View + Import</div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 13:06</span></div>
     </div>
   </header>
 
@@ -10960,7 +10960,13 @@ function imageChatSuggestionKey(it){
 }
 async function suggestImageChat(){
   if(imageChatBusy)return;
-  return sendImageChat({kind:'suggestion',action:'discuss',message:'Read the supplied original post and source blog. Give me ONE useful starting visual direction: recommended format, a concrete scene or layout, exact short image copy if any, and one sentence on why it supports the post’s audience, payoff and CTA. Keep it under 170 words. If a base image already exists, acknowledge it and suggest how to build on it. Do not generate an image yet. Do not ask me to invent the concept.'});
+  const it=library.find(x=>x.id===imageChatPostId);
+  const prior=(it&&imageChatState(it).suggestion)||'';
+  // Identical message + identical context returned an identical answer every
+  // time, so “suggest another direction” never moved. Show it what it already
+  // said and require something genuinely different.
+  const again = prior ? ('\n\nYou ALREADY suggested this direction:\n---\n'+String(prior).slice(0,900)+'\n---\nGive a GENUINELY DIFFERENT one: a different asset format, a different layout, a different visual idea. Do not restate the above in new words. If the last was photographic, make this one typographic (a quote, stat, chart or infographic card), or the reverse.') : '';
+  return sendImageChat({kind:'suggestion',action:'discuss',message:'Read the supplied original post and source blog. Give me ONE useful starting visual direction: recommended format, a concrete scene or layout, exact short image copy, and why it suits this post.'+again});
 }
 async function createImageChatIdea(){
   const it=library.find(x=>x.id===imageChatPostId),idea=imageChatState(it).suggestion;
