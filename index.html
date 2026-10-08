@@ -2683,7 +2683,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 14:30</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 14:37</span></div>
     </div>
   </header>
 
@@ -3966,6 +3966,8 @@ const voicePrompts = {
 BRAND VOICE: Confident but approachable. Data-informed but not jargon-heavy. Focused on solving builder problems. Expert authority without arrogance. Never "we're the best" — always "here's what we're seeing and what it means for your project."
 AUDIENCE: Custom home builders, luxury home builders, general contractors, project managers in DFW and Central Arkansas.
 NEVER: Generic sales language, direct superiority claims, "backup vendor" framing.
+HOW WE READ WOMEN’S HESITATION — A HARD EDITORIAL POSITION. Never diagnose a woman’s hesitation as fear, self-doubt, or imposter syndrome. That reading is the default in business writing, it is usually incomplete, and it is mostly men explaining women to themselves. When a capable person defers a decision, the more accurate and more useful reading is that she does not yet have what she needs to be confident the next step is the right one — more support, better data, a second opinion, someone who has done it before. Treat hesitation as a MISSING INPUT, not a character flaw. Do not open a piece by naming fear; do not cite “imposter syndrome” as an explanation (naming it as a thing others get wrong is fine); never set up a naive premise about women’s psychology in order to correct it. If a cited SOURCE frames its findings that way, report it accurately and then say what it misses.
+
 ALWAYS: Lead with recipient's reality, tie data to actionable insight, position Eridion as the trusted expert partner.`,
 
   erika:`You are writing personal brand content for Erika Harrison, co-founder of Eridion Glass, LLC and founder of Quinta & Co — a female entrepreneur in Dallas, TX with an MBA in Marketing from LSU and 20+ years in corporate advertising before entering construction.
@@ -4098,20 +4100,19 @@ function buildGEO(stream){
   // headings suit it. The editorial voices (Erika, Quinta & Co, The Practice) were
   // being gutted by the same rules: ① banned scene-setting and ④ manufactured
   // strawman questions the brand would never ask. Same GEO intent, different means.
-  const editorial = stream!=='eridion';
-  const R1_STRICT = '① ANSWER FIRST. Line one of a LinkedIn post — and the first two sentences of a blog — state the answer to the question the piece exists to answer. The hook and the answer are the same sentence. No warm-up, no scene-setting.'+
-    '\nAnti-example (engines skip): "In today’s fast-moving world, many entrepreneurs are wondering about AI..."'+
-    '\nGood (engines quote): "You don’t need to understand AI to use it. You need to know where to start."';
+  // Eridion was excluded from the editorial rules on 2026-09-12 (“Eridion stays as
+  // is”), then included on 2026-10-08 after Erika saw the results on Quinta. Every
+  // voice now gets the same treatment; the strict variants are gone.
+  const editorial = true;
   const R1_EDITORIAL = '① ANSWER EARLY, NOT BLUNTLY. The piece must land its position inside the OPENING PARAGRAPH — no reader or engine should reach paragraph three still guessing. But the answer is a considered sentence, not a fragment: "It’s fear, mostly." is the failure mode, not the target. You MAY open on an observation, a moment, or a scene, provided the claim arrives in that first paragraph. What is banned is throat-clearing ("In today’s fast-moving world", "Many entrepreneurs wonder") — not craft.';
-  const R4_STRICT = '④ QUESTION-SHAPED HEADLINES. A blog title is either the exact question the reader would type into a search box, or its answer stated boldly ("You Don’t Need to Understand AI to Use It"). Every section heading must make sense quoted out of context.';
   const R4_EDITORIAL = '④ HEADINGS THAT STAND ALONE — BUT NOT FORCED QUESTIONS. Section headings must still make sense quoted out of context, and the title may be the reader’s real question. But NEVER manufacture a question this brand would not ask. A strawman heading ("Is Procrastination About Laziness?") is worse than none: it puts a naive position in the brand’s mouth so the next line can knock it down. If the question is genuinely the one the reader carries, use it. Otherwise state the observation declaratively.';
-  const R1 = stream==='week' ? (R1_STRICT+'\nFOR ERIKA / QUINTA & CO / PRACTICE SNIPPETS INSTEAD: '+R1_EDITORIAL) : (editorial?R1_EDITORIAL:R1_STRICT);
-  const R4 = stream==='week' ? (R4_STRICT+'\nFOR ERIKA / QUINTA & CO / PRACTICE SNIPPETS INSTEAD: '+R4_EDITORIAL) : (editorial?R4_EDITORIAL:R4_STRICT);
+  const R1 = R1_EDITORIAL;
+  const R4 = R4_EDITORIAL;
   const EXTRA = editorial ? ('\n\n⑧ PROFOUND, NOT CLEVER. The two-beat turn IS this voice — a short declarative whose second sentence lands the twist ("So the ’$0’ is real. It’s just the doorway, not the room."). Keep that. What is banned is the THREE-OR-MORE beat stack, where the same idea is restated in escalating fragments for effect: "You feel busy. You are busy. You’re just busy in a way that lets you avoid the thing that scares you." That is a machine performing insight, and it is the single clearest tell. One turn per idea, then move on. Around it, vary sentence length and trust a long sentence to carry a whole thought — reach for depth, not for punch. THE HOUSE STYLE ANTI-CADENCE RULES ARE NOT RELAXED BY THIS PLAYBOOK — where the two appear to conflict, HOUSE STYLE WINS.'+
     '\n\n⑨ A FIGURE MUST EARN ITS LINE. Having cited a number, say what it MEANS — never restate it in words. "That’s nearly half of us, avoiding the same task" adds nothing; it is the statistic wearing a hat. Give the consequence, the tension, or the thing the number quietly implies about the reader’s situation.') : '';
   return `
 ━━━ GEO PLAYBOOK — write the answer, not the post ━━━
-AI answer engines (ChatGPT, Perplexity, Copilot) quote clear, sourced, standalone answers. Every piece must survive being lifted out of context. ${editorial?'Apply these ON TOP of the voice. Where a rule below and the VOICE or HOUSE STYLE genuinely pull against each other, THE VOICE WINS — a piece that ranks and does not sound like us is a failed piece.':'Apply these ON TOP of the voice — they shape structure, never tone.'}
+AI answer engines (ChatGPT, Perplexity, Copilot) quote clear, sourced, standalone answers. Every piece must survive being lifted out of context. Apply these ON TOP of the voice. Where a rule below and the VOICE or HOUSE STYLE genuinely pull against each other, THE VOICE WINS — a piece that ranks and does not sound like us is a failed piece.
 
 ${R1}
 
