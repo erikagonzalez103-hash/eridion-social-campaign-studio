@@ -11024,6 +11024,7 @@ function closeImageChat(){if(imageChatBusy){imageChatNotice('Please wait for thi
 function renderImageChat(){
   const it=library.find(x=>x.id===imageChatPostId);if(!it)return;
   const state=imageChatState(it),active=state.versions.find(v=>v.id===state.activeId),voice=imageVisualVoice(it),source=imageSourcePost(it),refs=getBrandRefs(voice);
+  try{ const fe=document.getElementById('ic-format'), last=localStorage.getItem('eridion_last_img_format_'+voice); if(fe&&last&&[...fe.options].some(o=>o.value===last)) fe.value=last; }catch(_){}
   document.getElementById('ic-title').textContent=it.title||'Create / Revise image';
   document.getElementById('ic-meta').textContent=kbBrandLabel(voice)+' · '+refs.length+' brand reference'+(refs.length===1?'':'s')+' · saved with this post';
   const context=imageChatContext(it);
@@ -11109,7 +11110,12 @@ async function imageChatFormatBrief(it, fmt, note){
   if(!text.trim()) throw new Error('This post has no copy to read yet.');
   const picking = fmt==='auto';
   const task = picking
-    ? 'Choose the ONE asset format that best suits this post, then fill that format’s fields. Pick from: '+ASSET_FORMATS.join(', ')+'. Choose on what the post ACTUALLY offers: a number or comparison wants stat or chart; a list of standards wants infographic; one sharp standalone line wants quote; a sequence or argument wants carousel; a real scene wants image or stock. Do NOT default to a photograph because it is easy. Put your one-sentence reason in “rationale”.'
+    ? 'Choose the ONE asset format that best suits this post, then fill that format’s fields. Pick from: '+ASSET_FORMATS.join(', ')+'. '+
+      'DEFAULT TO A DESIGNED TYPOGRAPHIC PIECE (quote, stat, infographic, chart or carousel). Those carry the post’s actual words and are what make a feed varied. '+
+      'Choose on what the post offers: a number or comparison wants stat or chart; two or more discrete points want infographic; one sharp standalone line wants quote; a sequence or argument wants carousel. '+
+      'Pick image or stock when the post CENTRES on a real physical scene, place, material or installation that a photograph shows better than words can — a finished install, hands at work, a room. That is a legitimate and necessary choice; a feed of nothing but typographic cards is as monotonous as a feed of nothing but photos. '+
+      'A brand brief that names photography as its primary visual language is about STYLE, not a reason to choose a photographic format here — ignore it for this decision. '+
+      'The test is what the post is ABOUT, not whether a quotable line exists — almost every post has one of those. If the post is carrying an idea, a number or an argument, set it in type; if it is carrying a place or a thing, photograph it. Put your one-sentence reason in “rationale”.'
     : 'The author has chosen the format “'+fmt+'”. Use EXACTLY that format and fill only its fields.';
   const prompt='You are an art director preparing the visual asset spec for ONE social post.'+
     '\n\n'+task+
@@ -11152,6 +11158,9 @@ async function sendImageChat(options={}){
   let message=(options.message||document.getElementById('ic-message').value).trim();
   const fmtEl=document.getElementById('ic-format');
   const chosenFmt=(options.format||(fmtEl?fmtEl.value:'freeform'));
+  // Remember the choice per brand - picking “Quote card” once should not reset to
+  // Auto on the next post.
+  try{ if(fmtEl) localStorage.setItem('eridion_last_img_format_'+imageVisualVoice(it), chosenFmt); }catch(_){}
   const formatted = action==='create' && chosenFmt && chosenFmt!=='freeform';
   // With a format selected the brief is generated, so a typed message is optional
   // - it becomes extra direction layered on top.
