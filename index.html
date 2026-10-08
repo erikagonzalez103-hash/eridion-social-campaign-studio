@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 16:07</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 16:13</span></div>
     </div>
   </header>
 
@@ -9511,6 +9511,27 @@ async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduled
   // NOTE: the `input` object above is NOT what gets sent — only `inlineMutation`
   // below is. So the metadata literal has to be built here, as a string.
   const fc=(firstComment||'').trim();
+  // Buffer's assets input is an ordered array [{ image: { url } }] as of the
+  // 2026-05-25 breaking change; more than one entry is a carousel/multi-image.
+  // See developers.buffer.com/guides/assets-input-migration.html
+  //  - Instagram: a carousel is 2-10 images and only applies to type "post";
+  //    story and reel take a single asset, so trim to the first.
+  //  - LinkedIn: multiple images post fine as a native multi-image post.
+  // Defined inside the dead `input` block removed in 4f6542e, exactly as
+  // igTypeValue was; the use in the inline mutation below outlived both.
+  let mediaUrls = (Array.isArray(imageUrls) && imageUrls.length)
+    ? imageUrls.slice()
+    : (imageUrl ? [imageUrl] : []);
+  if(channelKind==='instagram'){
+    mediaUrls = ((igType||'post')!=='post') ? mediaUrls.slice(0,1) : mediaUrls.slice(0,10);
+  }
+  // Instagram requires metadata.instagram.{type, shouldShareToFeed}. The type
+  // enum is post / story / reel (lowercase); shouldShareToFeed is a required
+  // Boolean. See developers.buffer.com/types/InstagramPostMetadataInput.html
+  // This line lived inside the dead `input` block removed in 4f6542e, which
+  // took the DEFINITION with it and left the use below, so every Instagram
+  // push failed with "igTypeValue is not defined". Kept beside its use.
+  const igTypeValue = (channelKind === 'instagram') ? (igType || 'post') : null;
   const metaParts=[];
   if(igTypeValue){
     const igFields=[`type: ${igTypeValue}`, `shouldShareToFeed: true`];
