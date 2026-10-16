@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 08:24</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 13:52</span></div>
     </div>
   </header>
 
@@ -6933,9 +6933,11 @@ function saveKeys(){
 // Wire all key/ID inputs to auto-persist on every keystroke. Idempotent —
 // safe to call multiple times. Called once after loadKeys() at DOM ready.
 function wireAutoSaveKeys(){
+  // The channel inputs come from the table - this list had been left at the
+  // original five, so a hand-typed Facebook or TikTok ID did not auto-save.
   const ids = ['unsplash-key','wix-key','wix-site-id',
-               'buffer-token','buffer-proxy-url',
-               'ch-eridion-li','ch-erika-li','ch-quinta-li','ch-eridion-ig','ch-quinta-ig'];
+               'buffer-token','buffer-proxy-url']
+    .concat(CHANNEL_KINDS.flatMap(k=>k.voices.map(v=>channelInputId(v,k))));
   ids.forEach(id => {
     const el = document.getElementById(id);
     if(!el || el.dataset.autosaveWired) return;
@@ -9790,7 +9792,16 @@ function openBufferPreviewModal(id){
       </div>
     `);
   }
-  document.getElementById('buffer-preview-channels').innerHTML = cards.join('') || '<div style="color:var(--text-muted)">No channels configured for this voice — open API Keys → Fetch My Channels.</div>';
+  // A channel this voice HAS but has no saved ID for is the quiet failure
+  // mode: the card simply never appears and the push looks like it ignored
+  // the channel. Name them instead.
+  const unset = channelsForVoice(voice).filter(k=>!getChannelIdFor(voice,k.kind)).map(k=>k.label);
+  const unsetNote = unset.length
+    ? `<div style="color:#B45309;font-size:12px;margin-top:10px">Not sent — no channel ID saved for ${unset.join(' and ')}. Open API Keys → Fetch My Channels, then Save.</div>`
+    : '';
+  document.getElementById('buffer-preview-channels').innerHTML =
+    (cards.join('') || '<div style="color:var(--text-muted)">No channels configured for this voice — open API Keys → Fetch My Channels.</div>') + unsetNote;
+
   // Initialize disabled visual state for any pre-unchecked toggle
   for(const k of CHANNEL_KINDS){
     const cb=document.getElementById('bp-include-'+k.kind);
