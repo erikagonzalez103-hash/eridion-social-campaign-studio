@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 08:14</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 08:24</span></div>
     </div>
   </header>
 
@@ -7282,7 +7282,7 @@ Voice-natural bridge patterns (cadence reference only — never copy verbatim):
   • Quinta & Co → Erika: "Erika wrote something earlier on [X]. From the practice side, the useful piece is..."`:'';
 
   // IG channel intro — only for Erika/Quinta & Co voices (since their content cross-posts to @eridion handle)
-  const igIntroRule=(voice!=='eridion')?`
+  const igIntroRule=needsIgIntro(voice)?`
 
 ✦ INSTAGRAM CHANNEL INTRO (REQUIRED — this snippet may cross-post to the @eridion Instagram handle, where the audience does not assume your voice):
 Generate an additional short "ig_intro" — 1-2 sentences, voice-natural, that establishes you (${VOICE_DISPLAY_NAMES[voice]}) are the one speaking when this appears under @eridion. It should:
@@ -7520,7 +7520,13 @@ Voice-natural bridge examples (study the cadence — these are PATTERNS, never c
   • Quinta & Co picking up Erika: "Erika wrote something earlier on [X]. From the practice side, the useful piece is..."
 
 For SAME-VOICE snippets (voice === ${sourceVoice.toUpperCase()}): NO bridge. Open directly with the angle. Treat the source as your own prior thinking — don't credit yourself.
+`;
 
+  // Only ask for an ig_intro if some voice this week actually posts onto
+  // another brand’s Instagram handle. None currently do - see needsIgIntro -
+  // so this resolves to nothing and the model stops writing openers Erika then
+  // has to delete.
+  const igIntroBlock=[...new Set(Object.values(voiceByDay))].some(needsIgIntro)?`
 ✦ INSTAGRAM CHANNEL INTRO (REQUIRED for any snippet whose voice is ERIKA or QUINTA & CO):
 Snippets in non-Eridion voices may cross-post to the @eridion Instagram handle, where the audience does not assume the voice. For each ERIKA or QUINTA & CO snippet, generate an additional short "ig_intro" — 1-2 sentences, voice-natural, that establishes who is speaking through the brand channel. The intro:
   (a) Signals the speaker by name and relationship to Eridion
@@ -7532,7 +7538,8 @@ Voice-natural patterns (cadence reference only — never copy verbatim):
   • Erika: "Erika Harrison. One of the people building this:" / "From me, not the brand —" / "Erika here. Quick thought before the calls start:" / "I'll keep this brief:" / (or no intro — open straight into the first line; direct beats announcement)
   • Quinta & Co: "From Quinta & Co —" / "A note from The Practice:" / "Quinta & Co. Field note:" / (or no intro — open straight into the observation; quiet beats announcement). GEO entity rule: the finished caption must say "Quinta & Co" by name somewhere — if the post body already names it, no intro is fine; otherwise the intro carries the name.
 
-For ERIDION-voice snippets: set ig_intro to empty string "" (the voice already matches the channel).`;
+For ERIDION-voice snippets: set ig_intro to empty string "" (the voice already matches the channel).`:'';
+
 
   // One call writes all five snippets, in up to four different voices. Each
   // brand's facts are labelled so a Quinta day can't be written off Eridion's
@@ -7556,7 +7563,7 @@ ${getSpinSourceText(spinSource)}
 
 ORIGINAL TOPIC: ${spinSource.title||''}
 SOURCE VOICE: ${sourceVoice.toUpperCase()} — ${sourceDisplay}
-${bridgeStyleRules}
+${bridgeStyleRules}${igIntroBlock}
 
 ${spinMode==='sections' ? `
 ✦ SPIN MODE: SECTIONS
@@ -7608,7 +7615,7 @@ Return ONLY valid JSON, no preamble, no markdown fences:
 {"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","beat":"3-8 word name of this day's primary beat","cross_voice":true,"bridge_from":"erika","text":"full post text here","ig_intro":"","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}
 
 For same-voice snippets, set cross_voice:false and bridge_from:null.
-For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Quinta & Co-voice snippets, ig_intro must be a 1-2 sentence channel intro per the rules above.`;
+${igIntroBlock?'For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Quinta & Co-voice snippets, ig_intro must be a 1-2 sentence channel intro per the rules above.':'Set ig_intro to empty string "" for every snippet.'}`;
 
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:4000,messages:[{role:'user',content:prompt}]},m=>{resultsEl.innerHTML=`<div class="spin-loading">${escapeHTML(m)}</div>`;});
@@ -7719,7 +7726,7 @@ async function rerollSpinDay(idx){
   const direction=(document.getElementById('spin-week-direction')?.value||'').trim();
 
   const bridgeRule=r.crossVoice?`\n- CROSS-VOICE: open with a 1-2 sentence voice-natural narrative bridge crediting ${sourceDisplay} — by name or relationship, never a formal citation, never "↳"/"Re:"/"Reposting:", never quoting the original verbatim. The bridge IS line one, so it must deliver the new snippet's answer, not tease it.`:`\n- SAME-VOICE: no bridge — treat the source as your own prior thinking; don't credit yourself.`;
-  const igRule=(r.voice!=='eridion')?`\n- Also return "ig_intro": 1-2 voice-natural sentences establishing ${VOICE_DISPLAY_NAMES[r.voice]||r.voice} as the speaker when this cross-posts to the @eridion Instagram handle — natural opening flow, never a "↳ From:"/"Posted by:" tag.${(r.voice==='quinta'||r.voice==='practice')?' GEO entity rule: the finished caption must say "Quinta & Co" by name somewhere — in the intro or the body.':''}`:`\n- Return "ig_intro" as an empty string "" (the voice already matches the channel).`;
+  const igRule=needsIgIntro(r.voice)?`\n- Also return "ig_intro": 1-2 voice-natural sentences establishing ${VOICE_DISPLAY_NAMES[r.voice]||r.voice} as the speaker when this cross-posts to the @eridion Instagram handle — natural opening flow, never a "↳ From:"/"Posted by:" tag.${(r.voice==='quinta'||r.voice==='practice')?' GEO entity rule: the finished caption must say "Quinta & Co" by name somewhere — in the intro or the body.':''}`:`\n- Return "ig_intro" as an empty string "" (the voice already matches the channel).`;
 
   const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(r.voice)}\n\nBUSINESS FACTS FOR ${r.voice.toUpperCase()}:\n${getKB(r.voice)}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nThis source was spun into a 5-day week of LinkedIn snippets. The author REJECTED the ${r.day} snippet and wants a fresh one.\n\nREJECTED SNIPPET (do NOT reuse its angle, opening, or factual pull):\n---\n${r.text}\n---\n\nTHE OTHER DAYS (already keeping these — do NOT overlap with their content, openings, or factual pulls):\n${othersBlock||'(none)'}\n\n✦ YOUR TASK:\nWrite ONE replacement LinkedIn snippet for ${r.day} in the ${r.voice.toUpperCase()} voice.\n- Pull from a DIFFERENT part of the source than the rejected snippet did — a different section, claim, number, or story beat.\n- The day's original rhetorical angle was "${r.angleLabel||'open'}" — keep it only if the new material suits it; otherwise take the strongest natural approach for the new pull.\n- 80-200 words${r.crossVoice?' (up to 220 with the bridge)':''}. Stay factually consistent with the source — no invented data.${bridgeRule}${igRule}\n- 3-5 relevant hashtags (aim for 3-4); avoid repeating more than one hashtag from the other days.${direction?`\n- ADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}\n\nReturn ONLY valid JSON, no preamble, no markdown fences:\n{"text":"full post text","ig_intro":"","hashtags":["#foo","#bar","#baz"]}`;
 
@@ -9285,6 +9292,23 @@ function configuredChannelsFor(voice){
   return channelsForVoice(voice).filter(k=>!!getChannelIdFor(voice,k.kind));
 }
 
+// An ig_intro ("Erika here —", "From Quinta & Co —") exists to say WHO is
+// speaking when a voice’s post lands on ANOTHER brand’s Instagram handle. That
+// was the old shape: one @eridion Instagram, with Erika and Quinta cross-
+// posting into it. Every voice that posts to Instagram now has its own channel,
+// so an intro would introduce Quinta on Quinta’s own account - which is exactly
+// the throat-clearing Erika asked to be rid of.
+//
+// Checked rather than hardcoded to false, so that if a voice is ever routed to
+// someone else’s handle again the intro comes back on its own.
+function needsIgIntro(voice){
+  const k=channelDef('instagram');
+  if(!k || !k.voices.includes(voice)) return false;   // never posts to Instagram
+  const own=getBufferChannels()[channelSlotKey(voice,k)];
+  const routed=getChannelIdFor(voice,'instagram');
+  return !!routed && routed!==own;                    // lands on another handle
+}
+
 // The credential panel’s channel fields, generated from the table so a new
 // row needs no markup. IDs match channelInputId(), which is what saveKeys,
 // the loader and the auto-match all address.
@@ -9511,7 +9535,7 @@ function buildBufferPayload(item){
   const text=item.linkedin_text||item.blog_text||'';
   const hashtags=item.hashtags||[];
   const linkedinFull=hashtags.length?`${text}\n\n${hashtags.join(' ')}`:text;
-  const igBody=(voice!=='eridion'&&item.ig_intro)?`${item.ig_intro}\n\n${text}`:text;
+  const igBody=(needsIgIntro(voice)&&item.ig_intro)?`${item.ig_intro}\n\n${text}`:text;
   const igFull=hashtags.length?`${igBody}\n\n${hashtags.join(' ')}`:igBody;
   const igOversize=igFull.length>IG_CHAR_LIMIT;
   return {
@@ -9527,7 +9551,7 @@ function buildBufferPayload(item){
     bucket:item.bucketLabel||item.bucket||'',
     cross_voice:!!item.cross_voice,
     bridge_from:item.bridge_from||null,
-    has_ig_intro:!!(item.ig_intro&&voice!=='eridion'),
+    has_ig_intro:!!(item.ig_intro&&needsIgIntro(voice)),
   };
 }
 
@@ -9543,7 +9567,7 @@ function _composeText(item, channelKind){
   // real difference is downstream - Facebook renders a URL in the body as a
   // live link, which neither LinkedIn nor Instagram will do.
   if(channelKind === 'instagram'){
-    return withTags((voice!=='eridion' && item.ig_intro) ? item.ig_intro+'\n\n'+text : text);
+    return withTags((needsIgIntro(voice) && item.ig_intro) ? item.ig_intro+'\n\n'+text : text);
   }
   return withTags(text);
 }
