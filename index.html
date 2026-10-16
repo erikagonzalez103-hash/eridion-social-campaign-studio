@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 13:52</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 13:55</span></div>
     </div>
   </header>
 
@@ -9760,6 +9760,11 @@ function openBufferPreviewModal(id){
   for(const k of configuredChannelsFor(voice)){
     const body = _composeText(item, k.kind);
     const over = body.length > k.charLimit;
+    // Already queued on this channel? Default it OFF. Pushing a post again to
+    // pick up a newly connected channel is normal; silently duplicating the
+    // channels it already went to is not.
+    const queuedAt = item['buffer_'+k.slot+'_queued_at'];
+    const already = !!queuedAt;
     const imgLabel = imgCount>1
       ? (k.hasIgType ? `📎 ${imgCount} images (carousel · Post type only)` : `📎 ${imgCount} images (carousel)`)
       : '📎 image attached';
@@ -9777,7 +9782,7 @@ function openBufferPreviewModal(id){
     cards.push(`
       <div class="bp-card" data-channel="${k.kind}">
         <div class="bp-card-head">
-          <label class="bp-card-toggle"><input type="checkbox" id="bp-include-${k.kind}" ${over?'':'checked'} onchange="onBufferPreviewToggle(this,'${k.kind}')"> Include</label>
+          <label class="bp-card-toggle"><input type="checkbox" id="bp-include-${k.kind}" ${(over||already)?'':'checked'} onchange="onBufferPreviewToggle(this,'${k.kind}')"> Include</label>
           <span class="bp-card-channel">${k.icon} ${k.label} · ${escapeHTML(voiceLabel)}</span>
           ${typeSel}
         </div>
@@ -9787,6 +9792,7 @@ function openBufferPreviewModal(id){
         </div>
         <div class="bp-card-meta">
           <span class="${over?'over':''}">${body.length} / ${k.charLimit} chars${over?' — over limit, auto-excluded':''}</span>
+          ${already?`<span style="color:#B45309">already queued ${new Date(queuedAt).toLocaleDateString()} — unticked to avoid a duplicate</span>`:''}
           ${imageUrl?`<span>${imgLabel}</span>`:noImg}
         </div>
       </div>
