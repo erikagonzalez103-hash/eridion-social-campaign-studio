@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 13:55</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 14:10</span></div>
     </div>
   </header>
 
@@ -8228,8 +8228,68 @@ function loadLibrary(){
   }
 }
 
+// Two tabs open at once is how a day of work disappears: the older tab holds
+// a stale copy of `library` in memory and writes the whole array out on every
+// save, silently overwriting whatever the newer tab wrote. It happened to
+// Erika on 2026-10-16 and cost most of a week of scheduled posts.
+//
+// Three defences, cheapest first:
+//   1. A storage listener, so an open tab notices another tab’s write and
+//      refreshes its own copy. This prevents the stale state existing at all.
+//   2. A pre-write check: if the version on disk holds items this tab has
+//      never seen, merge them in rather than drop them.
+//   3. A single rolling backup of whatever we were about to overwrite, so
+//      even a clobber is recoverable. See restoreLibraryBackup().
+const LIB_BACKUP_KEY = LIB_KEY + '_bak';
+const LIB_CLOBBER_THRESHOLD = 3;   // a real delete is 1-2 items; a clobber is many
+
 function persistLibrary(){
-  try{localStorage.setItem(LIB_KEY,JSON.stringify(library));}catch(e){console.error('Library save failed',e);}
+  try{
+    const rawPrev = localStorage.getItem(LIB_KEY);
+    let prev = null;
+    try{ prev = rawPrev ? JSON.parse(rawPrev) : null; }catch(_){ prev = null; }
+    if(Array.isArray(prev)){
+      const mine = new Set(library.map(i=>i && i.id));
+      const missing = prev.filter(i=>i && i.id && !mine.has(i.id));
+      if(missing.length >= LIB_CLOBBER_THRESHOLD){
+        // Keep the bigger version before touching anything.
+        try{ localStorage.setItem(LIB_BACKUP_KEY, rawPrev); }catch(_){}
+        // Then keep those items rather than erase them. An intentional bulk
+        // delete of 3+ at once is rare; a stale tab dropping many is not.
+        library = library.concat(missing).sort((a,b)=>(a.created_at||0)-(b.created_at||0));
+        console.warn('[library] merged '+missing.length+' item(s) this tab had not seen; previous version saved to '+LIB_BACKUP_KEY);
+        if(typeof showToast==='function') showToast('Recovered '+missing.length+' post'+(missing.length===1?'':'s')+' another tab had saved','success');
+      }
+    }
+    localStorage.setItem(LIB_KEY,JSON.stringify(library));
+  }catch(e){console.error('Library save failed',e);}
+}
+
+// Another tab saved. Take its version as truth - it is strictly newer than
+// ours - and redraw, so this tab can never write a stale copy back.
+window.addEventListener('storage', e => {
+  if(e.key !== LIB_KEY || !e.newValue) return;
+  try{
+    const incoming = JSON.parse(e.newValue);
+    if(!Array.isArray(incoming)) return;
+    library = incoming;
+    if(typeof renderLibrary==='function') renderLibrary();
+    if(typeof renderCalendar==='function') renderCalendar();
+  }catch(_){}
+});
+
+// Paste restoreLibraryBackup() into the console to put the backup back.
+function restoreLibraryBackup(){
+  const raw = localStorage.getItem(LIB_BACKUP_KEY);
+  if(!raw) return 'No backup stored.';
+  const bak = JSON.parse(raw);
+  const mine = new Set(library.map(i=>i && i.id));
+  const added = bak.filter(i=>i && i.id && !mine.has(i.id));
+  library = library.concat(added).sort((a,b)=>(a.created_at||0)-(b.created_at||0));
+  localStorage.setItem(LIB_KEY, JSON.stringify(library));
+  if(typeof renderLibrary==='function') renderLibrary();
+  if(typeof renderCalendar==='function') renderCalendar();
+  return 'Restored '+added.length+' post(s). Library now holds '+library.length+'.';
 }
 
 function addToLibrary(item){
