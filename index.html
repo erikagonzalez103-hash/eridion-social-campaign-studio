@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 16:07</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 16:19</span></div>
     </div>
   </header>
 
@@ -9322,11 +9322,14 @@ const IG_CHAR_LIMIT = 2200;
 // as a visible error on the first real push rather than silent breakage.
 const CHANNEL_KINDS = [
   {kind:'linkedin',  slot:'li', service:'linkedin',  label:'LinkedIn',  icon:'💼', charLimit:3000,
-   voices:['eridion','erika','quinta','practice'], deferred:['practice']},
+   voices:['eridion','erika','quinta','practice'], deferred:['practice'], firstComment:true},
   {kind:'instagram', slot:'ig', service:'instagram', label:'Instagram', icon:'📷', charLimit:IG_CHAR_LIMIT,
-   voices:['eridion','quinta','practice'], deferred:['practice'], hasIgType:true, imageRequired:true, maxImages:10},
+   voices:['eridion','quinta','practice'], deferred:['practice'], hasIgType:true, imageRequired:true, maxImages:10,
+   metaType:true, shareToFeed:true, firstComment:true},
   {kind:'facebook',  slot:'fb', service:'facebook',  label:'Facebook',  icon:'👥', charLimit:63206,
-   voices:['eridion','quinta'], linksClickable:true},
+   // Buffer REQUIRES metadata.facebook.type - PostTypeFacebook is post/reel/story,
+   // lowercase. Without it the push fails with 'Facebook posts require a type'.
+   voices:['eridion','quinta'], linksClickable:true, metaType:true, firstComment:true},
   // charLimit is the long-documented 2,200 caption cap. TikTok has raised it
   // for some accounts; 2,200 is the conservative floor and is far above what
   // the studio produces, so it should never bite in practice.
@@ -9654,8 +9657,8 @@ async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduled
   //  - Instagram: a carousel is 2-10 images and only applies to type "post";
   //    story and reel take a single asset, so trim to the first.
   //  - LinkedIn: multiple images post fine as a native multi-image post.
-  // Defined inside the dead `input` block removed in 4f6542e, exactly as
-  // igTypeValue was; the use in the inline mutation below outlived both.
+  // Defined inside the dead `input` block removed in 4f6542e; the use in the
+  // inline mutation below outlived it.
   let mediaUrls = (Array.isArray(imageUrls) && imageUrls.length)
     ? imageUrls.slice()
     : (imageUrl ? [imageUrl] : []);
@@ -9664,20 +9667,20 @@ async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduled
   // otherwise each service's own cap applies (Instagram 10, TikTok 10).
   if(kdef && kdef.hasIgType && (igType||'post')!=='post') mediaUrls = mediaUrls.slice(0,1);
   else if(kdef && kdef.maxImages) mediaUrls = mediaUrls.slice(0, kdef.maxImages);
-  // Instagram requires metadata.instagram.{type, shouldShareToFeed}. The type
-  // enum is post / story / reel (lowercase); shouldShareToFeed is a required
-  // Boolean. See developers.buffer.com/types/InstagramPostMetadataInput.html
-  // This line lived inside the dead `input` block removed in 4f6542e, which
-  // took the DEFINITION with it and left the use below, so every Instagram
-  // push failed with "igTypeValue is not defined". Kept beside its use.
-  const igTypeValue = (channelKind === 'instagram') ? (igType || 'post') : null;
+  // Per-service metadata, declared in CHANNEL_KINDS rather than branched on
+  // here. Instagram and Facebook both REQUIRE a lowercase type enum
+  // (post/reel/story); Instagram additionally requires shouldShareToFeed.
+  // See developers.buffer.com/types/InstagramPostMetadataInput.html and
+  // .../FacebookPostMetadataInput.html. TikTok needs none and took the post
+  // without any, so it stays absent from the table.
   const metaParts=[];
-  if(igTypeValue){
-    const igFields=[`type: ${igTypeValue}`, `shouldShareToFeed: true`];
-    if(fc) igFields.push(`firstComment: ${JSON.stringify(fc)}`);
-    metaParts.push(`instagram: { ${igFields.join(', ')} }`);
+  if(kdef){
+    const fields=[];
+    if(kdef.metaType) fields.push(`type: ${kdef.hasIgType ? (igType||'post') : 'post'}`);
+    if(kdef.shareToFeed) fields.push('shouldShareToFeed: true');
+    if(fc && kdef.firstComment) fields.push(`firstComment: ${JSON.stringify(fc)}`);
+    if(fields.length) metaParts.push(`${kdef.kind}: { ${fields.join(', ')} }`);
   }
-  if(fc && channelKind==='linkedin') metaParts.push(`linkedin: { firstComment: ${JSON.stringify(fc)} }`);
   const metadataLiteral = metaParts.length ? `, metadata: { ${metaParts.join(', ')} }` : '';
   // Try inline-literal mode first since Buffer's docs use enum literals
   // (`automatic`, `customScheduled`) which can be tricky as variables.
