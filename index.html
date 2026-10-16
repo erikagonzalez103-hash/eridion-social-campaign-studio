@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-08 16:13</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 08:05</span></div>
     </div>
   </header>
 
@@ -2790,34 +2790,7 @@ textarea { min-height: 80px; line-height: 1.6; }
           </div>
           <div style="background:var(--off-white);border:1px solid var(--hairline);padding:12px;margin-bottom:12px;">
             <div style="font-family:var(--font-subhead);font-size:10px;font-weight:600;letter-spacing:var(--track-alta);text-transform:uppercase;color:var(--medium-gray);margin-bottom:10px">Buffer Channel IDs <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">(auto-fill via Fetch button)</span></div>
-            <div class="field" style="margin-bottom:8px">
-              <label class="field-label" style="font-size:9px">Eridion · LinkedIn</label>
-              <input type="text" id="ch-eridion-li" placeholder="(empty — click Fetch My Channels)" style="font-family:var(--font-mono);font-size:11px" />
-            </div>
-            <div class="field" style="margin-bottom:8px">
-              <label class="field-label" style="font-size:9px">Erika · LinkedIn</label>
-              <input type="text" id="ch-erika-li" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
-            </div>
-            <div class="field" style="margin-bottom:8px">
-              <label class="field-label" style="font-size:9px">Quinta & Co · LinkedIn</label>
-              <input type="text" id="ch-quinta-li" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
-            </div>
-            <div class="field" style="margin-bottom:8px;display:none" data-deferred="practice-channels">
-              <label class="field-label" style="font-size:9px">The Practice · LinkedIn</label>
-              <input type="text" id="ch-practice-li" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
-            </div>
-            <div class="field" style="margin-bottom:8px">
-              <label class="field-label" style="font-size:9px">Eridion · Instagram</label>
-              <input type="text" id="ch-eridion-ig" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
-            </div>
-            <div class="field" style="margin-bottom:8px">
-              <label class="field-label" style="font-size:9px">Quinta & Co · Instagram</label>
-              <input type="text" id="ch-quinta-ig" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
-            </div>
-            <div class="field" style="margin-bottom:10px;display:none" data-deferred="practice-channels">
-              <label class="field-label" style="font-size:9px">The Practice · Instagram</label>
-              <input type="text" id="ch-practice-ig" placeholder="(empty)" style="font-family:var(--font-mono);font-size:11px" />
-            </div>
+            <div id="buffer-channel-fields"></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
               <button class="action-btn" onclick="testBufferConnection()" style="flex:1;min-width:120px">🔌 Test Connection</button>
               <button class="action-btn" onclick="fetchBufferChannels()" style="flex:1;min-width:120px;color:var(--navy);border-color:var(--navy)">📡 Fetch My Channels</button>
@@ -6945,13 +6918,12 @@ function _persistKeys(){
   if(bt) localStorage.setItem('buffer_token',bt);
   if(bp) localStorage.setItem('buffer_proxy_url',bp);
   // Channel IDs: write whatever's in the fields (allows manual edit)
-  const channels={
-    eridion_li:document.getElementById('ch-eridion-li')?.value.trim()||'',
-    erika_li:document.getElementById('ch-erika-li')?.value.trim()||'',
-    quinta_li:document.getElementById('ch-quinta-li')?.value.trim()||'',
-    eridion_ig:document.getElementById('ch-eridion-ig')?.value.trim()||'',
-    quinta_ig:document.getElementById('ch-quinta-ig')?.value.trim()||'',
-  };
+  // Walk the table so a new row needs no edit here.
+  const channels={};
+  for(const k of CHANNEL_KINDS) for(const v of k.voices){
+    const el=document.getElementById(channelInputId(v,k));
+    if(el) channels[channelSlotKey(v,k)]=el.value.trim();
+  }
   if(Object.values(channels).some(v=>v)) localStorage.setItem('buffer_channels',JSON.stringify(channels));
 }
 function saveKeys(){
@@ -6972,6 +6944,8 @@ function wireAutoSaveKeys(){
   });
 }
 function loadKeys(){
+  // Build the channel inputs before anything tries to fill them.
+  renderChannelFields();
   const uk=localStorage.getItem('unsplash_key');
   const wk=localStorage.getItem('wix_key');
   const ws=localStorage.getItem('wix_site_id');
@@ -6986,11 +6960,10 @@ function loadKeys(){
   if(bp && document.getElementById('buffer-proxy-url')) document.getElementById('buffer-proxy-url').value=bp;
   try{
     const ch=JSON.parse(localStorage.getItem('buffer_channels')||'{}');
-    if(ch.eridion_li && document.getElementById('ch-eridion-li')) document.getElementById('ch-eridion-li').value=ch.eridion_li;
-    if(ch.erika_li && document.getElementById('ch-erika-li')) document.getElementById('ch-erika-li').value=ch.erika_li;
-    if(ch.quinta_li && document.getElementById('ch-quinta-li')) document.getElementById('ch-quinta-li').value=ch.quinta_li;
-    if(ch.eridion_ig && document.getElementById('ch-eridion-ig')) document.getElementById('ch-eridion-ig').value=ch.eridion_ig;
-    if(ch.quinta_ig && document.getElementById('ch-quinta-ig')) document.getElementById('ch-quinta-ig').value=ch.quinta_ig;
+    for(const k of CHANNEL_KINDS) for(const v of k.voices){
+      const key=channelSlotKey(v,k), el=document.getElementById(channelInputId(v,k));
+      if(ch[key] && el) el.value=ch[key];
+    }
   }catch(_){}
 }
 function updateIndicators(){
@@ -9257,6 +9230,72 @@ function copyWeekForBuffer(){
 // ═══════════════════════════════════════════════════════════════════
 
 const IG_CHAR_LIMIT = 2200;
+
+// ---- Buffer channels -------------------------------------------------
+// One table, replacing the LinkedIn/Instagram pair that used to be hardcoded
+// in eleven places: the credential fields, save, load, auto-match, lookup,
+// compose, push, preview cards, confirm, result reporting and week totals.
+// Adding a channel for an existing service is now a row here. A new SERVICE
+// also needs a _composeText case and whatever metadata Buffer requires for it
+// in createBufferPost.
+//
+// `slot` is the storage and DOM suffix and MUST NOT CHANGE for existing rows:
+// the localStorage key is `${voice}_${slot}` and the input id is
+// `ch-${voice}-${slot}`, and both already hold real channel IDs.
+//
+// TikTok is deliberately absent. Buffer rejects a TikTok post with no video
+// ("400: Tiktok is all about the videos!") and the studio produces stills, so
+// a row here would only produce failures. It needs a video asset first.
+const CHANNEL_KINDS = [
+  {kind:'linkedin',  slot:'li', service:'linkedin',  label:'LinkedIn',  icon:'💼', charLimit:3000,
+   voices:['eridion','erika','quinta','practice'], deferred:['practice']},
+  {kind:'instagram', slot:'ig', service:'instagram', label:'Instagram', icon:'📷', charLimit:IG_CHAR_LIMIT,
+   voices:['eridion','quinta','practice'], deferred:['practice'], hasIgType:true, imageRequired:true},
+  {kind:'facebook',  slot:'fb', service:'facebook',  label:'Facebook',  icon:'👥', charLimit:63206,
+   voices:['quinta'], linksClickable:true},
+];
+
+// Auto-match tries these in order, most specific first: Quinta & Co’s channel
+// name also contains "Harrison", so 'erika' must only be tried after Quinta has
+// claimed its own channel.
+const VOICE_MATCH = [
+  {voice:'eridion',  patterns:['eridion']},
+  {voice:'quinta',   patterns:['quinta']},
+  {voice:'erika',    patterns:['erika']},
+  {voice:'practice', patterns:['practice']},
+];
+
+function channelDef(kind){ return CHANNEL_KINDS.find(c=>c.kind===kind)||null; }
+function channelsForVoice(voice){ return CHANNEL_KINDS.filter(c=>c.voices.includes(voice)); }
+function channelSlotKey(voice,k){ return voice+'_'+k.slot; }
+function channelInputId(voice,k){ return 'ch-'+voice+'-'+k.slot; }
+// The channels a voice has AND has an ID saved for - what the preview modal
+// offers and what a push actually walks.
+function configuredChannelsFor(voice){
+  return channelsForVoice(voice).filter(k=>!!getChannelIdFor(voice,k.kind));
+}
+
+// The credential panel’s channel fields, generated from the table so a new
+// row needs no markup. IDs match channelInputId(), which is what saveKeys,
+// the loader and the auto-match all address.
+function renderChannelFields(){
+  const box=document.getElementById('buffer-channel-fields'); if(!box) return;
+  const saved=getBufferChannels();
+  const rows=[];
+  for(const k of CHANNEL_KINDS) for(const vm of VOICE_MATCH){
+    if(!k.voices.includes(vm.voice)) continue;
+    const hide=(k.deferred||[]).includes(vm.voice);
+    const hideStyle = hide ? ';display:none' : '';
+    const hideAttr  = hide ? ' data-deferred="practice-channels"' : '';
+    const id=channelInputId(vm.voice,k), val=saved[channelSlotKey(vm.voice,k)]||'';
+    rows.push(`<div class="field" style="margin-bottom:8px${hideStyle}"${hideAttr}>
+      <label class="field-label" style="font-size:9px">${escapeHTML(kbBrandLabel(vm.voice))} · ${k.label}</label>
+      <input type="text" id="${id}" value="${escapeHTML(val)}" placeholder="(empty — click Fetch My Channels)" style="font-family:var(--font-mono);font-size:11px" />
+    </div>`);
+  }
+  box.innerHTML=rows.join('');
+}
+
 const BUFFER_GRAPHQL_ENDPOINT = 'https://api.buffer.com';
 
 function getBufferToken(){
@@ -9404,21 +9443,21 @@ async function fetchBufferChannels(){
       return null;
     }
 
-    // Match most-specific patterns first so a generic pattern can't steal
-    // a channel that a more specific one would have claimed.
-    const eridionLi = findChannel('linkedin', ['eridion']);
-    const quintaLi  = findChannel('linkedin', ['quinta']);
-    const erikaLi   = findChannel('linkedin', ['erika']);
-    const quintaIg  = findChannel('instagram', ['quinta']);
-    const eridionIg = findChannel('instagram', ['eridion']);
-
-    const found = [];
-    const missing = [];
-    if(eridionLi){ document.getElementById('ch-eridion-li').value = eridionLi.id; found.push('Eridion·LI'); } else missing.push('Eridion·LI');
-    if(erikaLi)  { document.getElementById('ch-erika-li').value   = erikaLi.id;   found.push('Erika·LI');   } else missing.push('Erika·LI');
-    if(quintaLi) { document.getElementById('ch-quinta-li').value  = quintaLi.id;  found.push('Quinta·LI');  } else missing.push('Quinta·LI');
-    if(eridionIg){ document.getElementById('ch-eridion-ig').value = eridionIg.id; found.push('Eridion·IG'); } else missing.push('Eridion·IG');
-    if(quintaIg) { document.getElementById('ch-quinta-ig').value  = quintaIg.id;  found.push('Quinta·IG');  } else missing.push('Quinta·IG');
+    // Walk kinds x voices from the table instead of one line per pair.
+    const found=[], missing=[];
+    for(const k of CHANNEL_KINDS){
+      for(const vm of VOICE_MATCH){
+        if(!k.voices.includes(vm.voice)) continue;
+        // A deferred pairing (The Practice) has no field on screen and is not
+        // reported as missing - it is not set up yet, which is not a fault.
+        const el=document.getElementById(channelInputId(vm.voice,k));
+        const hidden=(k.deferred||[]).includes(vm.voice);
+        const hit=findChannel(k.service, vm.patterns);
+        const tag=kbBrandLabel(vm.voice)+'·'+k.label;
+        if(hit){ if(el) el.value=hit.id; found.push(tag); }
+        else if(!hidden) missing.push(tag);
+      }
+    }
 
     // Persist
     saveKeys();
@@ -9443,18 +9482,13 @@ async function fetchBufferChannels(){
 }
 
 function getChannelIdFor(voice, kind){
-  const ch = getBufferChannels();
-  if(kind === 'instagram'){
-    // Eridion + Quinta both have IG. Erika does not (personal). Default to
-    // Eridion's IG so legacy non-voice-specific callers still work.
-    if(voice === 'quinta')  return ch.quinta_ig  || null;
-    if(voice === 'eridion') return ch.eridion_ig || null;
-    return ch.eridion_ig || null;
-  }
-  // LinkedIn: 1 channel per voice
-  if(voice === 'eridion') return ch.eridion_li || null;
-  if(voice === 'erika')   return ch.erika_li   || null;
-  if(voice === 'quinta')  return ch.quinta_li  || null;
+  const k=channelDef(kind); if(!k) return null;
+  const ch=getBufferChannels();
+  const id=ch[channelSlotKey(voice,k)];
+  if(id) return id;
+  // Legacy fallback: callers that never passed a voice used to land on
+  // Eridion’s Instagram. Preserved so those callers keep working.
+  if(kind==='instagram' && !k.voices.includes(voice)) return ch.eridion_ig||null;
   return null;
 }
 
@@ -9493,12 +9527,15 @@ function _composeText(item, channelKind){
   const voice = item.scheduled_account||item.voice||'eridion';
   const text = item.linkedin_text||item.blog_text||'';
   const hashtags = item.hashtags||[];
-  if(channelKind === 'linkedin'){
-    return hashtags.length ? `${text}\n\n${hashtags.join(' ')}` : text;
+  const withTags = body => hashtags.length ? body+'\n\n'+hashtags.join(' ') : body;
+  // Instagram alone gets the ig_intro hook, and only for non-Eridion voices.
+  // Facebook takes the LinkedIn composition: same body, same tags. The one
+  // real difference is downstream - Facebook renders a URL in the body as a
+  // live link, which neither LinkedIn nor Instagram will do.
+  if(channelKind === 'instagram'){
+    return withTags((voice!=='eridion' && item.ig_intro) ? item.ig_intro+'\n\n'+text : text);
   }
-  // Instagram: prepend ig_intro for non-Eridion voices, then append hashtags
-  const igBody = (voice!=='eridion' && item.ig_intro) ? `${item.ig_intro}\n\n${text}` : text;
-  return hashtags.length ? `${igBody}\n\n${hashtags.join(' ')}` : igBody;
+  return withTags(text);
 }
 
 // Single createPost call: schedules a post on a specific channel at a
@@ -9573,56 +9610,54 @@ async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduled
 // (if Eridion IG configured AND the post fits IG's char limit). Returns
 // {linkedin: bool, instagram: bool|'skipped'|'error', errors: [...]}.
 async function pushSinglePost(item, opts){
-  // Preview-modal options: which channels to push, and IG type. Defaults
-  // preserve the pre-modal behavior so any other callers still work.
-  const includeLinkedin  = !opts || opts.includeLinkedin !== false;
-  const includeInstagram = !opts || opts.includeInstagram !== false;
-  const igType = (opts && opts.igType) || 'post';
   const voice = item.scheduled_account||item.voice||'eridion';
+  const igType = (opts && opts.igType) || 'post';
   const imageUrls = getItemImageUrls(item);
   const imageUrl = imageUrls[0]||null;
-  // Buffer requires dueAt strictly in the future. If the item's scheduled
+  // Buffer requires dueAt strictly in the future. If the item’s scheduled
   // time has already passed (common with auto-schedule on the same day),
   // bump it to 5 minutes from now so Buffer accepts the post.
   let scheduledForIso = new Date(item.scheduled_for||Date.now()).toISOString();
   if(new Date(scheduledForIso).getTime() <= Date.now() + 60*1000){
     scheduledForIso = new Date(Date.now() + 5*60*1000).toISOString();
   }
-  const result = { linkedin:false, instagram:'skipped', errors:[] };
 
-  // LinkedIn
-  if(includeLinkedin){
-    const liChannelId = getChannelIdFor(voice, 'linkedin');
-    if(!liChannelId){
-      result.errors.push(`No LinkedIn channel ID configured for "${voice}"`);
-    } else {
-      try{
-        const liText = _composeText(item, 'linkedin');
-        await createBufferPost({channelId: liChannelId, text: liText, imageUrl, imageUrls, scheduledForIso, channelKind: 'linkedin', firstComment: item.first_comment});
-        result.linkedin = true;
-      }catch(e){
-        result.errors.push(`LI: ${e.message}`);
-      }
+  // Which channels to push. opts.include is the current shape; the older
+  // includeLinkedin / includeInstagram booleans are still honoured so any
+  // caller that was not updated keeps working. Absent either, every
+  // configured channel goes - the pre-modal default.
+  const legacy = {linkedin:opts&&opts.includeLinkedin, instagram:opts&&opts.includeInstagram};
+  const wants = k => {
+    if(opts && opts.include && Object.prototype.hasOwnProperty.call(opts.include,k.kind)) return !!opts.include[k.kind];
+    if(legacy[k.kind]!==undefined) return legacy[k.kind]!==false;
+    return true;
+  };
+
+  // Keys stay named per kind (result.linkedin, result.instagram, ...) because
+  // the modal, the week push and the toast all read them that way.
+  const result = { errors:[] };
+  for(const k of CHANNEL_KINDS) result[k.kind] = 'skipped';
+  result.linkedin = false;
+
+  for(const k of configuredChannelsFor(voice)){
+    if(!wants(k)) continue;
+    const channelId = getChannelIdFor(voice, k.kind);
+    const text = _composeText(item, k.kind);
+    if(k.charLimit && text.length > k.charLimit){ result[k.kind] = 'oversize'; continue; }
+    try{
+      await createBufferPost({channelId, text, imageUrl, imageUrls, scheduledForIso,
+                              channelKind:k.kind, igType, firstComment:item.first_comment});
+      result[k.kind] = true;
+    }catch(e){
+      result[k.kind] = 'error';
+      result.errors.push(k.label+': '+e.message);
     }
   }
-
-  // Instagram — only if configured, included, AND text fits
-  if(includeInstagram){
-    const igChannelId = getChannelIdFor(voice, 'instagram');
-    if(igChannelId){
-      const igText = _composeText(item, 'instagram');
-      if(igText.length > IG_CHAR_LIMIT){
-        result.instagram = 'oversize';
-      } else {
-        try{
-          await createBufferPost({channelId: igChannelId, text: igText, imageUrl, imageUrls, scheduledForIso, channelKind: 'instagram', igType, firstComment: item.first_comment});
-          result.instagram = true;
-        }catch(e){
-          result.instagram = 'error';
-          result.errors.push(`IG: ${e.message}`);
-        }
-      }
-    }
+  // LinkedIn was the one channel that used to report a missing ID as an error
+  // rather than a silent skip. Kept, because a voice with no LinkedIn channel
+  // configured is almost always a setup mistake rather than a choice.
+  if(wants(channelDef('linkedin')) && !getChannelIdFor(voice,'linkedin')){
+    result.errors.push('No LinkedIn channel ID configured for "'+voice+'"');
   }
   return result;
 }
@@ -9677,75 +9712,51 @@ function openBufferPreviewModal(id){
   const imageUrls = getItemImageUrls(item);
   const imageUrl = imageUrls[0]||null;
   const imgCount = imageUrls.length;
-  const liImgLabel = imgCount>1 ? `📎 ${imgCount} images (carousel)` : '📎 image attached';
-  const igImgLabel = imgCount>1 ? `📎 ${imgCount} images (carousel · Post type only)` : '📎 image attached';
-  const liChannelId = getChannelIdFor(voice,'linkedin');
-  const igChannelId = getChannelIdFor(voice,'instagram');
   const lastIgType = localStorage.getItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY) || 'post';
-  // Schedule line
-  const when = new Date(item.scheduled_for||Date.now());
-  document.getElementById('buffer-preview-when').textContent =
-    `Scheduled for ${when.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})} · ${item.scheduled_time||when.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`;
-  // Build channel cards
   const cards = [];
-  const voiceLabel = {eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[voice] || voice;
-  if(liChannelId){
-    const liText = _composeText(item,'linkedin');
-    const liLimit = 3000;
-    const over = liText.length > liLimit;
-    cards.push(`
-      <div class="bp-card" data-channel="linkedin">
-        <div class="bp-card-head">
-          <label class="bp-card-toggle"><input type="checkbox" id="bp-include-li" checked onchange="onBufferPreviewToggle(this,'linkedin')"> Include</label>
-          <span class="bp-card-channel">💼 LinkedIn · ${escapeHTML(voiceLabel)}</span>
-        </div>
-        <div class="bp-card-body">
-          ${imageUrl ? `<img class="bp-card-img" src="${escapeHTML(imageUrl)}" alt="">` : `<div class="bp-card-img missing">🖼</div>`}
-          <div class="bp-card-text">${escapeHTML(liText)}</div>
-        </div>
-        <div class="bp-card-meta">
-          <span class="${over?'over':''}">${liText.length} / ${liLimit} chars${over?' — over limit':''}</span>
-          ${imageUrl?`<span>${liImgLabel}</span>`:'<span style="color:#DC2626">⚠ no image</span>'}
-        </div>
-      </div>
-    `);
-  }
-  if(igChannelId){
-    const igText = _composeText(item,'instagram');
-    const igLimit = (typeof IG_CHAR_LIMIT==='number'?IG_CHAR_LIMIT:2200);
-    const over = igText.length > igLimit;
-    cards.push(`
-      <div class="bp-card" data-channel="instagram">
-        <div class="bp-card-head">
-          <label class="bp-card-toggle"><input type="checkbox" id="bp-include-ig" ${over?'':'checked'} onchange="onBufferPreviewToggle(this,'instagram')"> Include</label>
-          <span class="bp-card-channel">📷 Instagram · ${escapeHTML(voiceLabel)}</span>
-          <div class="bp-card-spacer"></div>
+  const voiceLabel = kbBrandLabel(voice);
+  // One card per CONFIGURED channel for this voice, built from the table.
+  for(const k of configuredChannelsFor(voice)){
+    const body = _composeText(item, k.kind);
+    const over = body.length > k.charLimit;
+    const imgLabel = imgCount>1
+      ? (k.hasIgType ? `📎 ${imgCount} images (carousel · Post type only)` : `📎 ${imgCount} images (carousel)`)
+      : '📎 image attached';
+    const noImg = k.imageRequired
+      ? '<span style="color:#DC2626">⚠ image required for '+k.label+'</span>'
+      : '<span style="color:#DC2626">⚠ no image</span>';
+    const typeSel = k.hasIgType ? `<div class="bp-card-spacer"></div>
           <div class="bp-card-type">Type:
-            <select id="bp-ig-type" class="select-wrap">
+            <select id="bp-type-${k.kind}" class="select-wrap">
               <option value="post" ${lastIgType==='post'?'selected':''}>Post</option>
               <option value="story" ${lastIgType==='story'?'selected':''}>Story</option>
               <option value="reel" ${lastIgType==='reel'?'selected':''}>Reel</option>
             </select>
-          </div>
+          </div>` : '';
+    cards.push(`
+      <div class="bp-card" data-channel="${k.kind}">
+        <div class="bp-card-head">
+          <label class="bp-card-toggle"><input type="checkbox" id="bp-include-${k.kind}" ${over?'':'checked'} onchange="onBufferPreviewToggle(this,'${k.kind}')"> Include</label>
+          <span class="bp-card-channel">${k.icon} ${k.label} · ${escapeHTML(voiceLabel)}</span>
+          ${typeSel}
         </div>
         <div class="bp-card-body">
           ${imageUrl ? `<img class="bp-card-img" src="${escapeHTML(imageUrl)}" alt="">` : `<div class="bp-card-img missing">🖼</div>`}
-          <div class="bp-card-text">${escapeHTML(igText)}</div>
+          <div class="bp-card-text">${escapeHTML(body)}</div>
         </div>
         <div class="bp-card-meta">
-          <span class="${over?'over':''}">${igText.length} / ${igLimit} chars${over?' — over limit, auto-excluded':''}</span>
-          ${imageUrl?`<span>${igImgLabel}</span>`:'<span style="color:#DC2626">⚠ image required for IG</span>'}
+          <span class="${over?'over':''}">${body.length} / ${k.charLimit} chars${over?' — over limit, auto-excluded':''}</span>
+          ${imageUrl?`<span>${imgLabel}</span>`:noImg}
         </div>
       </div>
     `);
   }
   document.getElementById('buffer-preview-channels').innerHTML = cards.join('') || '<div style="color:var(--text-muted)">No channels configured for this voice — open API Keys → Fetch My Channels.</div>';
   // Initialize disabled visual state for any pre-unchecked toggle
-  ['linkedin','instagram'].forEach(k=>{
-    const inputId = k==='linkedin'?'bp-include-li':'bp-include-ig';
-    const cb = document.getElementById(inputId);
-    if(cb) onBufferPreviewToggle(cb,k);
-  });
+  for(const k of CHANNEL_KINDS){
+    const cb=document.getElementById('bp-include-'+k.kind);
+    if(cb) onBufferPreviewToggle(cb,k.kind);
+  }
   // Show warning if no image
   const warn = document.getElementById('buffer-preview-warning');
   if(!imageUrl){
@@ -9769,20 +9780,23 @@ function onBufferPreviewToggle(input, kind){
 async function confirmBufferPush(){
   if(!_bufferPreviewItemId) return;
   const id = _bufferPreviewItemId;
-  const liCb = document.getElementById('bp-include-li');
-  const igCb = document.getElementById('bp-include-ig');
-  const igTypeSel = document.getElementById('bp-ig-type');
-  const includeLinkedin = liCb ? liCb.checked : true;
-  const includeInstagram = igCb ? igCb.checked : false;
-  const igType = igTypeSel ? igTypeSel.value : 'post';
-  // Remember last IG type
-  if(igTypeSel) localStorage.setItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY, igType);
-  if(!includeLinkedin && !includeInstagram){
+  // Read a toggle per channel the modal actually rendered. A channel with no
+  // card is absent from `include`, so pushSinglePost skips it rather than
+  // falling back to its send-everything default.
+  const include = {};
+  for(const k of CHANNEL_KINDS){
+    const cb=document.getElementById('bp-include-'+k.kind);
+    if(cb) include[k.kind]=cb.checked;
+  }
+  const igSel = document.getElementById('bp-type-instagram');
+  const igType = igSel ? igSel.value : 'post';
+  if(igSel) localStorage.setItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY, igType);
+  if(!Object.values(include).some(Boolean)){
     showToast('Pick at least one channel to push','error');
     return;
   }
   closeBufferPreviewModal();
-  await _executeBufferPush(id, { includeLinkedin, includeInstagram, igType });
+  await _executeBufferPush(id, { include, igType });
 }
 // The actual push logic — extracted from the old pushPostToBuffer so the
 // preview modal can call it with explicit options.
@@ -9792,14 +9806,14 @@ async function _executeBufferPush(id, opts){
   setStatus('Pushing to Buffer...',true);
   try{
     const r = await pushSinglePost(item, opts);
-    if(r.linkedin || r.instagram === true){
+    const anyQueued = CHANNEL_KINDS.some(k=>r[k.kind]===true);
+    if(anyQueued){
       item.buffer_queued = true;
       item.buffer_queued_at = Date.now();
-      // Also stamp per-channel for future visibility
-      if(r.linkedin) item.buffer_li_queued_at = Date.now();
-      if(r.instagram === true) item.buffer_ig_queued_at = Date.now();
-      // Auto-flip status to posted — from the user's perspective, the work is
-      // done once it's in Buffer's queue. Manual Mark Posted on Library cards
+      // Per-channel stamps, keyed by slot: buffer_li_queued_at, _ig_, _fb_.
+      for(const k of CHANNEL_KINDS) if(r[k.kind]===true) item['buffer_'+k.slot+'_queued_at']=Date.now();
+      // Auto-flip status to posted - from the user’s perspective the work is
+      // done once it is in Buffer’s queue. Manual Mark Posted on Library cards
       // still exists as a fallback for content posted outside the studio.
       item.status = 'posted';
       item.posted_at = item.posted_at || Date.now();
@@ -9808,17 +9822,20 @@ async function _executeBufferPush(id, opts){
       renderLibrary();
       document.getElementById('buffer-dot').classList.add('active');
     }
-    // Build human-readable result
+    // Human-readable result, one part per channel that was actually tried.
     const parts = [];
-    parts.push(r.linkedin ? '✓ LinkedIn' : '✗ LinkedIn');
-    if(r.instagram === true) parts.push('✓ Instagram');
-    else if(r.instagram === 'oversize') parts.push('⊘ IG (over 2,200)');
-    else if(r.instagram === 'error') parts.push('✗ Instagram');
-    // 'skipped' (no IG channel configured) is silent
+    for(const k of CHANNEL_KINDS){
+      const v=r[k.kind];
+      if(v===true) parts.push('✓ '+k.label);
+      else if(v==='oversize') parts.push('⊘ '+k.label+' (over '+k.charLimit.toLocaleString()+')');
+      else if(v==='error') parts.push('✗ '+k.label);
+      else if(v===false) parts.push('✗ '+k.label);
+      // "skipped" (not configured, or not ticked) stays silent
+    }
     const summary = parts.join(' · ');
     if(r.errors.length){
       console.error('Buffer push errors:', r.errors);
-      showToast(`${summary} — ${r.errors[0]}`, r.linkedin ? 'success' : 'error');
+      showToast(`${summary} — ${r.errors[0]}`, anyQueued ? 'success' : 'error');
     } else {
       showToast(`Pushed to Buffer · ${summary}`, 'success');
     }
@@ -9855,49 +9872,65 @@ async function pushWeekToBuffer(){
   }
 
   setStatus(`Pushing ${weekItems.length} posts to Buffer...`,true);
-  let liSuccess=0, liFail=0, igSuccess=0, igOversize=0, igFail=0;
+  // Tallies per channel kind, so a new row in CHANNEL_KINDS is counted and
+  // reported without touching this loop.
+  const tally={};
+  for(const k of CHANNEL_KINDS) tally[k.kind]={ok:0,fail:0,over:0};
   const errorsAggregate = [];
   for(let i=0; i<weekItems.length; i++){
     const item = weekItems[i];
     setStatus(`Pushing ${i+1}/${weekItems.length}...`,true);
+    const voice = item.scheduled_account||item.voice||'eridion';
     if(getItemImageUrls(item).length===0){
-      // Skip silently if user declined, else just count as a failure
-      liFail++;
+      // No media means Buffer rejects every channel, so count one failure per
+      // channel this voice would have used rather than only LinkedIn.
+      for(const k of configuredChannelsFor(voice)) tally[k.kind].fail++;
       errorsAggregate.push(`${item.title||item.id}: no image`);
       continue;
     }
     try{
       const r = await pushSinglePost(item);
-      if(r.linkedin) liSuccess++; else liFail++;
-      if(r.instagram === true) igSuccess++;
-      else if(r.instagram === 'oversize') igOversize++;
-      else if(r.instagram === 'error') igFail++;
-      if(r.linkedin || r.instagram === true){
+      let any=false;
+      for(const k of CHANNEL_KINDS){
+        const v=r[k.kind];
+        if(v===true){ tally[k.kind].ok++; any=true; }
+        else if(v==='oversize') tally[k.kind].over++;
+        else if(v==='error'||v===false) tally[k.kind].fail++;
+      }
+      if(any){
         item.buffer_queued = true;
         item.buffer_queued_at = Date.now();
       }
       r.errors.forEach(err=>errorsAggregate.push(`${item.title||item.id}: ${err}`));
     }catch(e){
-      liFail++;
+      for(const k of configuredChannelsFor(voice)) tally[k.kind].fail++;
       errorsAggregate.push(`${item.title||item.id}: ${e.message}`);
     }
-    // Pace requests so we don't trip rate limits (Buffer GraphQL has per-key limits).
+    // Pace requests so we don’t trip rate limits (Buffer GraphQL has per-key limits).
     await new Promise(r=>setTimeout(r,400));
   }
   persistLibrary();
   renderCalendar();
   renderLibrary();
   setStatus('Ready',false);
-  if(liSuccess > 0) document.getElementById('buffer-dot').classList.add('active');
+  const anyOk = CHANNEL_KINDS.some(k=>tally[k.kind].ok>0);
+  if(anyOk) document.getElementById('buffer-dot').classList.add('active');
 
   if(errorsAggregate.length) console.error('Buffer week-push errors:', errorsAggregate);
 
-  const liPart = liFail===0 ? `✓ ${liSuccess} LI` : `${liSuccess} LI ✓ · ${liFail} LI ✗`;
-  const igPart = igSuccess>0 || igOversize>0 || igFail>0
-    ? ` · ${igSuccess} IG ✓${igOversize?` · ${igOversize} IG over-limit`:''}${igFail?` · ${igFail} IG ✗`:''}`
-    : '';
-  const allClean = liFail===0 && igFail===0;
-  showToast(`${liPart}${igPart}`, allClean?'success':'error');
+  // A channel with nothing at all to report is left out of the summary.
+  const segs=[];
+  for(const k of CHANNEL_KINDS){
+    const t=tally[k.kind];
+    if(!t.ok && !t.fail && !t.over) continue;
+    const bits=[];
+    if(t.ok) bits.push(t.ok+' '+k.label+' ✓');
+    if(t.over) bits.push(t.over+' '+k.label+' over-limit');
+    if(t.fail) bits.push(t.fail+' '+k.label+' ✗');
+    segs.push(bits.join(' · '));
+  }
+  const allClean = CHANNEL_KINDS.every(k=>tally[k.kind].fail===0);
+  showToast(segs.join(' · ')||'Nothing pushed', allClean?'success':'error');
 }
 
 // ── Legacy Zapier path (only used when Buffer Token isn't set) ──
