@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 08:05</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 08:10</span></div>
     </div>
   </header>
 
@@ -9243,16 +9243,26 @@ const IG_CHAR_LIMIT = 2200;
 // the localStorage key is `${voice}_${slot}` and the input id is
 // `ch-${voice}-${slot}`, and both already hold real channel IDs.
 //
-// TikTok is deliberately absent. Buffer rejects a TikTok post with no video
-// ("400: Tiktok is all about the videos!") and the studio produces stills, so
-// a row here would only produce failures. It needs a video asset first.
+// TikTok takes PHOTO posts, not only video: Buffer allows up to 10 images,
+// 20MB each, JPG/webp with PNG converted, max 1080x1920 or 1920x1080 - every
+// size the image creator offers fits. (An earlier note here said Buffer
+// rejected image-only TikTok posts; that came from a 2024 report and Buffer
+// has supported them since.) Two things are still unverified: whether their
+// API auto-publishes a photo post or only sends a reminder to publish by
+// hand, and whether createPost needs TikTok-specific metadata. Both surface
+// as a visible error on the first real push rather than silent breakage.
 const CHANNEL_KINDS = [
   {kind:'linkedin',  slot:'li', service:'linkedin',  label:'LinkedIn',  icon:'💼', charLimit:3000,
    voices:['eridion','erika','quinta','practice'], deferred:['practice']},
   {kind:'instagram', slot:'ig', service:'instagram', label:'Instagram', icon:'📷', charLimit:IG_CHAR_LIMIT,
-   voices:['eridion','quinta','practice'], deferred:['practice'], hasIgType:true, imageRequired:true},
+   voices:['eridion','quinta','practice'], deferred:['practice'], hasIgType:true, imageRequired:true, maxImages:10},
   {kind:'facebook',  slot:'fb', service:'facebook',  label:'Facebook',  icon:'👥', charLimit:63206,
    voices:['quinta'], linksClickable:true},
+  // charLimit is the long-documented 2,200 caption cap. TikTok has raised it
+  // for some accounts; 2,200 is the conservative floor and is far above what
+  // the studio produces, so it should never bite in practice.
+  {kind:'tiktok',    slot:'tt', service:'tiktok',    label:'TikTok',    icon:'🎵', charLimit:2200,
+   voices:['quinta'], imageRequired:true, maxImages:10},
 ];
 
 // Auto-match tries these in order, most specific first: Quinta & Co’s channel
@@ -9559,9 +9569,11 @@ async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduled
   let mediaUrls = (Array.isArray(imageUrls) && imageUrls.length)
     ? imageUrls.slice()
     : (imageUrl ? [imageUrl] : []);
-  if(channelKind==='instagram'){
-    mediaUrls = ((igType||'post')!=='post') ? mediaUrls.slice(0,1) : mediaUrls.slice(0,10);
-  }
+  const kdef = channelDef(channelKind);
+  // Story and Reel take a single asset however many the carousel holds;
+  // otherwise each service's own cap applies (Instagram 10, TikTok 10).
+  if(kdef && kdef.hasIgType && (igType||'post')!=='post') mediaUrls = mediaUrls.slice(0,1);
+  else if(kdef && kdef.maxImages) mediaUrls = mediaUrls.slice(0, kdef.maxImages);
   // Instagram requires metadata.instagram.{type, shouldShareToFeed}. The type
   // enum is post / story / reel (lowercase); shouldShareToFeed is a required
   // Boolean. See developers.buffer.com/types/InstagramPostMetadataInput.html
@@ -9628,7 +9640,10 @@ async function pushSinglePost(item, opts){
   // configured channel goes - the pre-modal default.
   const legacy = {linkedin:opts&&opts.includeLinkedin, instagram:opts&&opts.includeInstagram};
   const wants = k => {
-    if(opts && opts.include && Object.prototype.hasOwnProperty.call(opts.include,k.kind)) return !!opts.include[k.kind];
+    // `include` is AUTHORITATIVE when present: a channel it does not name is
+    // not pushed. Falling through to the send-everything default here would
+    // mean a caller asking for one channel quietly got all of them.
+    if(opts && opts.include) return !!opts.include[k.kind];
     if(legacy[k.kind]!==undefined) return legacy[k.kind]!==false;
     return true;
   };
@@ -9780,9 +9795,8 @@ function onBufferPreviewToggle(input, kind){
 async function confirmBufferPush(){
   if(!_bufferPreviewItemId) return;
   const id = _bufferPreviewItemId;
-  // Read a toggle per channel the modal actually rendered. A channel with no
-  // card is absent from `include`, so pushSinglePost skips it rather than
-  // falling back to its send-everything default.
+  // A toggle per channel the modal rendered. `include` is authoritative, so a
+  // channel with no card (not configured for this voice) is simply not sent.
   const include = {};
   for(const k of CHANNEL_KINDS){
     const cb=document.getElementById('bp-include-'+k.kind);
