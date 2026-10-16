@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 14:10</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 16:07</span></div>
     </div>
   </header>
 
@@ -9399,17 +9399,21 @@ function getBufferToken(){
 }
 
 function getBufferChannels(){
-  // Read from inputs first (so unsaved edits work), fall back to storage
-  const fromUI = {
-    eridion_li: document.getElementById('ch-eridion-li')?.value.trim() || '',
-    erika_li:   document.getElementById('ch-erika-li')?.value.trim()   || '',
-    quinta_li:  document.getElementById('ch-quinta-li')?.value.trim()  || '',
-    eridion_ig: document.getElementById('ch-eridion-ig')?.value.trim() || '',
-    quinta_ig:  document.getElementById('ch-quinta-ig')?.value.trim()  || '',
-  };
-  if(Object.values(fromUI).some(v=>v)) return fromUI;
-  try{ return JSON.parse(localStorage.getItem('buffer_channels')||'{}'); }
-  catch(_){ return {}; }
+  // Storage is the base; a non-empty input OVERLAYS it, so an unsaved edit
+  // still takes effect. This used to read a hardcoded list of five inputs and
+  // return ONLY those if any had a value - which meant Facebook and TikTok
+  // were invisible no matter what was saved, and the preview modal reported
+  // "no channel ID saved" for channels that were saved. Merging rather than
+  // choosing also fixes the older bug underneath it: one filled field used to
+  // hide every stored channel.
+  let out={};
+  try{ out=JSON.parse(localStorage.getItem('buffer_channels')||'{}')||{}; }catch(_){ out={}; }
+  for(const k of CHANNEL_KINDS) for(const v of k.voices){
+    const el=document.getElementById(channelInputId(v,k));
+    const val=el&&el.value.trim();
+    if(val) out[channelSlotKey(v,k)]=val;
+  }
+  return out;
 }
 
 function setBufferStatusLine(msg, kind){
