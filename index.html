@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 14:12</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 14:31</span></div>
     </div>
   </header>
 
@@ -5924,6 +5924,48 @@ Return ONLY valid JSON, no preamble, no markdown fences:
   }
 }
 
+// Research First used to open with "an article by Eridion Glass - a luxury
+// custom glass and mirror subcontractor in Dallas TX" no matter which brand
+// was selected, and offered ASTM C1048 and Construction Dive as its examples
+// of a good source. So Quinta research came back full of contractor burnout
+// studies. Quinta's whole point is that it serves founders across EVERY
+// industry -- trades AND bakers, retail, services, creative -- so construction
+// examples are not just off-topic, they are the specific wrong impression.
+const RESEARCH_PROFILE={
+  eridion:{
+    who:'Eridion Glass \u2014 a luxury custom glass and mirror subcontractor in Dallas TX, writing for homebuilders and GCs',
+    examples:'"NAHB Cost of Doing Business Study", "ASTM C1048", "Construction Dive Labor Report"',
+    emphasis:'Hard codes and standards are fair game and welcome \u2014 IRC, ASTM, ANSI, manufacturer spec. Lead with them where they exist.'
+  },
+  quinta:{
+    who:'Quinta & Co \u2014 business education for small business owners, writing for founders ACROSS EVERY INDUSTRY: trades, food, retail, professional services, craft and creative',
+    examples:'"SBA Office of Advocacy Small Business Profile", "JPMorgan Chase Institute Small Business Report", "Intuit QuickBooks Small Business Insights", "Harvard Business Review"',
+    emphasis:'The sources MUST span different industries. Do NOT fill the list with construction, contractor or trades material \u2014 that is a sister brand, not this audience, and a reader who runs a bakery or a bookkeeping practice must see themselves in these sources. If a trades example earns its place, it may be ONE of the set, never the theme. Building codes are almost never relevant here.'
+  },
+  erika:{
+    who:'Erika Harrison \u2014 writing in her own name as a co-founder, for other small business owners across every industry',
+    examples:'"SBA Office of Advocacy Small Business Profile", "Gusto Small Business Report", "Harvard Business Review"',
+    emphasis:'Sources must span different industries, not one trade. Building codes are almost never relevant here.'
+  },
+  practice:{
+    who:'The Practice \u2014 a Quinta & Co campaign for practitioners running small service businesses across every field',
+    examples:'"SBA Office of Advocacy Small Business Profile", "Intuit QuickBooks Small Business Insights", "Harvard Business Review"',
+    emphasis:'Sources must span different fields, not one trade. Building codes are almost never relevant here.'
+  },
+};
+function researchProfile(voice){ return RESEARCH_PROFILE[voice]||RESEARCH_PROFILE.quinta; }
+
+// The SEO package was written for eridionglass.com no matter whose blog it was,
+// so a Quinta post carried metadata describing a Dallas glass subcontractor --
+// and unlike a bad research list, that one ships to the live site.
+const BRAND_SITE={
+  eridion:{site:'eridionglass.com', who:'Eridion Glass, a luxury custom glass and mirror subcontractor serving $1M+ homes in Dallas TX', reader:'homebuilders, GCs and luxury homeowners'},
+  quinta:{site:'quintaand.co', who:'Quinta & Co, practical business education for small business owners across every industry', reader:'small business owners and founders, in trades, food, retail, services and creative work alike'},
+  erika:{site:'quintaand.co', who:'Erika Harrison, writing in her own name for other small business owners', reader:'small business owners and founders across every industry'},
+  practice:{site:'quintaand.co', who:'The Practice, a Quinta & Co campaign for practitioners running small service businesses', reader:'practitioners running small service businesses'},
+};
+function brandSite(voice){ return BRAND_SITE[voice]||BRAND_SITE.eridion; }
+
 async function researchTopic() {
   const topic=document.getElementById('topic-input').value.trim();
   const bullets=document.getElementById('bullets-input').value.trim();
@@ -5935,7 +5977,8 @@ async function researchTopic() {
 
   const bucketLabel=buckets[currentStream].find(b=>b.id===currentBucket)?.label||currentBucket;
 
-  const prompt=`You are a research analyst curating source material for an article by Eridion Glass — a luxury custom glass and mirror subcontractor in Dallas TX. The writer has not decided on an angle yet. Your job is to lay out the available source material so she can choose.
+  const rp=researchProfile(currentStream);
+  const prompt=`You are a research analyst curating source material for an article by ${rp.who}. The writer has not decided on an angle yet. Your job is to lay out the available source material so she can choose.
 
 BUSINESS CONTEXT:
 ${getKB()}
@@ -5946,13 +5989,13 @@ KEY POINTS THE WRITER WANTS TO COVER:
 ${bullets||'(none specified — use best judgment based on the topic)'}
 
 YOUR TASK:
-FIRST, use the web_search tool to find current, real sources on this topic before writing anything. Run several searches if needed. Prioritize the most recent material you can find — for fast-moving topics (technology, AI, markets, economic and labor data) strongly prefer sources from the last 12-18 months, and treat anything older than ~2 years as potentially outdated unless it is foundational. Timeless references (building codes, ASTM/ANSI standards, long-established frameworks) are exempt — a current code is current regardless of its age.
+FIRST, use the web_search tool to find current, real sources on this topic before writing anything. Run several searches if needed. Prioritize the most recent material you can find — for fast-moving topics (technology, AI, markets, economic and labor data) strongly prefer sources from the last 12-18 months, and treat anything older than ~2 years as potentially outdated unless it is foundational. Timeless references (long-established standards or frameworks, and where they apply to this brand, building codes) are exempt — a standard that is still current is current regardless of its age.
 
 Do NOT write an article. Curate 8-12 real research points grounded in what you actually found via search. The writer will pick which ones to use.
 
 For each research point provide:
 - title: A clear title summarizing the finding or standard
-- source: The publishing body or document, cited specifically as you found it (e.g. "NAHB Cost of Doing Business Study", "ASTM C1048", "Construction Dive Labor Report"). Do NOT invent specific statistics — only report figures you actually found.
+- source: The publishing body or document, cited specifically as you found it (e.g. ${rp.examples}). Do NOT invent specific statistics — only report figures you actually found.
 - url: the EXACT source URL from the web_search results (a real, working link — never invent or guess a URL). If this source has no real URL (e.g. a print standard you know but didn't open), use an empty string "".
 - snippet: 2-3 sentences summarizing what this source says that matters for this topic
 - date: the publication date or year of the source as a string (e.g. "2026", "2025-11", "Mar 2026"). For timeless codes/standards, use the edition (e.g. "2021 IRC") or "standard". NEVER guess a date — use the one from the source you actually found.
@@ -5960,9 +6003,11 @@ For each research point provide:
 
 Favor the freshest sources available, and lead your list with the most recent ones.
 
-Be honest and grounded. Well-known codes, standards, and industry dynamics are fair game. Specific proprietary statistics you aren't sure about are NOT fair game — mark them as industry consensus if you include them.
+${rp.emphasis}
 
-Aim for a mix of categories so the writer has range — some hard codes/standards, some market data, some trend analysis, some case/framework material.
+Be honest and grounded. Well-known standards and industry dynamics are fair game. Specific proprietary statistics you aren't sure about are NOT fair game — mark them as industry consensus if you include them.
+
+Aim for a mix of categories so the writer has range — market data, trend analysis, case and framework material, plus codes or standards only where they genuinely apply to this brand.
 
 Return ONLY valid JSON, no preamble, no markdown fences:
 {"sources":[{"id":"s1","title":"...","source":"...","url":"https://...","snippet":"...","date":"2026","category":"STUDY"}]}`;
@@ -8547,7 +8592,8 @@ async function generateSEOPackage(silent=false){
   const statusEl=document.getElementById('seo-status');
   if(statusEl){statusEl.textContent='Generating...'; statusEl.classList.remove('ready');}
 
-  const prompt=`You are an SEO specialist creating search and social metadata for a blog post published on eridionglass.com — the site for Eridion Glass, a luxury custom glass and mirror subcontractor in Dallas TX serving luxury residential ($1M+ homes) and select commercial builders.
+  const bs=brandSite(currentStream);
+  const prompt=`You are an SEO specialist creating search and social metadata for a blog post published on ${bs.site} — the site for ${bs.who}. It will be read by ${bs.reader}.
 
 BLOG TITLE/TOPIC: ${topic}
 
