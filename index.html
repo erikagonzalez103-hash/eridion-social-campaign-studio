@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 15:12</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 15:30</span></div>
     </div>
   </header>
 
@@ -6175,7 +6175,7 @@ async function draftFromResearch(){
   const bucketLabel=buckets[currentStream].find(b=>b.id===currentBucket)?.label||currentBucket;
   const voice=voicePrompts[currentStream];
 
-  const sourcesBlock=selected.map((s,i)=>`[${i+1}] ${s.category} · ${s.source}\nTitle: ${s.title}\n${s.snippet}`).join('\n\n');
+  const sourcesBlock=selected.map((s,i)=>`[${i+1}] ${s.category} · ${s.source}${s.date?' ('+s.date+')':''}\nTitle: ${s.title}${s.url?'\nURL: '+s.url:''}\nWHAT IT SAYS: ${s.snippet}`).join('\n\n');
 
   // Reuse the existing CTA + format instructions from generateContent
   const ctaFinal=buildCTA(currentStream);
@@ -6188,7 +6188,19 @@ BLOG POST (1000-1400 words):
 - Title: question-shaped — the exact question a reader would type — or its answer stated boldly (per GEO PLAYBOOK ④)
 - The answer in the first two sentences — no warm-up
 - 3-4 sections with subheadings that each stand alone quoted out of context
-- Cite the curated sources by name inline with the year (e.g. "according to NAHB (2025)..." or "per ASTM C1048...") — at least one stat per section where the sources support it
+- Cite the curated sources by name inline with the year (e.g. "according to NAHB (2025)...").
+- NUMBERS: every figure, percentage or statistic you write MUST appear verbatim in
+  the WHAT IT SAYS text of one of the sources above. Do not calculate, round,
+  combine or infer a number that is not literally there. If a section has no
+  usable figure, WRITE IT WITHOUT ONE - make the point in plain language. A
+  section with no statistic is correct; a section with an invented one is not,
+  and these posts are published under a real person’s name.
+- ATTRIBUTION: credit the source that actually published the figure. If a source
+  above is a roundup or article quoting someone else’s research, you may NOT
+  attribute the number to the original researcher - you have not seen their
+  report. Either cite the source you were given as the place you read it, or
+  drop the number.
+- Do not cite a source you did not use. Every source you name must carry a claim.
 - One quotable standalone line somewhere in the post
 - 2 subtle inline CTAs woven naturally
 - Strong closing CTA paragraph
