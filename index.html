@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 16:24</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 16:51</span></div>
     </div>
   </header>
 
@@ -12115,13 +12115,97 @@ function imageChatCommit(id,change){
   return library[index];
 }
 function imageGuidance(){ try{return JSON.parse(localStorage.getItem(IMAGE_GUIDANCE_KEY)||'{}');}catch(_){return {};} }
+
+// ── Learned corrections ──
+// There was already a 'carry a correction into later posts' box, but it was
+// collapsed out of sight, had to be written from scratch each time, and was a
+// single blob you overwrote. So corrections were not accumulating: a bad batch
+// of wonky illustrations went out on Eridion and nothing in the tool had
+// changed by the next batch.
+//
+// Lessons are a LIST, not a blob, so they accumulate, and every one is visible
+// and removable -- an invisible prompt that only ever grows is how a generator
+// quietly gets worse. Capped, newest kept.
+const IMAGE_LESSON_KEY='eridion_image_lessons_v1';
+const IMAGE_LESSON_CAP=14;
+
+// A reason is captured as an INSTRUCTION, not as the complaint. 'The drawing
+// looked amateur' tells a generator nothing it can act on; the rule beside it
+// does. Erika's words still go in verbatim as a note when she adds one.
+const LESSON_PRESETS=[
+  {id:'wonky', label:'The illustration looked amateur or wonky',
+   rule:'Do NOT produce loose, sketchy, hand-drawn or organic illustration. If a diagram is genuinely needed, draw it as precise technical line work -- uniform 2px strokes, square joins, true geometry, correctly proportioned -- and otherwise use photography instead of drawing.'},
+  {id:'shouldbephoto', label:'It should have been a photograph',
+   rule:'Default to photography for this brand. Only make a drawn or typographic piece when the post is explicitly a data, quote or diagram piece.'},
+  {id:'typesmall', label:'The type was too small',
+   rule:'Set type larger than feels right: the smallest label must still be comfortably readable on a phone at a third of full size.'},
+  {id:'colour', label:'The colours were off-brand',
+   rule:'Use ONLY the brand palette stated in the brief. No colour outside it, including for accents, backgrounds or props.'},
+  {id:'stock', label:'It looked like stock photography',
+   rule:'Avoid anything that reads as stock: posed people facing camera, generic desks, staged props, glossy over-lit surfaces. The scene must look specific and real.'},
+  {id:'textwrong', label:'The words in the image were wrong or misspelled',
+   rule:'Render only the exact words given, spelled exactly as supplied. No invented labels, captions or filler text anywhere in the image.'},
+  {id:'cluttered', label:'Too busy / too much copy',
+   rule:'Fewer elements. Cut copy until what remains can be read at a glance; one idea per image.'},
+];
+
+function imageLessons(voice){
+  try{
+    const all=JSON.parse(localStorage.getItem(IMAGE_LESSON_KEY)||'{}');
+    return Array.isArray(all[voice])?all[voice]:[];
+  }catch(_){ return []; }
+}
+function saveImageLessons(voice,list){
+  let all={};
+  try{ all=JSON.parse(localStorage.getItem(IMAGE_LESSON_KEY)||'{}')||{}; }catch(_){}
+  all[voice]=list;
+  try{ localStorage.setItem(IMAGE_LESSON_KEY,JSON.stringify(all)); }catch(_){}
+}
+function addImageLesson(voice, rule, note){
+  const list=imageLessons(voice);
+  const text=String(rule||'').trim();
+  if(!text) return list;
+  // Same rule twice is not twice as true, and a duplicated instruction just
+  // crowds out the others.
+  if(list.some(l=>l.rule===text)){
+    if(note){ const hit=list.find(l=>l.rule===text); hit.note=note; saveImageLessons(voice,list); }
+    return list;
+  }
+  // At the cap, refuse rather than drop the oldest. The oldest lesson is
+  // usually the most fundamental one, and losing a correction silently is
+  // worse than being told to clear space.
+  if(list.length>=IMAGE_LESSON_CAP){
+    if(typeof showToast==='function') showToast('That brand already has '+IMAGE_LESSON_CAP+' corrections — remove one below before adding another.','error');
+    return list;
+  }
+  list.push({rule:text, note:String(note||'').trim(), at:Date.now()});
+  saveImageLessons(voice,list);
+  return list;
+}
+function removeImageLesson(voice, idx){
+  const list=imageLessons(voice);
+  if(idx<0||idx>=list.length) return;
+  list.splice(idx,1); saveImageLessons(voice,list); renderImageLessons();
+}
+
+// Folded into brandGuidance, which the worker already receives.
+function lessonsBlock(voice){
+  const list=imageLessons(voice);
+  if(!list.length) return '';
+  const NLJ=String.fromCharCode(10);
+  return 'CORRECTIONS FROM PREVIOUS ROUNDS — these come from work that was rejected,'+NLJ
+    + 'so they override the general brief where they disagree:'+NLJ
+    + list.map((l,i)=>(i+1)+'. '+l.rule+(l.note?' ('+l.note+')':'')).join(NLJ);
+}
+
 function imageChatContext(it){
   const source=imageSourcePost(it),voice=imageVisualVoice(it);
   const plain=s=>{const el=document.createElement('div');el.innerHTML=String(s||'');return el.textContent||'';};
   return {title:it.title||'',caption:plain(it.linkedin_text||it.blog_text),sourceTitle:source.title||'',
     sourceBlog:plain(source.blog_text||source.linkedin_text),sourceBlogUrl:source.blogUrl||it.blogUrl||'',
     brandBrief:BRAND_IMAGE_BRIEFS[voice]||'',businessFacts:getKB(voice),
-    brandGuidance:imageGuidance()[voice]||'',campaignGuidance:source.imageCampaignGuidance?.[voice]||''};
+    brandGuidance:[imageGuidance()[voice]||'', lessonsBlock(voice)].filter(Boolean).join(String.fromCharCode(10,10)),
+    campaignGuidance:source.imageCampaignGuidance?.[voice]||''};
 }
 function imageChatEndpoint(){return WORKER.replace(/\/api\/messages$/,'/api/image-chat');}
 function imageChatSuggestionKey(it){
@@ -12209,14 +12293,14 @@ function imageChatMount(){
   <div class="ic-controls"><button class="action-btn" id="ic-compare-button" onclick="imageChatCompare()">Compare before / after</button><button id="ic-download" class="action-btn" onclick="downloadImageChatVersion()">Download</button></div><div id="ic-comparison"></div>
   <label class="ic-label" for="ic-slot">Use this version as</label><select id="ic-slot" style="width:100%;padding:8px"></select>
   <label class="ic-check"><input id="ic-reviewed" type="checkbox">I checked the copy, logo, margins and connection to the source blog.</label>
-  <div class="ic-controls"><button class="action-btn" id="ic-use" onclick="imageChatUse()">Use for this post</button><button class="action-btn" id="ic-undo" onclick="imageChatUndo()">Undo image selection</button></div>
+  <div class="ic-controls"><button class="action-btn" id="ic-use" onclick="imageChatUse()">Use for this post</button><button class="action-btn" id="ic-reject" onclick="toggleRejectPanel()" title="Say what is wrong with it so the next one is better">✗ Not this — teach it</button><button class="action-btn" id="ic-undo" onclick="imageChatUndo()">Undo image selection</button></div>
   <details><summary class="ic-label">Source &amp; brand context</summary><div id="ic-source" class="ic-source"></div></details></section>
   <section aria-label="Image conversation"><div class="ic-idea"><h3>A starting idea for this post</h3><div id="ic-idea-copy" class="ic-idea-copy" aria-live="polite"></div><div class="ic-controls"><button class="action-btn" id="ic-create-idea" onclick="createImageChatIdea()">Create this idea</button><button class="action-btn" id="ic-suggest" onclick="suggestImageChat()">Suggest another direction</button><button class="action-btn" onclick="resetImageChatThread()" title="Forget this post’s image conversation and start from the post copy alone">↺ Start fresh</button></div></div><div id="ic-thread" class="ic-thread" role="log" aria-live="polite"></div>
   <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea>
   <div class="ic-controls"><select id="ic-action" aria-label="Image action" onchange="syncImageChatSendLabel()"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-format" aria-label="Asset format" title="What KIND of asset to make"><option value="auto">✦ Format: Auto — read the post and choose</option><option value="image">Editorial photo</option><option value="quote">Quote card</option><option value="stat">Stat card</option><option value="infographic">Infographic / diagram</option><option value="chart">Chart (real numbers)</option><option value="carousel">Carousel slide</option><option value="reel">Reel cover frame</option><option value="freeform">Free-form — my words only</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
   <div class="ic-controls"><button class="action-btn" id="ic-send" onclick="sendImageChat()">Send</button><button class="action-btn" id="ic-recover" onclick="recoverImageChat()" hidden>Check last request</button><button class="action-btn" id="ic-save-recovery" onclick="saveImageChatRecovery()" hidden>Save returned version</button></div>
   <div id="ic-status" role="status"></div>
-  <details><summary class="ic-label">Carry a correction into later posts</summary><label class="ic-label" for="ic-guidance-scope">Apply to</label><select id="ic-guidance-scope" onchange="loadImageGuidance()"><option value="campaign">This source-blog campaign only</option><option value="brand">This brand only</option></select><label class="ic-label" for="ic-guidance">Reusable direction</label><textarea id="ic-guidance" maxlength="3000" placeholder="For example: keep people candid and imperfect; avoid staged stock poses."></textarea><button class="action-btn" onclick="saveImageGuidance()">Save direction</button><div class="ic-meta">Saved only for the scope above. Post-specific edits stay in this conversation.</div></details></section></div>`;
+  <div id="ic-reject-panel" style="display:none;border:1px solid var(--border);border-left:3px solid #DC2626;border-radius:6px;padding:12px;margin:10px 0"><div class="ic-label">What was wrong with it?</div><div id="ic-reject-reasons" style="display:flex;flex-direction:column;gap:6px;margin:8px 0"></div><input type="text" id="ic-reject-note" placeholder="Anything else, in your words (optional)" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit"><div class="ic-controls" style="margin-top:8px"><button class="action-btn" onclick="saveRejectLesson()">Remember this</button><button class="action-btn" onclick="toggleRejectPanel(false)">Cancel</button></div></div><details open><summary class="ic-label">What this brand has learned</summary><div id="ic-lessons" style="margin:8px 0"></div></details><details><summary class="ic-label">Carry a correction into later posts</summary><label class="ic-label" for="ic-guidance-scope">Apply to</label><select id="ic-guidance-scope" onchange="loadImageGuidance()"><option value="campaign">This source-blog campaign only</option><option value="brand">This brand only</option></select><label class="ic-label" for="ic-guidance">Reusable direction</label><textarea id="ic-guidance" maxlength="3000" placeholder="For example: keep people candid and imperfect; avoid staged stock poses."></textarea><button class="action-btn" onclick="saveImageGuidance()">Save direction</button><div class="ic-meta">Saved only for the scope above. Post-specific edits stay in this conversation.</div></details></section></div>`;
   dialog.addEventListener('cancel',e=>{if(imageChatBusy){e.preventDefault();imageChatNotice('The request is still running. Please wait for the result.');}});
   document.body.appendChild(dialog);
 }
@@ -12238,7 +12322,7 @@ async function openImageChat(id){
   // already on screen, the thing you almost always want is a revision.
   document.getElementById('ic-action').value=
     (imageChatState(it).versions||[]).length ? 'revise' : 'discuss';
-  document.getElementById('ic-guidance-scope').value='campaign';loadImageGuidance();renderImageChat();
+  document.getElementById('ic-guidance-scope').value='campaign';loadImageGuidance();toggleRejectPanel(false);renderImageChat();
   const dialog=document.getElementById('image-chat-dialog');if(!dialog.open)dialog.showModal();
   imageChatNotice('Checking image connection…');
   try{
@@ -12273,6 +12357,7 @@ function renderImageChat(){
   document.getElementById('ic-compare-button').disabled=!active?.parentId;
   const download=document.getElementById('ic-download');download.hidden=!active;
   syncImageChatSendLabel();
+  renderImageLessons();
   document.getElementById('ic-reviewed').checked=false;document.getElementById('ic-comparison').innerHTML='';
   document.getElementById('ic-source').textContent='Source: '+(source.title||'This post')+'\n'+(source.blogUrl||'No source blog URL saved')+'\n\n'+context.sourceBlog+'\n\n'+(BRAND_IMAGE_BRIEFS[voice]||'');
   document.getElementById('ic-recover').hidden=!state.pending;
@@ -12310,6 +12395,58 @@ function imageChatUndo(){
   if(imageChatBusy)return;
   try{imageChatCommit(imageChatPostId,it=>{const s=imageChatState(it),old=s.undo?.pop();if(!old)return;it.imageUrls=old.urls;it.selectedImageUrl=old.urls[0]||'';it.image_url=old.urls[0]||'';it.imageSource=old.source;it.imageCredit=old.credit;s.finalId=null;});refreshImageChatPost();imageChatNotice('Previous attached images restored. All generated versions are still available.');}catch(e){imageChatNotice('Could not restore images: '+e.message);}
 }
+function toggleRejectPanel(show){
+  const el=document.getElementById('ic-reject-panel'); if(!el) return;
+  const open = (show===undefined) ? el.style.display==='none' : !!show;
+  el.style.display = open ? 'block' : 'none';
+  if(open) renderRejectReasons();
+}
+function renderRejectReasons(){
+  const box=document.getElementById('ic-reject-reasons'); if(!box) return;
+  box.innerHTML=LESSON_PRESETS.map(function(r,i){
+    return '<label style="display:flex;gap:8px;align-items:flex-start;font-size:12px">'
+      + '<input type="checkbox" data-lesson="'+i+'" style="margin-top:2px">'
+      + '<span>'+escapeHTML(r.label)+'</span></label>';
+  }).join('');
+}
+function saveRejectLesson(){
+  const it=library.find(x=>x.id===imageChatPostId); if(!it) return;
+  const voice=imageVisualVoice(it);
+  const note=(document.getElementById('ic-reject-note').value||'').trim();
+  const boxes=[...document.querySelectorAll('#ic-reject-reasons input[type=checkbox]')].filter(c=>c.checked);
+  if(!boxes.length && !note){ imageChatNotice('Tick what was wrong, or write it in.'); return; }
+  boxes.forEach(function(c){
+    const preset=LESSON_PRESETS[Number(c.getAttribute('data-lesson'))];
+    if(preset) addImageLesson(voice, preset.rule, '');
+  });
+  // A note with no tickbox is still a correction; it is stored as its own rule.
+  if(note && !boxes.length) addImageLesson(voice, note, '');
+  else if(note) addImageLesson(voice, note, '');
+  document.getElementById('ic-reject-note').value='';
+  toggleRejectPanel(false);
+  renderImageLessons();
+  showToast('Noted — it will apply from the next image on','success');
+}
+
+// The learned rules are shown in full and individually removable. An
+// accumulating instruction nobody can see is how output drifts with no
+// traceable cause.
+function renderImageLessons(){
+  const box=document.getElementById('ic-lessons'); if(!box) return;
+  const it=library.find(x=>x.id===imageChatPostId); if(!it){ box.innerHTML=''; return; }
+  const voice=imageVisualVoice(it), list=imageLessons(voice);
+  if(!list.length){
+    box.innerHTML='<div style="font-size:12px;color:var(--text-muted)">Nothing yet. Use “✗ Not this” on an image you would not post, and what you say is applied to every image for '+escapeHTML(kbBrandLabel(voice))+' from then on.</div>';
+    return;
+  }
+  box.innerHTML='<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Applied to every '+escapeHTML(kbBrandLabel(voice))+' image. '+list.length+' of '+IMAGE_LESSON_CAP+'.</div>'
+    + list.map(function(l,i){
+        return '<div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;border-bottom:1px solid var(--hairline,#eee);padding:6px 0">'
+          + '<span style="flex:1">'+escapeHTML(l.rule)+(l.note?' <em style="color:var(--text-muted)">('+escapeHTML(l.note)+')</em>':'')+'</span>'
+          + '<button class="action-btn" onclick="removeImageLesson(\''+voice+'\','+i+')" style="font-size:10px;padding:2px 6px">✕</button></div>';
+      }).join('');
+}
+
 function loadImageGuidance(){
   const it=library.find(x=>x.id===imageChatPostId);if(!it)return;const voice=imageVisualVoice(it),source=imageSourcePost(it);
   document.getElementById('ic-guidance').value=document.getElementById('ic-guidance-scope').value==='brand'?(imageGuidance()[voice]||''):(source.imageCampaignGuidance?.[voice]||'');
