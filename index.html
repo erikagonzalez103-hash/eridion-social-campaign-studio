@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 18:02</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 18:09</span></div>
     </div>
   </header>
 
@@ -12253,6 +12253,26 @@ async function suggestImageChat(){
   const again = prior ? ('\n\nYou ALREADY suggested this direction:\n---\n'+String(prior).slice(0,900)+'\n---\nGive a GENUINELY DIFFERENT one: a different asset format, a different layout, a different visual idea. Do not restate the above in new words. If the last was photographic, make this one typographic (a quote, stat, chart or infographic card), or the reverse.') : '';
   return sendImageChat({kind:'suggestion',action:'discuss',message:'Read the supplied original post and source blog. Give me ONE useful starting visual direction: recommended format, a concrete scene or layout, exact short image copy, and why it suits this post.'+again});
 }
+// “Create from this idea” sends format:'freeform' so the approved direction is
+// not swapped for a freshly generated brief. That is right, but freeform also
+// skips imageChatFormatBrief, which is where the CTA, the type floors and the
+// layout rules live -- so this button, which is the one most likely to be
+// pressed, produced images with no rules at all. Erika asked for a CTA on
+// everything except freeform; she was never choosing freeform here, the app
+// was. So the rules ride along, while her approved idea stays the content.
+function ideaCraftRules(){
+  const szv=((document.getElementById('ic-size')||{}).value||'1024x1280').split('x');
+  const IW=Number(szv[0])||1024, IH=Number(szv[1])||1280;
+  const ph=p=>Math.round(IH*p/100), pw=p=>Math.round(IW*p/100);
+  return 'CRAFT RULES - these do not change the idea above, they govern how it is set. '
+    + 'Canvas '+IW+'x'+IH+'. Keep content clear of the edges: '+pw(8)+'px left and right, '+ph(10)+'px top (reserved for the brand mark, leave it empty), '+ph(12)+'px bottom. '
+    + 'IF THE PIECE CARRIES ANY WORDS: nothing under '+ph(3)+'px; a main headline is '+ph(10)+'-'+ph(16)+'px; the largest type is at least 3x the smallest; nothing horizontally centred; the headline carries the IDEA, it is not a label for it. '
+    + 'AND IT NEEDS A CALL TO ACTION: an INSTRUCTION naming one action - for example "Tell us below what worked for you." "Send this to someone deciding the same thing." "Save this for your next renewal date." "Follow for weekly AI tips." "Read the full post - link in bio." '
+    + 'Not a question; a question in the headline does NOT count. One instruction only. Give it its own zone, set apart, last in the reading order, no smaller than any other label. '
+    + 'Never write a URL into the image - say "link in bio" or "link in the comments". '
+    + 'A piece with no call to action is unfinished.';
+}
+
 async function createImageChatIdea(){
   const it=library.find(x=>x.id===imageChatPostId),idea=imageChatState(it).suggestion;
   if(!idea){imageChatNotice('Let Studio suggest a direction first.');return;}
@@ -12260,7 +12280,7 @@ async function createImageChatIdea(){
   // format:'freeform' deliberately. This button means “make THE idea I just read”,
   // so the Format select must not swap that idea for a freshly generated brief
   // and discard the direction she just approved.
-  return sendImageChat({action:'create',format:'freeform',message:'Create one image from this suggested direction. Preserve the post’s original payoff and the supplied brand guidance.\n\n'+idea});
+  return sendImageChat({action:'create',format:'freeform',message:'Create one image from this suggested direction. Preserve the post’s original payoff and the supplied brand guidance.\n\n'+idea+'\n\n'+ideaCraftRules()});
 }
 // Was an <a target=_blank> pointing at the R2 URL. R2 serves PNGs inline and the
 // download attribute is ignored cross-origin, so it opened the image in a tab
