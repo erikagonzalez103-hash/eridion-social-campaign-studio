@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 17:36</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 17:40</span></div>
     </div>
   </header>
 
@@ -12552,8 +12552,8 @@ async function imageChatFormatBrief(it, fmt, note){
   // times over; given contradictory instructions the model averaged them, and
   // the average of bold and quiet is bland. So it now says outright which one
   // governs layout.
-  // Added on top of PIECE_RULES when the budget allows. Craft detail only --
-  // everything that must always ship is in PIECE_RULES.
+  // Added on top of CTA_RULES and LAYOUT_RULES when the budget allows.
+  // Craft detail only -- everything that must always ship is in those two.
   const EDITORIAL_LAYOUT_EXTRA = 'FURTHER LAYOUT CRAFT: a KICKER above the headline, short, letter-spaced, uppercase, naming the department (e.g. OPERATIONS, FIELD NOTE). Left and right margins differ, and the headline sits on a different column width from the body. Rules divide with intent, full-bleed or deliberately short, never a hairline centred under a title. White space pushed to ONE side to create tension, never even padding on four. Do not draw a control that reports a state - no ticked or empty checkboxes, toggles or progress bars - unless the state is real and stated. Brand palette and typefaces exactly as specified.';
   // The full block is ~1,400 characters and on a normal brief that pushes the
   // whole message past the 4,000 the server accepts -- so the better rules
@@ -12572,15 +12572,27 @@ async function imageChatFormatBrief(it, fmt, note){
   // aren't creating these posts for the hugs - we want engagement'. Both
   // outrank layout: a piece that states a framework and asks for nothing
   // cannot be replied to, saved or sent on, however well it is set.
-  const PIECE_RULES = 'EVERY PIECE HAS TWO PARTS: THE CREATIVE AND THE CALL TO ACTION. They do different jobs and must LOOK like different things. ① THE CREATIVE carries the idea. The headline and body are the argument. ② THE CALL TO ACTION is NOT part of the creative and is never folded into the headline or the body. Its only job is to make the reader DO something, and it has to be recognisable as an instruction at a glance, not read as one more line of copy. Give the CTA ITS OWN ZONE: set apart by a rule, a change of colour or weight, or clear space around it, sitting LAST in the reading order near the bottom, inside the safe margin. It is set no smaller than any other label — a CTA too small to read is not a CTA — and it is the last thing the eye lands on. The DEFAULT CTA is a QUESTION the reader can answer in a comment in a few words: specific, about their own situation, their own number, their own last one. Never rhetorical. Never "thoughts?". A statement with a question mark on it is not a question. Only if a question genuinely cannot work may the CTA instead tell them to save it or send it to someone, and it must then say so in words. A piece with no CTA is unfinished. A piece whose only CTA is an instruction buried in the body has no CTA. LAYOUT — NOT A CENTRED CARD. Where the brand brief and these rules disagree about ENERGY, these win. Required: NOTHING horizontally centred, at most one deliberate exception; largest type at LEAST 3x the smallest; repeated items are NOT identical rows, vary size or weight so the most important one looks it; the HEADLINE CARRIES THE IDEA — the largest words must be the most interesting words, not a label for them.';
+  // Split in two on 2026-10-26. The whole block was gated to TYPOGRAPHIC
+  // formats, and 'Editorial photo' is not on that list -- so the format Erika
+  // actually uses received no CTA rules at all, which is exactly what she kept
+  // reporting. The returned photo carried a headline and a kicker regardless of
+  // the instruction not to, so photo pieces are typographic in practice and
+  // excluding them excluded the real work.
+  //
+  // A call to action is universal: any post asking for engagement needs one,
+  // whatever the format. The grid and scale tests stay typographic, because
+  // they are about setting a page.
+  const CTA_RULES = 'EVERY PIECE HAS TWO PARTS: THE CREATIVE AND THE CALL TO ACTION. They do different jobs and must LOOK like different things. \u2460 THE CREATIVE carries the idea \u2014 the photograph, the headline, the argument. \u2461 THE CALL TO ACTION is NOT part of the creative and is never folded into the headline or the body. Its only job is to make the reader DO something, and it has to be recognisable as an instruction at a glance rather than read as one more line of copy. This applies to a PHOTOGRAPH as much as to a designed card: if the piece carries any words at all, it carries a call to action. Give the CTA ITS OWN ZONE: set apart by a rule, a change of colour or weight, or clear space around it, sitting LAST in the reading order near the bottom, inside the safe margin. It is set no smaller than any other label \u2014 a CTA too small to read is not a CTA. The DEFAULT CTA is a QUESTION the reader can answer in a comment in a few words: specific, about their own situation, their own number, their own last one. Never rhetorical. Never "thoughts?". A statement with a question mark on it is not a question. Only if a question genuinely cannot work may the CTA instead tell them to save it or send it to someone, and it must then say so in words. A piece with no call to action is unfinished. A piece whose only CTA is an instruction buried in the body has no CTA.';
+  const LAYOUT_RULES = 'LAYOUT \u2014 NOT A CENTRED CARD. Where the brand brief and these rules disagree about ENERGY, these win. Required: NOTHING horizontally centred, at most one deliberate exception; largest type at LEAST 3x the smallest; repeated items are NOT identical rows, vary size or weight so the most important one looks it; the HEADLINE CARRIES THE IDEA \u2014 the largest words must be the most interesting words, not a label for them.';
 
   const TYPOGRAPHIC = ['quote','stat','infographic','chart','carousel'];
   const STANDS_ALONE=' THE PIECE MUST MAKE SENSE WITH NO CAPTION. Someone scrolling sees the image before they read a word of the post, and stops only if the image itself tells them something. A figure, a claim or a line that needs the caption to be understood has failed. Carry the comparison or the consequence on the card itself.';
   const assertion = TYPOGRAPHIC.indexOf(chosen)>=0
     ? 'MAKE A '+String(ASSET_FMT_LABEL[chosen]||chosen).toUpperCase()+'. This is a DESIGNED TYPOGRAPHIC PIECE, not a photograph. The words specified below MUST appear in the image, rendered as the subject - an image with no text on it is a failed result. Where the brand brief names photography as its primary visual language, that does NOT apply to this piece: follow the brand for palette, type and restraint only. Do not substitute a still-life, a desk scene or any photograph for the card.'+STANDS_ALONE
-    : 'MAKE A PHOTOGRAPHIC IMAGE in this brand. Do not render headlines, captions or any overlaid copy on it. The scene itself has to carry the idea — choose a subject that means something without words.';
+    : 'MAKE A PHOTOGRAPHIC IMAGE in this brand, with the scene carrying the idea \u2014 choose a subject that means something without words doing the work. A short headline and a call to action MAY be set over it where the post needs them, and when they are, they follow the type sizes and the CTA rules below; the photograph still has to work as a photograph underneath.'
   const typo = TYPOGRAPHIC.indexOf(chosen)>=0;
-  const essentials = typo ? PIECE_RULES + '\n\n' : '';
+  // CTA on every format; the page-setting tests only where a page is set.
+  const essentials = CTA_RULES + '\n\n' + (typo ? LAYOUT_RULES + '\n\n' : '');
   const extraBlock = EDITORIAL_LAYOUT_EXTRA + '\n\n';
   const build = (extra, body) => assertion + '\n\n' + essentials + extra + TYPE_RULE + '\n\n' + body;
   const body = brief.trim();
