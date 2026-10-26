@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 17:25</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 17:36</span></div>
     </div>
   </header>
 
@@ -12334,8 +12334,11 @@ async function openImageChat(id){
   // pressing Send produced a paragraph ABOUT the change and left the image
   // untouched -- which reads as the field doing nothing. With an image
   // already on screen, the thing you almost always want is a revision.
+  // With an image on screen the usual want is a revision; with NO image it is
+  // a creation, not a conversation. Opening on 'discuss' meant pressing the
+  // button on a fresh post produced talk and no picture.
   document.getElementById('ic-action').value=
-    (imageChatState(it).versions||[]).length ? 'revise' : 'discuss';
+    (imageChatState(it).versions||[]).length ? 'revise' : 'create';
   document.getElementById('ic-guidance-scope').value='campaign';loadImageGuidance();toggleRejectPanel(false);renderImageChat();
   const dialog=document.getElementById('image-chat-dialog');if(!dialog.open)dialog.showModal();
   imageChatNotice('Checking image connection…');
