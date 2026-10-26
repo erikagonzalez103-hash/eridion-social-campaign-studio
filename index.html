@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-16 16:19</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 12:54</span></div>
     </div>
   </header>
 
@@ -2773,6 +2773,10 @@ textarea { min-height: 80px; line-height: 1.6; }
             <input type="password" id="unsplash-key" placeholder="Get free key at unsplash.com/developers" />
           </div>
           <div class="field">
+            <label class="field-label">YouTube Data API Key <span style="color:var(--text-muted);font-weight:normal;font-size:9px;text-transform:none;letter-spacing:0">(free — Google Cloud Console → YouTube Data API v3)</span></label>
+            <input type="password" id="youtube-key" placeholder="Used only by Trend Scan" />
+          </div>
+          <div class="field">
             <label class="field-label">Wix API Key</label>
             <input type="password" id="wix-key" placeholder="Wix Dashboard → Settings → API Keys" />
           </div>
@@ -2824,6 +2828,7 @@ textarea { min-height: 80px; line-height: 1.6; }
             <button class="aux-chip" data-step="library" onclick="switchTab('library')">📚 Library</button>
             <button class="aux-chip" data-step="briefing" onclick="switchTab('briefing')">🎙 Briefing</button>
             <button class="aux-chip" onclick="openMentions()" title="People and companies you tag often">🏷 Mentions</button>
+            <button class="aux-chip" data-step="trends" onclick="switchTab('trends')" title="What outperformed this week for the channels you watch">📈 Trends</button>
             <button class="aux-chip" data-step="refs" onclick="switchTab('refs')" title="Pick the cards whose look you want matched — your brand reference set">⭐ Brand Refs</button>
             <button class="aux-chip" onclick="window.open('catalog.html','_blank','noopener')" title="Browse &amp; tag your real job photos (opens in a new tab)">📁 Catalog</button>
           </div>
@@ -3185,6 +3190,23 @@ textarea { min-height: 80px; line-height: 1.6; }
              the visual equivalent of "my ChatGPT has my brand guidelines": once
              picked, they ride along on every generation instead of being
              re-uploaded per session. Stored per brand voice, in localStorage. -->
+        <div class="tab-content" id="tab-trends">
+          <div class="lib-header">
+            <div>
+              <div class="lib-title">Trend Scan — <span id="trends-brand-name">Quinta &amp; Co</span></div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">What beat its own channel’s median — so a breakout counts, not just a big account.</div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button class="action-btn" onclick="addWatchChannel()">＋ Add channel</button>
+              <button class="action-btn" id="trends-scan-btn" onclick="runTrendScanUI()">📈 Scan this week</button>
+            </div>
+          </div>
+          <div class="panel-title">Channels watched <span id="trends-count" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)"></span></div>
+          <div id="trends-watchlist"></div>
+          <div id="trends-status" role="status" style="margin-top:12px;font-size:12px;color:var(--text-muted)"></div>
+          <div id="trends-results" style="margin-top:18px"></div>
+        </div>
+
         <div class="tab-content" id="tab-refs">
           <div class="lib-header">
             <div>
@@ -4441,6 +4463,7 @@ function switchTab(tab) {
   document.getElementById(`tab-${tab}`).classList.add('active');
   if(tab==='today') renderToday();
   if(tab==='refs') renderRefs();
+  if(tab==='trends') renderTrends();
   highlightStep(tab); refreshSteps();
 }
 
@@ -5160,6 +5183,424 @@ function findDuplicateTopic(topic,avoid){
     if(run>=5) return past;
   }
   return null;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── TREND SCAN (YouTube) ──
+// What outperformed for the people Quinta is measured against, weekly.
+//
+// Why YouTube and not the channels Quinta actually posts to: Instagram's API
+// only covers accounts you own, TikTok's Research API needs an approval you
+// won't get, and LinkedIn has no public content API at all. YouTube is the one
+// place a competitor's real organic numbers - views, likes, comments, duration
+// - are free and public. Reddit is the other, and comes later via the worker.
+//
+// The key is that RAW VIEWS ARE USELESS here: they only tell you who has the
+// biggest audience, so the same channel wins every week and nothing is learned.
+// What transfers is a video beating ITS OWN channel's median. A creator whose
+// normal video does 20k posting one that does 180k is a 9x signal about that
+// topic and format, independent of how big they are.
+//
+// Quota: channels/playlistItems/videos cost 1 unit per call, search costs 100.
+// A full scan of a 6-channel watchlist is well under 50 units against a free
+// 10,000/day budget, so the scan is not something to ration.
+const YT_KEY_ID='youtube-key';
+const YT_WATCHLIST_KEY='eridion_yt_watchlist';
+// Seeded from Erika's own competitor landscape doc (Oct 2026), Tier 1 plus the
+// practical-AI lane. Stored, not hardcoded: hardcoded vendor and builder lists
+// are the known pain in this codebase, so the UI edits this and a new name
+// never needs a code change.
+const YT_WATCHLIST_SEED={
+  quinta:[
+    {label:'BossBabe (Natalie Ellis)'},
+    {label:'Hello Seven (Rachel Rodgers)'},
+    {label:'Jasmine Star'},
+    {label:'Jenna Kutcher'},
+    {label:'Powerhouse Women'},
+  ]
+};
+
+function getYtKey(){
+  const el=document.getElementById(YT_KEY_ID);
+  return (el&&el.value.trim())||localStorage.getItem('youtube_key')||'';
+}
+function getWatchlist(voice){
+  try{
+    const all=JSON.parse(localStorage.getItem(YT_WATCHLIST_KEY)||'{}');
+    if(Array.isArray(all[voice])) return all[voice];
+  }catch(_){}
+  return (YT_WATCHLIST_SEED[voice]||[]).slice();
+}
+function saveWatchlist(voice,list){
+  let all={};
+  try{ all=JSON.parse(localStorage.getItem(YT_WATCHLIST_KEY)||'{}')||{}; }catch(_){}
+  all[voice]=list;
+  localStorage.setItem(YT_WATCHLIST_KEY,JSON.stringify(all));
+}
+
+// ── Pure helpers (no network, unit-tested) ──
+
+// PT1H2M3S -> seconds. Returns 0 for anything unparseable rather than NaN,
+// so one odd video can't poison a whole scan's arithmetic.
+function ytDurationSeconds(iso){
+  const m=/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(String(iso||''));
+  if(!m) return 0;
+  return (+(m[1]||0))*3600 + (+(m[2]||0))*60 + (+(m[3]||0));
+}
+// YouTube Shorts are up to 3 minutes now, so 60s alone no longer splits
+// short-form from long-form. Both lines are reported.
+function ytFormatLabel(seconds){
+  // 0 means the duration did not parse. Calling that a Short would quietly
+  // corrupt the format signal this whole feature exists to read.
+  if(!(seconds>0)) return 'Unknown length';
+  if(seconds<=60) return 'Short (under 1 min)';
+  if(seconds<=180) return 'Short-form (1-3 min)';
+  if(seconds<=600) return 'Mid (3-10 min)';
+  if(seconds<=1800) return 'Long (10-30 min)';
+  return 'Long-form (30 min+)';
+}
+function ytMedian(nums){
+  const a=nums.filter(n=>typeof n==='number'&&isFinite(n)).sort((x,y)=>x-y);
+  if(!a.length) return 0;
+  const mid=a.length>>1;
+  return a.length%2 ? a[mid] : (a[mid-1]+a[mid])/2;
+}
+
+// Scores one channel's videos against that channel's own median.
+//
+// Age is the trap here: a video published yesterday has had less time to gather
+// views than one from three weeks ago, so comparing them directly rewards age
+// rather than performance. Both the candidates AND the median they are measured
+// against are therefore drawn from the SAME age window, which keeps the
+// comparison honest without needing a view-decay model.
+//
+// minAgeDays exists because a video from this morning has no meaningful number
+// yet; maxAgeDays keeps the window to recent behaviour rather than all history.
+function scoreChannelVideos(videos, opts){
+  const o=Object.assign({minAgeDays:5, maxAgeDays:45, minSample:4, now:Date.now()}, opts||{});
+  const day=86400000;
+  const inWindow=videos.filter(v=>{
+    const age=(o.now-new Date(v.publishedAt).getTime())/day;
+    return age>=o.minAgeDays && age<=o.maxAgeDays;
+  });
+  // Too few comparable videos means any 'median' is noise, so say so rather
+  // than hand back a confident-looking multiple built on two data points.
+  const median=ytMedian(inWindow.map(v=>v.views));
+  const lowConfidence = inWindow.length < o.minSample || median<=0;
+  return inWindow.map(v=>{
+    const seconds=ytDurationSeconds(v.duration);
+    return Object.assign({},v,{
+      seconds,
+      format:ytFormatLabel(seconds),
+      ageDays:Math.round((o.now-new Date(v.publishedAt).getTime())/day),
+      channelMedian:median,
+      multiple: median>0 ? +(v.views/median).toFixed(2) : 0,
+      lowConfidence,
+    });
+  });
+}
+
+// Across every channel, the clear outperformers. Sorted by multiple, not views,
+// so a small channel's breakout ranks above a big channel's ordinary week.
+function pickOutperformers(scored, opts){
+  const o=Object.assign({minMultiple:1.5, limit:12}, opts||{});
+  return scored
+    .filter(v=>!v.lowConfidence && v.multiple>=o.minMultiple)
+    .sort((a,b)=>b.multiple-a.multiple)
+    .slice(0,o.limit);
+}
+
+// ── YouTube network layer ──
+// Called straight from the browser rather than through frosty-base: the Data
+// API sends CORS headers and browser keys are meant to be referrer-restricted,
+// so a worker route would add a deploy and a failure point for nothing. Reddit
+// will need the worker; this does not.
+const YT_BASE='https://www.googleapis.com/youtube/v3/';
+async function ytApi(path, params){
+  const key=getYtKey();
+  if(!key) throw new Error('Add a YouTube Data API key in API Keys first.');
+  const qs=new URLSearchParams(Object.assign({key}, params)).toString();
+  const r=await fetch(YT_BASE+path+'?'+qs, {signal:AbortSignal.timeout(20000)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){
+    // YouTube's own message is far more useful than the status code: it names
+    // quota exhaustion, a referrer mismatch or a disabled API explicitly.
+    const msg=(d&&d.error&&d.error.message)||('YouTube API error '+r.status);
+    throw new Error(msg);
+  }
+  return d;
+}
+
+// Accepts whatever the user has to hand: an @handle, a channel URL, a raw UC…
+// id, or a plain name to search for. Returns null rather than throwing so one
+// unresolvable entry cannot abort a whole scan.
+async function ytResolveChannel(entry){
+  const raw=String(entry.ref||entry.label||'').trim();
+  if(!raw) return null;
+  let params=null;
+  const urlHandle=/youtube\.com\/@([A-Za-z0-9_.-]+)/.exec(raw);
+  const urlId=/youtube\.com\/channel\/(UC[A-Za-z0-9_-]{20,})/.exec(raw);
+  if(urlId) params={part:'snippet,contentDetails', id:urlId[1]};
+  else if(/^UC[A-Za-z0-9_-]{20,}$/.test(raw)) params={part:'snippet,contentDetails', id:raw};
+  else if(urlHandle) params={part:'snippet,contentDetails', forHandle:'@'+urlHandle[1]};
+  else if(raw.startsWith('@')) params={part:'snippet,contentDetails', forHandle:raw};
+  if(params){
+    const d=await ytApi('channels', params);
+    const c=(d.items||[])[0];
+    if(c) return {id:c.id, title:c.snippet.title, uploads:c.contentDetails.relatedPlaylists.uploads};
+    return null;
+  }
+  // Fall back to search (100 quota units, so only for a plain name). Takes the
+  // top hit and reports it back, because a wrong guess must be visible.
+  const sr=await ytApi('search', {part:'snippet', type:'channel', maxResults:1, q:raw});
+  const hit=(sr.items||[])[0];
+  if(!hit) return null;
+  const id=hit.id.channelId;
+  const d=await ytApi('channels', {part:'snippet,contentDetails', id});
+  const c=(d.items||[])[0];
+  return c ? {id:c.id, title:c.snippet.title, uploads:c.contentDetails.relatedPlaylists.uploads, guessedFrom:raw} : null;
+}
+
+// Recent uploads for one channel, with stats. 50 is one page and plenty: the
+// scan only looks at the last ~45 days.
+async function ytRecentVideos(uploadsPlaylist, channelTitle){
+  const pl=await ytApi('playlistItems', {part:'contentDetails', playlistId:uploadsPlaylist, maxResults:50});
+  const ids=(pl.items||[]).map(i=>i.contentDetails.videoId).filter(Boolean);
+  if(!ids.length) return [];
+  const vd=await ytApi('videos', {part:'snippet,statistics,contentDetails', id:ids.join(',')});
+  return (vd.items||[]).map(v=>({
+    id:v.id,
+    channel:channelTitle,
+    title:v.snippet.title,
+    publishedAt:v.snippet.publishedAt,
+    duration:v.contentDetails.duration,
+    views:Number(v.statistics.viewCount||0),
+    likes:Number(v.statistics.likeCount||0),
+    comments:Number(v.statistics.commentCount||0),
+    url:'https://www.youtube.com/watch?v='+v.id,
+  }));
+}
+
+// One scan across the watchlist. Resolution failures are collected and
+// reported rather than thrown, so a renamed channel degrades the run instead
+// of killing it.
+async function runTrendScan(voice, onProgress){
+  const list=getWatchlist(voice);
+  if(!list.length) throw new Error('Add at least one channel to the watchlist.');
+  const scored=[], resolved=[], failed=[];
+  for(let i=0;i<list.length;i++){
+    const entry=list[i];
+    if(onProgress) onProgress('Reading '+(entry.label||entry.ref)+' ('+(i+1)+'/'+list.length+')…');
+    try{
+      const ch=await ytResolveChannel(entry);
+      if(!ch){ failed.push({entry, why:'no channel found'}); continue; }
+      const vids=await ytRecentVideos(ch.uploads, ch.title);
+      const sc=scoreChannelVideos(vids);
+      resolved.push({label:entry.label||entry.ref, channel:ch, inWindow:sc.length,
+                     lowConfidence:sc.length?sc[0].lowConfidence:true});
+      scored.push(...sc);
+    }catch(e){
+      failed.push({entry, why:e.message});
+    }
+  }
+  return {scored, resolved, failed, outperformers:pickOutperformers(scored), scannedAt:Date.now()};
+}
+
+// Turns the numbers into something Quinta can act on. The scan says WHAT
+// outperformed; this says why it might have, and what the Quinta version is.
+// Deliberately asked for PATTERNS rather than per-video commentary: one video
+// doing well is noise, three doing well for the same reason is a signal.
+async function interpretTrends(voice, scan){
+  const rows=scan.outperformers.map(v=>
+    '- ' + v.channel + ' | ' + v.format + ' | ' + v.multiple + 'x its channel median | ' +
+    v.views.toLocaleString() + ' views in ' + v.ageDays + ' days | ' + v.title
+  ).join(chr(10));
+  if(!scan.outperformers.length) throw new Error('Nothing outperformed this window - nothing to interpret.');
+  const libTopics=library.filter(it=>it.voice===voice).map(it=>it.topic||it.title||'').filter(Boolean).reverse();
+  const avoid=[...new Set(libTopics)].slice(0,40);
+  const prompt=[
+    (voicePrompts&&voicePrompts[voice])||'',
+    'BUSINESS FACTS FOR '+voice.toUpperCase()+':',
+    getKB(voice),
+    '',
+    'These videos each beat their OWN channel’s median for the period, so the',
+    'multiple is a signal about the topic and format, not about audience size:',
+    '',
+    rows,
+    '',
+    'ALREADY COVERED — do not propose these subjects again:',
+    avoid.length?avoid.map(t=>'- '+t).join(chr(10)):'(nothing yet)',
+    '',
+    'Find the 2-4 PATTERNS that explain why these outperformed. A pattern needs',
+    'at least two videos behind it; one video is noise. A pattern can be about',
+    'FORMAT (length, how it opens), TOPIC (what question it answers), or FRAMING',
+    '(who it argues with, what it refuses to say).',
+    '',
+    'Then translate each into THIS brand. The translation must suit a written',
+    'blog that becomes social snippets — this brand does not make video, so',
+    '“make a Short” is not a usable answer. What transfers is the hook, the',
+    'question, the argument, the length discipline.',
+    '',
+    'Be honest when a pattern does NOT transfer. A thin week is a useful answer;',
+    'an invented one is not.',
+    '',
+    'Return ONLY valid JSON, no preamble, no markdown fences:',
+    '{"patterns":[{"pattern":"...","evidence":"...","transfers":true,"angle":"...","topic":"..."}],"readout":"..."}',
+    '',
+    '- pattern: what the outperformers share, 15 words max.',
+    '- evidence: which videos and their multiples, 25 words max.',
+    '- transfers: false if this is a video-native effect with no written equivalent.',
+    '- angle: the Quinta version of it, 30 words max. Empty string when transfers is false.',
+    '- topic: a blog headline this brand could actually write, 90 characters max,',
+    '  that must yield at least 5 standalone claims. Empty when transfers is false.',
+    '- readout: one plain sentence on what this week is telling you. 30 words max.',
+  ].join(chr(10));
+  const data=await callClaude({model:MODEL_CREATIVE,max_tokens:4000,messages:[{role:'user',content:prompt}]});
+  return extractJSONFromResponse(data);
+}
+
+// ── Trend Scan UI ──
+// Quinta only for now, by decision: Eridion's competitors mostly publish
+// nothing and builder content does not live on YouTube in a measurable way,
+// so pointing this at Eridion would return an empty scan every week and look
+// broken. The gate says so out loud rather than silently returning nothing.
+const TREND_VOICES=['quinta'];
+let lastTrendInterp=null;
+
+function trendVoice(){ return TREND_VOICES.includes(currentStream)?currentStream:null; }
+
+function renderTrends(){
+  const voice=trendVoice();
+  const nameEl=document.getElementById('trends-brand-name');
+  if(nameEl) nameEl.textContent=kbBrandLabel(currentStream);
+  const box=document.getElementById('trends-watchlist');
+  const scanBtn=document.getElementById('trends-scan-btn');
+  const countEl=document.getElementById('trends-count');
+  if(!box) return;
+  if(!voice){
+    box.innerHTML='<div class="placeholder-card"><p>Trend Scan is set up for Quinta &amp; Co only. Switch the brand to Quinta to use it.<br><br>It reads YouTube, where competitor numbers are public — Eridion’s competitors publish almost nothing there, so a scan would come back empty.</p></div>';
+    if(countEl) countEl.textContent='';
+    if(scanBtn) scanBtn.disabled=true;
+    return;
+  }
+  if(scanBtn) scanBtn.disabled=false;
+  const list=getWatchlist(voice);
+  if(countEl) countEl.textContent=list.length?('· '+list.length):'· none yet';
+  const rows=list.map(function(c,i){
+    return '<div style="display:flex;gap:8px;align-items:center;border:1px solid var(--border,#D9DEE5);border-radius:6px;padding:8px 10px;background:var(--white,#fff)">'
+      + '<input type="text" value="'+escapeHTML(c.ref||c.label||'')+'" onchange="setWatchChannel('+i+',this.value)" placeholder="@handle, channel URL, or a name to search" style="flex:1;padding:5px 7px;border:1px solid var(--border,#D9DEE5);border-radius:4px;font-size:12px;font-family:inherit">'
+      + '<button class="action-btn" onclick="removeWatchChannel('+i+')" style="font-size:11px">✕</button></div>';
+  }).join('');
+  box.innerHTML = list.length
+    ? '<div style="display:flex;flex-direction:column;gap:6px">'+rows+'</div>'
+    : '<div class="placeholder-card"><p>No channels yet. Add the people whose content you’d be glad to have written.</p></div>';
+}
+
+function addWatchChannel(){
+  const voice=trendVoice(); if(!voice) return;
+  const list=getWatchlist(voice); list.push({ref:''});
+  saveWatchlist(voice,list); renderTrends();
+}
+function setWatchChannel(i,val){
+  const voice=trendVoice(); if(!voice) return;
+  const list=getWatchlist(voice);
+  if(!list[i]) return;
+  list[i]={ref:String(val||'').trim(), label:list[i].label};
+  saveWatchlist(voice,list);
+}
+function removeWatchChannel(i){
+  const voice=trendVoice(); if(!voice) return;
+  const list=getWatchlist(voice);
+  if(i<0||i>=list.length) return;
+  list.splice(i,1); saveWatchlist(voice,list); renderTrends();
+}
+
+async function runTrendScanUI(){
+  const voice=trendVoice(); if(!voice) return;
+  const btn=document.getElementById('trends-scan-btn');
+  const status=document.getElementById('trends-status');
+  const results=document.getElementById('trends-results');
+  if(!getYtKey()){
+    status.textContent='Add a YouTube Data API key in API Keys first — it is free.';
+    toggleKeys(); return;
+  }
+  btn.disabled=true; results.innerHTML=''; lastTrendInterp=null;
+  status.textContent='Starting…';
+  try{
+    const scan=await runTrendScan(voice, function(msg){ status.textContent=msg; });
+    if(!scan.outperformers.length){
+      // A quiet week is a real answer, not a failure. Still render, so the
+      // channels that WERE read are visible and an empty result can be told
+      // apart from a broken one.
+      renderTrendResults(scan,null);
+      status.textContent='Nothing beat its channel median this window. That is a quiet week, not an error.';
+      return;
+    }
+    status.textContent='Reading '+scan.outperformers.length+' outperformer'+(scan.outperformers.length===1?'':'s')+' for what transfers…';
+    let interp=null;
+    try{ interp=await interpretTrends(voice,scan); lastTrendInterp=interp; }
+    catch(e){ status.textContent='Scan done. Interpretation failed: '+e.message; }
+    renderTrendResults(scan,interp);
+    if(interp) status.textContent='Scanned '+scan.resolved.length+' channel'+(scan.resolved.length===1?'':'s')+'.';
+  }catch(e){
+    status.textContent='Scan failed: '+e.message;
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+function renderTrendResults(scan,interp){
+  const el=document.getElementById('trends-results');
+  const parts=[];
+  if(interp&&Array.isArray(interp.patterns)&&interp.patterns.length){
+    parts.push('<div class="panel-title">What this week is telling you</div>');
+    if(interp.readout) parts.push('<p style="font-size:13px;margin:0 0 12px">'+escapeHTML(interp.readout)+'</p>');
+    interp.patterns.forEach(function(pt,i){
+      const dead = pt.transfers===false;
+      const head = '<div style="font-weight:600;font-size:13px">'+escapeHTML(pt.pattern||'')+'</div>'
+        + '<div style="font-size:12px;color:var(--text-muted);margin-top:4px">'+escapeHTML(pt.evidence||'')+'</div>';
+      const body = dead
+        ? '<div style="font-size:12px;color:#B45309;margin-top:8px">Video-native — no written equivalent worth chasing.</div>'
+        : '<div style="font-size:12px;margin-top:8px"><strong>Quinta angle:</strong> '+escapeHTML(pt.angle||'')+'</div>'
+          + (pt.topic ? '<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:12px">'+escapeHTML(pt.topic)+'</span><button class="action-btn" onclick="useTrendTopic('+i+')" style="font-size:11px">Use as topic →</button></div>' : '');
+      parts.push('<div style="border:1px solid var(--border,#D9DEE5);border-left:3px solid '+(dead?'#B45309':'var(--green,#32A200)')+';border-radius:6px;padding:12px 14px;margin-bottom:10px;background:var(--white,#fff)">'+head+body+'</div>');
+    });
+  }
+  if(scan.outperformers.length){
+    parts.push('<div class="panel-title" style="margin-top:18px">The evidence</div>');
+    const rows=scan.outperformers.map(function(v){
+      return '<div style="display:flex;gap:10px;align-items:baseline;font-size:12px;border-bottom:1px solid var(--hairline,#eee);padding-bottom:6px">'
+        + '<strong style="min-width:52px">'+v.multiple+'×</strong>'
+        + '<span style="min-width:150px;color:var(--text-muted)">'+escapeHTML(v.channel)+'</span>'
+        + '<span style="min-width:140px;color:var(--text-muted)">'+escapeHTML(v.format)+'</span>'
+        + '<a href="'+escapeHTML(v.url)+'" target="_blank" rel="noopener" style="flex:1">'+escapeHTML(v.title)+'</a>'
+        + '<span style="color:var(--text-muted)">'+v.views.toLocaleString()+' / '+v.ageDays+'d</span></div>';
+    }).join('');
+    parts.push('<div style="display:flex;flex-direction:column;gap:6px">'+rows+'</div>');
+  }
+  // Always show what was and was not read, so a thin result is explainable
+  // rather than looking like a failure.
+  const read=scan.resolved.map(function(r){
+    return escapeHTML(r.channel.title)+(r.lowConfidence?' <span style="color:#B45309">(too few recent uploads to judge)</span>':' ('+r.inWindow+' in window)');
+  }).join(' · ');
+  parts.push('<div style="margin-top:16px;font-size:11px;color:var(--text-muted)">Read: '+(read||'nothing')+'</div>');
+  if(scan.failed.length){
+    const bad=scan.failed.map(function(f){ return escapeHTML(f.entry.ref||f.entry.label||'(blank)')+' — '+escapeHTML(f.why); }).join(' · ');
+    parts.push('<div style="margin-top:6px;font-size:11px;color:#B45309">Could not read: '+bad+'</div>');
+  }
+  el.innerHTML=parts.join('');
+}
+
+// Hands the topic to Step 1 rather than generating anything: the decision to
+// write it stays with Erika.
+function useTrendTopic(i){
+  const pt=lastTrendInterp&&lastTrendInterp.patterns&&lastTrendInterp.patterns[i];
+  const topic=pt&&pt.topic;
+  if(!topic){ showToast('No topic on that pattern','error'); return; }
+  const t=document.getElementById('topic-input');
+  if(t) t.value=topic;
+  goStep('setup');
+  showToast('Topic loaded into Step 1','success');
 }
 
 async function suggestTopic(){
@@ -6911,6 +7352,8 @@ function _persistKeys(){
   const bt=document.getElementById('buffer-token')?.value;
   const bp=document.getElementById('buffer-proxy-url')?.value;
   const zw=document.getElementById('zapier-webhook')?.value;   // legacy Buffer fallback, still wired
+  const yt=document.getElementById('youtube-key')?.value;
+  if(yt) localStorage.setItem('youtube_key',yt);
   if(uk) localStorage.setItem('unsplash_key',uk);
   if(wk) localStorage.setItem('wix_key',wk);
   if(ws) localStorage.setItem('wix_site_id',ws);
@@ -6936,7 +7379,7 @@ function wireAutoSaveKeys(){
   // The channel inputs come from the table - this list had been left at the
   // original five, so a hand-typed Facebook or TikTok ID did not auto-save.
   const ids = ['unsplash-key','wix-key','wix-site-id',
-               'buffer-token','buffer-proxy-url']
+               'buffer-token','buffer-proxy-url','youtube-key']
     .concat(CHANNEL_KINDS.flatMap(k=>k.voices.map(v=>channelInputId(v,k))));
   ids.forEach(id => {
     const el = document.getElementById(id);
@@ -6948,6 +7391,8 @@ function wireAutoSaveKeys(){
 function loadKeys(){
   // Build the channel inputs before anything tries to fill them.
   renderChannelFields();
+  const ytk=localStorage.getItem('youtube_key');
+  if(ytk && document.getElementById('youtube-key')) document.getElementById('youtube-key').value=ytk;
   const uk=localStorage.getItem('unsplash_key');
   const wk=localStorage.getItem('wix_key');
   const ws=localStorage.getItem('wix_site_id');
