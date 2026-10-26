@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 15:30</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 15:36</span></div>
     </div>
   </header>
 
@@ -4083,6 +4083,82 @@ const SEO_ONPAGE = `ON-PAGE SEO — the finished blog MUST satisfy ALL of these 
 - Every H2/H3 subheading is specific and search-shaped — a phrase someone might actually search or ask — never generic ("Introduction", "Overview", "Conclusion", "Final thoughts").
 - This layers ON TOP of the exact-question title and answer-first opening (GEO PLAYBOOK) — those already double as keyword placement, so keep them.`;
 
+// ── Link registry ──
+// A fact-check of a finished Quinta post found a link to
+// quintaand.co/practice/automate-or-delegate, a class that does not exist. The
+// rule that produced it said 'weave one internal link to a class page' and
+// never said what the class pages WERE, so a plausible one got invented. The
+// same rule listed 'go/start, go/morewomen, ...' with a trailing ellipsis and
+// no description, so go/start was described in the post as something it is not.
+//
+// Every URL the writing is allowed to use now lives here, each with what is
+// actually at it, and the prompt forbids any URL not on the list. Read off the
+// live site 2026-10-26.
+const LINK_REGISTRY_KEY='eridion_link_registry';
+const LINK_REGISTRY_SEED={
+  quinta:[
+    {url:'https://quintaand.co/practice.html', what:'The Practice — the AI class track, start free then go module by module'},
+    {url:'https://quintaand.co/foundations.html', what:'The Foundations — 15 business classes across three phases, $99–$299, Dallas and Zoom'},
+    {url:'https://quintaand.co/coffee.html', what:'Coffee with Quinta — free monthly session, build one small working tool in an hour'},
+    {url:'https://quintaand.co/classes/module-1.html', what:'Module 1: Your First AI Workflow — what Claude is, how to talk to it, put it to work the same day'},
+    {url:'https://quintaand.co/classes/module-2.html', what:'Module 2: Build your AI assistant — an assistant that handles one real repeatable task'},
+    {url:'https://quintaand.co/classes/module-3.html', what:'Module 3: Real databases & automation — COMING SOON, do not present as bookable'},
+    {url:'https://quintaand.co/classes/entity-setup.html', what:'Entity Building — what an LLC really is, whether you need one yet, what it does and does not change about taxes'},
+    {url:'https://quintaand.co/classes/banking.html', what:'Banking — right accounts, business and personal truly separate, building business credit'},
+    {url:'https://quintaand.co/classes/insurance.html', what:'Insurance — liability, workers comp, health; leave with a risk worksheet for a broker'},
+    {url:'https://quintaand.co/classes/bookkeeping-1.html', what:'Bookkeeping I — whether you need QuickBooks, then set it up right'},
+    {url:'https://quintaand.co/classes/bookkeeping-2.html', what:'Bookkeeping II — a clean handoff so your bookkeeper is not billing you to untangle a shoebox'},
+    {url:'https://quintaand.co/classes/taxes.html', what:'Taxes — how a small business return is put together, which numbers are rules and which are choices'},
+    {url:'https://quintaand.co/classes/pricing.html', what:'Pricing — price your work fair and sustainable, values and math together'},
+    {url:'https://quintaand.co/classes/contracts.html', what:'Contracts — client agreement with scope, deposits and payment terms, reusable template'},
+    {url:'https://quintaand.co/classes/first-hire.html', what:'First Hire — 1099 or W-2, decision worksheet and a starter job description'},
+    {url:'https://quintaand.co/classes/certification.html', what:'Get certified — WBE / MBE / DBE, what it unlocks and how to get it'},
+    {url:'https://quintaand.co/classes/tax-strategy.html', what:'Tax Strategy — using the tax rules on purpose, ahead of time'},
+    {url:'https://quintaand.co/classes/trademarks.html', what:'Trademarks — two-hour lawyer-led session on how filing fits your future'},
+    {url:'https://quintaand.co/classes/funding.html', what:'Funding — what is realistic for your stage, real grants versus scams'},
+    {url:'https://quintaand.co/classes/financial-planning.html', what:'Investing — pay yourself first; your business is not your retirement plan'},
+    {url:'https://quintaand.co/classes/brand-101.html', what:'Brand 101 — a one-page brand foundation: promise, voice, visual direction'},
+    {url:'https://quintaand.co/classes/landlord.html', what:'So You Want to Be a Landlord — someone managing 200+ DFW doors tries to talk you out of it'},
+    {url:'https://quintaand.co/classes/rental-management.html', what:'Rental Management — knowing what good management looks like without 9pm tenant calls'},
+    {url:'https://quintaand.co/classes/rental-growth.html', what:'Rental Growth — hold, sell, or use equity to buy again'},
+    {url:'https://quintaand.co/blog/index.html', what:'The Quinta blog index'},
+    {url:'https://quintaand.co/teach.html', what:'Teach with Quinta — for women founders who want to teach a Foundations class'},
+    {url:'https://quintaand.co/waitlist.html', what:'Waitlist — for classes with no date yet'},
+    {url:'https://cal.com/quintaandco', what:'Booking page — see dates and book'},
+    {url:'https://quintaand.co/go/start', what:'Short link to the blog post “You Don’t Need to Understand AI — Where to Start”. It is a BLOG POST, not a class, a guide or a one-pager. Describe it as a post.'},
+  ],
+};
+
+function getLinkRegistry(voice){
+  try{
+    const all=JSON.parse(localStorage.getItem(LINK_REGISTRY_KEY)||'{}');
+    if(Array.isArray(all[voice]) && all[voice].length) return all[voice];
+  }catch(_){}
+  return (LINK_REGISTRY_SEED[voice]||[]).slice();
+}
+function saveLinkRegistry(voice,list){
+  let all={};
+  try{ all=JSON.parse(localStorage.getItem(LINK_REGISTRY_KEY)||'{}')||{}; }catch(_){}
+  all[voice]=list;
+  try{ localStorage.setItem(LINK_REGISTRY_KEY,JSON.stringify(all)); }catch(_){}
+}
+
+// The allowlist as prompt text. Stated as a prohibition because 'prefer these'
+// is not strong enough against a model that can always picture a tidier URL.
+function buildLinkRegistryBlock(voice){
+  const reg=getLinkRegistry(voice);
+  if(!reg.length) return '';
+  const NLJ = String.fromCharCode(10);
+  return 'LINKS — THE ONLY URLs THAT EXIST.' + NLJ
+    + 'You may link ONLY to a URL on this list. Writing any other URL for this' + NLJ
+    + 'brand is an error, including one that looks obviously right: a class page' + NLJ
+    + 'invented from a topic name has been published and had to be corrected.' + NLJ
+    + 'Describe each link as the list describes it — do not recast a blog post as a' + NLJ
+    + 'class, a guide or a worksheet. If nothing on the list fits what you want to' + NLJ
+    + 'say, LINK NOTHING and make the point without a link.' + NLJ + NLJ
+    + reg.map(function(r){ return r.url + ' — ' + r.what; }).join(NLJ);
+}
+
 function buildGEO(stream){
   const LINK_RULES={
     eridion:'Weave ONE link naturally into a sentence — eridionglass.com or erika@eridionglass.com, per the CTA rules. Never a quintaand.co link in Eridion content.',
@@ -4090,9 +4166,15 @@ function buildGEO(stream){
     quinta:'Weave ONE quintaand.co/go/ short link naturally into a sentence (go/start, go/morewomen, …; default to go/start when nothing fits better). Never "click here." In a blog, ALSO weave one internal link to a class page into a sentence — the conversion path is reader → answer → class.',
   };
   LINK_RULES.practice=LINK_RULES.quinta;
+  // The allowlist rides along with the link rule, so every prompt that gets
+  // link guidance also gets the list of URLs that actually exist.
+  const registryBlock = stream==='week'
+    ? ['eridion','erika','quinta','practice'].map(buildLinkRegistryBlock).filter(Boolean).join('\n\n')
+    : buildLinkRegistryBlock(stream);
   const link = stream==='week'
     ? 'Per snippet, by its assigned voice — ERIDION: '+LINK_RULES.eridion+' · ERIKA: '+LINK_RULES.erika+' · QUINTA & CO / PRACTICE: '+LINK_RULES.quinta
     : (LINK_RULES[stream]||LINK_RULES.eridion);
+  const linkRule = registryBlock ? (link + '\n\n' + registryBlock) : link;
   // Eridion's audience is builders and specs — answer-first and question-shaped
   // headings suit it. The editorial voices (Erika, Quinta & Co, The Practice) were
   // being gutted by the same rules: ① banned scene-setting and ④ manufactured
@@ -4121,7 +4203,7 @@ ${R4}
 
 ⑤ LINKEDIN ENDS WITH A QUESTION. Close every LinkedIn post with one genuine question to the reader — comments extend reach, and reach extends indexing. The question may carry the CTA; don't stack a separate CTA line after it.
 
-⑥ LINK: ${link}
+⑥ LINK: ${linkRule}
 
 ⑦ INSTAGRAM (when a caption or channel intro is produced): caption line one = the answer. For Quinta & Co content, say "Quinta & Co" in the caption — entity reinforcement for brand search.
 ${EXTRA}
