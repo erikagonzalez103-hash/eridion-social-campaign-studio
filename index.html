@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 15:36</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 15:42</span></div>
     </div>
   </header>
 
@@ -2902,10 +2902,12 @@ textarea { min-height: 80px; line-height: 1.6; }
             <span class="content-placeholder">Your full blog post will appear here. Select "Blog + LinkedIn" format.</span>
           </div>
           <div id="blog-tell-warn" style="display:none;color:var(--error);font-size:11px;margin:6px 0 2px"></div>
+          <div id="factcheck-report" style="margin:10px 0"></div>
           <div class="action-bar">
             <button class="action-btn primary" onclick="copyBlog()">Copy Blog Content</button>
             <button class="action-btn" onclick="copyBlogHTML()">Copy as HTML</button>
             <button class="action-btn" id="deai-blog-btn" onclick="deAiBlog()" title="Rewrite this blog to strip AI-tell phrasing, keeping structure, facts, and links">De-AI Blog</button>
+            <button class="action-btn" id="factcheck-btn" onclick="runFactCheck()" title="Check every figure against the sources, and every link against the registry">✓ Check facts &amp; links</button>
           </div>
 
           <!-- SEO Package -->
@@ -4157,6 +4159,166 @@ function buildLinkRegistryBlock(voice){
     + 'class, a guide or a worksheet. If nothing on the list fits what you want to' + NLJ
     + 'say, LINK NOTHING and make the point without a link.' + NLJ + NLJ
     + reg.map(function(r){ return r.url + ' — ' + r.what; }).join(NLJ);
+}
+
+// ── Pre-publish fact check ──
+// Deliberately MECHANICAL, not another model pass. A model asked to audit its
+// own draft will cheerfully confirm a number it invented two minutes earlier;
+// string matching will not. Everything here is exact comparison against the
+// sources that were actually selected and the link registry.
+//
+// It answers four questions, which are the four ways the published Quinta post
+// went wrong:
+//   1. does every figure appear in a source?       (the invented SCORE numbers)
+//   2. does every link exist?                      (/practice/automate-or-delegate)
+//   3. is every source named actually selected?    (a Deloitte that was never there)
+//   4. is every selected source actually used?     (Clutch, listed and uncited)
+
+// Percentages, money, big numbers and ranges. Bare small integers are skipped:
+// 'three verdicts' or 'Module 1' are not claims, and flagging them buries the
+// figures that matter.
+//
+// Longer matches win. The first pass found '44%' AND '44' in '44%', because the
+// bare-number pattern re-matched the digits inside the percentage, so every
+// figure was reported twice.
+function extractFigures(text){
+  const pats=[
+    /\$\s?\d[\d,]*(?:\.\d+)?\s?(?:k|m|b|million|billion|thousand)?/gi,
+    /\d{1,3}(?:\.\d+)?\s?%/g,
+    /\b\d+\s?[\u2013\u2014-]\s?\d+\b/g,
+    /\b\d{1,3}(?:,\d{3})+\b/g,
+    /\b\d{2,}\b/g,
+  ];
+  const taken=[], out=[], seen=new Set();
+  const overlaps=(a,b)=>taken.some(t=>a<t.end&&b>t.start);
+  pats.forEach(re=>{
+    let m; re.lastIndex=0;
+    while((m=re.exec(text))!==null){
+      const a=m.index, b=a+m[0].length;
+      if(overlaps(a,b)) continue;
+      taken.push({start:a,end:b});
+      const raw=m[0].trim(), key=raw.toLowerCase();
+      if(seen.has(key)) continue;
+      seen.add(key);
+      out.push({raw, context:text.slice(Math.max(0,a-60), Math.min(text.length,b+60)).replace(/\s+/g,' ').trim()});
+    }
+  });
+  return out;
+}
+
+// '16,000' and '16000' are the same claim; '41%' and '41 percent' are the same
+// claim; an en-dash range is the same as a hyphen one.
+function normalizeFigure(v){
+  return String(v).toLowerCase()
+    .replace(/[\u2013\u2014]/g,'-')
+    .replace(/percent|per cent/g,'%')
+    .replace(/[,\s]/g,'')
+    .replace(/\$/g,'');
+}
+
+// Compare figure to figure, never figure to raw text. Substring matching marked
+// '20' as verified because a source was dated 2024 -- a number wrongly shown as
+// checked is worse than one wrongly flagged, because it ends the reader's
+// doubt. Dates are excluded from the haystack for the same reason.
+function sourceFigureSet(src){
+  const hay=[src.snippet, src.title].filter(Boolean).join(' ');
+  const set=new Set();
+  extractFigures(hay).forEach(f=>set.add(normalizeFigure(f.raw)));
+  return set;
+}
+function figureAppearsIn(fig, set){ return set.has(normalizeFigure(fig)); }
+
+// Whether a source is MENTIONED is a looser question than whether a figure is
+// supported, and it is reported as the weaker signal it is: a draft saying
+// 'per HBR' or 'Amex reports' is citing Harvard Business Review and American
+// Express, and the first pass flagged both as uncited.
+function sourceMentioned(name, lowDraft){
+  const n=String(name||'').trim();
+  if(!n) return true;
+  const low=n.toLowerCase();
+  if(lowDraft.indexOf(low)>=0) return true;
+  const words=n.split(/\s+/).filter(w=>w.length>1);
+  const acronym=words.map(w=>w[0]).join('').toLowerCase();
+  if(acronym.length>=2 && lowDraft.indexOf(acronym)>=0) return true;
+  // any distinctive single word, e.g. 'Deloitte', 'Clutch', 'Harvard'
+  const STOP=new Set(['the','of','and','for','report','study','institute','group','inc','llc','business','small','survey','data']);
+  return words.some(w=>w.length>=4 && !STOP.has(w.toLowerCase()) && lowDraft.indexOf(w.toLowerCase())>=0);
+}
+
+function extractUrls(text){
+  const out=[], seen=new Set();
+  const re=/(?:https?:\/\/|\bwww\.)[^\s<>"')\]]+|\b[a-z0-9-]+\.(?:com|co|org|net|io|gov|edu)\/[^\s<>"')\]]*/gi;
+  let m;
+  while((m=re.exec(text))!==null){
+    const raw=m[0].replace(/[.,;:)]+$/,'');
+    const key=raw.toLowerCase().replace(/^https?:\/\//,'').replace(/\/$/,'');
+    if(!seen.has(key)){ seen.add(key); out.push(raw); }
+  }
+  return out;
+}
+function sameUrl(a,b){
+  const norm=u=>String(u).toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/$/,'');
+  return norm(a)===norm(b);
+}
+
+// selected: the research sources ticked for this draft.
+function factCheckDraft(draft, selected, voice){
+  const sources=(selected||[]).map(x=>Object.assign({},x));
+  const corpus=sources.map(x=>[x.snippet,x.title,x.source,x.date].filter(Boolean).join(' ')).join(' \n ');
+  sources.forEach(x=>{ x._figs=sourceFigureSet(x); });
+  const figures=extractFigures(draft).map(f=>{
+    const hit=sources.find(x=>figureAppearsIn(f.raw, x._figs));
+    return {raw:f.raw, context:f.context, source:hit?hit.source:null, ok:!!hit};
+  });
+  const registry=getLinkRegistry(voice).map(r=>r.url);
+  const sourceUrls=sources.map(x=>x.url).filter(Boolean);
+  const urls=extractUrls(draft).map(u=>{
+    const inReg=registry.some(r=>sameUrl(r,u));
+    const inSrc=sourceUrls.some(r=>sameUrl(r,u));
+    return {url:u, ok:inReg||inSrc, where:inReg?'registry':(inSrc?'source':null)};
+  });
+  // A source named in the prose that was never selected cannot have been read.
+  const low=draft.toLowerCase();
+  const unused=sources.filter(x=>x.source && !sourceMentioned(x.source, low));
+  return {figures, urls, unused, corpusLen:corpus.length, sourceCount:sources.length};
+}
+
+function runFactCheck(){
+  const box=document.getElementById('factcheck-report');
+  const draft=(document.getElementById('blog-output')||{}).innerText||'';
+  if(draft.trim().length<200){ box.innerHTML='<div style="font-size:12px;color:var(--text-muted)">Draft a blog post first.</div>'; return; }
+  const selected=(typeof researchSources!=='undefined'?researchSources:[]).filter(x=>x.selected);
+  const r=factCheckDraft(draft, selected, currentStream);
+  const bad=r.figures.filter(f=>!f.ok), badUrls=r.urls.filter(u=>!u.ok);
+  const card=(colour,title,body)=>'<div style="border:1px solid var(--border,#D9DEE5);border-left:3px solid '+colour+';border-radius:6px;padding:10px 12px;margin-bottom:8px;background:var(--white,#fff)"><div style="font-weight:600;font-size:12px">'+title+'</div>'+body+'</div>';
+  const parts=[];
+  if(!selected.length){
+    parts.push(card('#B45309','No sources selected for this draft','<div style="font-size:12px;color:var(--text-muted);margin-top:4px">Every figure below is unverifiable from inside the studio — there is nothing to check against. If this post came from Research First, reopen it and tick the sources you used.</div>'));
+  }
+  if(bad.length){
+    parts.push(card('#DC2626','✗ '+bad.length+' figure'+(bad.length===1?'':'s')+' not found in any selected source',
+      bad.map(f=>'<div style="font-size:12px;margin-top:6px"><strong>'+escapeHTML(f.raw)+'</strong> — <span style="color:var(--text-muted)">…'+escapeHTML(f.context)+'…</span></div>').join('')
+      + '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">Cut the number or replace it with one a source actually states. A sentence without a figure is publishable; an invented figure is not.</div>'));
+  }
+  const good=r.figures.filter(f=>f.ok);
+  if(good.length){
+    parts.push(card('var(--green,#32A200)','✓ '+good.length+' figure'+(good.length===1?'':'s')+' traced to a source',
+      good.map(f=>'<div style="font-size:12px;margin-top:4px"><strong>'+escapeHTML(f.raw)+'</strong> — '+escapeHTML(f.source||'')+'</div>').join('')));
+  }
+  if(badUrls.length){
+    parts.push(card('#DC2626','✗ '+badUrls.length+' link'+(badUrls.length===1?'':'s')+' not in the registry or the sources',
+      badUrls.map(u=>'<div style="font-size:12px;margin-top:4px">'+escapeHTML(u.url)+'</div>').join('')
+      + '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">A URL nobody gave the writer is one it made up. Check it resolves before publishing.</div>'));
+  }
+  if(r.unused.length){
+    parts.push(card('#B45309','⚠ could not find '+r.unused.length+' selected source'+(r.unused.length===1?'':'s')+' mentioned in the post',
+      r.unused.map(x=>'<div style="font-size:12px;margin-top:4px">'+escapeHTML(x.source||x.title||'')+'</div>').join('')
+      + '<div style="font-size:11px;color:var(--text-muted);margin-top:8px">Listing a source the post never uses suggests support it does not have — remove it from the source list. This check is deliberately over-sensitive and does not always recognise an abbreviation, so “Amex” for American Express may appear here wrongly. Over-flagging is the safer mistake.</div>'));
+  }
+  if(!parts.length || (!bad.length && !badUrls.length && !r.unused.length && selected.length)){
+    parts.unshift(card('var(--green,#32A200)','✓ Nothing unverifiable found','<div style="font-size:12px;color:var(--text-muted);margin-top:4px">Every figure traces to a selected source and every link is known. This checks internal consistency only — it cannot tell you a source is itself wrong, or that a live URL still says what it said.</div>'));
+  }
+  box.innerHTML=parts.join('');
 }
 
 function buildGEO(stream){
