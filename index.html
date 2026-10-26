@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 17:40</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 17:49</span></div>
     </div>
   </header>
 
@@ -12582,7 +12582,14 @@ async function imageChatFormatBrief(it, fmt, note){
   // A call to action is universal: any post asking for engagement needs one,
   // whatever the format. The grid and scale tests stay typographic, because
   // they are about setting a page.
-  const CTA_RULES = 'EVERY PIECE HAS TWO PARTS: THE CREATIVE AND THE CALL TO ACTION. They do different jobs and must LOOK like different things. \u2460 THE CREATIVE carries the idea \u2014 the photograph, the headline, the argument. \u2461 THE CALL TO ACTION is NOT part of the creative and is never folded into the headline or the body. Its only job is to make the reader DO something, and it has to be recognisable as an instruction at a glance rather than read as one more line of copy. This applies to a PHOTOGRAPH as much as to a designed card: if the piece carries any words at all, it carries a call to action. Give the CTA ITS OWN ZONE: set apart by a rule, a change of colour or weight, or clear space around it, sitting LAST in the reading order near the bottom, inside the safe margin. It is set no smaller than any other label \u2014 a CTA too small to read is not a CTA. The DEFAULT CTA is a QUESTION the reader can answer in a comment in a few words: specific, about their own situation, their own number, their own last one. Never rhetorical. Never "thoughts?". A statement with a question mark on it is not a question. Only if a question genuinely cannot work may the CTA instead tell them to save it or send it to someone, and it must then say so in words. A piece with no call to action is unfinished. A piece whose only CTA is an instruction buried in the body has no CTA.';
+  //
+  // Revised again after a photo came back with the question in the HEADLINE and
+  // no CTA at all. The old rule said the default CTA was a question, which both
+  // invited that and defines a CTA wrongly. Erika: none of "Tell us below what
+  // worked for you", "Send this to someone you know", "Like to show support",
+  // "Follow for more weekly AI tips", "Click through to read the entire blog"
+  // are questions. A CTA is an IMPERATIVE naming one action.
+  const CTA_RULES = 'EVERY PIECE HAS TWO PARTS: THE CREATIVE AND THE CALL TO ACTION. They do different jobs and must LOOK like different things. \u2460 THE CREATIVE carries the idea \u2014 the photograph, the headline, the argument. A question in the headline is CREATIVE, not a call to action, and does NOT satisfy this requirement. \u2461 THE CALL TO ACTION is an INSTRUCTION: an imperative naming one action the reader can take right now. It is not a question, not a statement of the idea, and is never folded into the headline or the body. Write it as a direct instruction, for example: "Tell us below what worked for you." "Send this to someone deciding the same thing." "Save this for your next renewal date." "Follow for weekly AI tips." "Read the full post \u2014 link in bio." "Like if this is your week." Pick ONE, matched to what the piece deserves: comment, send, save, follow, read, or like. One instruction only \u2014 two asks is no ask. This applies to a PHOTOGRAPH as much as to a designed card: if the piece carries any words at all, it carries a call to action. Give the CTA ITS OWN ZONE: set apart by a rule, a change of colour or weight, or clear space around it, sitting LAST in the reading order near the bottom, inside the safe margin. It is set no smaller than any other label \u2014 a CTA too small to read is not a CTA. A piece with no call to action is unfinished. A question anywhere in the piece, however good, is not one. An instruction buried in the body is not one either. If the instruction mentions a link, say only "link in bio" or "link in the comments" \u2014 never write a URL into the image.';
   const LAYOUT_RULES = 'LAYOUT \u2014 NOT A CENTRED CARD. Where the brand brief and these rules disagree about ENERGY, these win. Required: NOTHING horizontally centred, at most one deliberate exception; largest type at LEAST 3x the smallest; repeated items are NOT identical rows, vary size or weight so the most important one looks it; the HEADLINE CARRIES THE IDEA \u2014 the largest words must be the most interesting words, not a label for them.';
 
   const TYPOGRAPHIC = ['quote','stat','infographic','chart','carousel'];
