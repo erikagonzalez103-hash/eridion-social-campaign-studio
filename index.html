@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 17:49</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 17:55</span></div>
     </div>
   </header>
 
@@ -12329,6 +12329,9 @@ async function openImageChat(id){
       if(!state.activeId&&state.versions.length)state.activeId=state.versions[0].id;
     });
   }catch(e){showToast('Could not save image session: '+e.message,'error');return;}
+  // A pending record older than the recovery window is dead; drop it so the
+  // dialog opens usable.
+  if(clearStalePending(id)) showToast('Cleared a stalled image request — you can generate again','success');
   document.getElementById('ic-message').value='';
   // Was hardwired to 'discuss' on every open, so typing an adjustment and
   // pressing Send produced a paragraph ABOUT the change and left the image
@@ -12375,6 +12378,15 @@ function renderImageChat(){
   const download=document.getElementById('ic-download');download.hidden=!active;
   syncImageChatSendLabel();
   renderImageLessons();
+  // Explain a disabled Send instead of leaving it dead and silent.
+  (function(){
+    const st=imageChatState(it), p=st&&st.pending;
+    const note=document.getElementById('ic-status');
+    if(p && note && !imageChatBusy){
+      const mins=Math.round((Date.now()-(p.startedAt||Date.now()))/60000);
+      note.textContent='A request from '+mins+' minute'+(mins===1?'':'s')+' ago has not been collected, so Send is off. Use “Check last request” — it fetches that result without starting a second generation.';
+    }
+  })();
   document.getElementById('ic-reviewed').checked=false;document.getElementById('ic-comparison').innerHTML='';
   document.getElementById('ic-source').textContent='Source: '+(source.title||'This post')+'\n'+(source.blogUrl||'No source blog URL saved')+'\n\n'+context.sourceBlog+'\n\n'+(BRAND_IMAGE_BRIEFS[voice]||'');
   document.getElementById('ic-recover').hidden=!state.pending;
@@ -12637,7 +12649,11 @@ async function sendImageChat(options={}){
   // With a format selected the brief is generated, so a typed message is optional
   // - it becomes extra direction layered on top.
   if(!message && !formatted){imageChatNotice('Write a request first.');return;}
-  if(s.pending){imageChatNotice('Check the last request before starting another.');return;}
+  if(s.pending){
+    const mins=Math.round((Date.now()-(s.pending.startedAt||Date.now()))/60000);
+    imageChatNotice('A request from '+mins+' minute'+(mins===1?'':'s')+' ago is still outstanding. Press “Check last request” to collect it — that does not start a second generation. After six minutes it is dropped automatically and Send comes back.');
+    return;
+  }
   const base=s.versions.find(v=>v.id===s.activeId);if(action==='revise'&&!base){imageChatNotice('Choose an existing image, or create one first.');return;}
   let formatNote='';
   if(formatted){
@@ -12688,6 +12704,25 @@ async function sendImageChat(options={}){
   }catch(e){imageChatNotice(e.message+'\nIf the request may still be running, use “Check last request” before generating again.');}
   finally{imageChatBusy=false;renderImageChat();document.getElementById('ic-send').disabled=!!imageChatState(library.find(x=>x.id===id)).pending;}
 }
+// A request that fails at the NETWORK level -- “Failed to fetch” -- never reaches
+// the branch that clears `pending`, because that branch only runs when a
+// response came back. Keeping it is right at first: the generation may still be
+// running on the worker and “Check last request” exists to collect it. But it
+// also disables Send, and Check last request refuses for the first five
+// minutes, so the dialog could sit unusable with no way forward.
+//
+// After the recovery window a pending record is not coming back. Clear it and
+// say so, rather than leaving the button dead and unexplained.
+const IC_PENDING_STALE_MS = 6*60*1000;
+function clearStalePending(id){
+  const it=library.find(x=>x.id===id); if(!it) return false;
+  const st=imageChatState(it), p=st&&st.pending;
+  if(!p || !p.startedAt) return false;
+  if(Date.now()-p.startedAt < IC_PENDING_STALE_MS) return false;
+  try{ imageChatCommit(id,next=>{next.imageChat.pending=null;}); }catch(_){ return false; }
+  return true;
+}
+
 async function recoverImageChat(){
   if(imageChatBusy)return;
   const id=imageChatPostId,pending=imageChatState(library.find(x=>x.id===id)).pending;if(!pending)return;
