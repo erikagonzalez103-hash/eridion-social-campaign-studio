@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 17:55</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 18:02</span></div>
     </div>
   </header>
 
@@ -12359,7 +12359,16 @@ function closeImageChat(){if(imageChatBusy){imageChatNotice('Please wait for thi
 function renderImageChat(){
   const it=library.find(x=>x.id===imageChatPostId);if(!it)return;
   const state=imageChatState(it),active=state.versions.find(v=>v.id===state.activeId),voice=imageVisualVoice(it),source=imageSourcePost(it),refs=getBrandRefs(voice);
-  try{ const fe=document.getElementById('ic-format'), last=localStorage.getItem('eridion_last_img_format_'+voice); if(fe&&last&&[...fe.options].some(o=>o.value===last)) fe.value=last; }catch(_){}
+  // The last format is restored per brand, EXCEPT freeform. Freeform skips
+  // imageChatFormatBrief entirely, which is where the CTA, the type floors and
+  // the layout rules all live -- so once it was stored it silently stripped
+  // every rule from every later image, and reasserted itself each time the
+  // dialog redrew. It stays selectable; it just never becomes the default.
+  try{
+    const fe=document.getElementById('ic-format');
+    const last=localStorage.getItem('eridion_last_img_format_'+voice);
+    if(fe && last && last!=='freeform' && [...fe.options].some(o=>o.value===last)) fe.value=last;
+  }catch(_){}
   document.getElementById('ic-title').textContent=it.title||'Create / Revise image';
   document.getElementById('ic-meta').textContent=kbBrandLabel(voice)+' · '+refs.length+' brand reference'+(refs.length===1?'':'s')+' · saved with this post';
   const context=imageChatContext(it);
@@ -12644,7 +12653,8 @@ async function sendImageChat(options={}){
   const chosenFmt=(options.format||(fmtEl?fmtEl.value:'freeform'));
   // Remember the choice per brand - picking “Quote card” once should not reset to
   // Auto on the next post.
-  try{ if(fmtEl) localStorage.setItem('eridion_last_img_format_'+imageVisualVoice(it), chosenFmt); }catch(_){}
+  // Not stored when freeform: see the restore above.
+  try{ if(fmtEl && chosenFmt!=='freeform') localStorage.setItem('eridion_last_img_format_'+imageVisualVoice(it), chosenFmt); }catch(_){}
   const formatted = action==='create' && chosenFmt && chosenFmt!=='freeform';
   // With a format selected the brief is generated, so a typed message is optional
   // - it becomes extra direction layered on top.
