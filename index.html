@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 13:27</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 13:31</span></div>
     </div>
   </header>
 
@@ -3205,6 +3205,18 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div id="trends-watchlist"></div>
           <div id="trends-status" role="status" style="margin-top:12px;font-size:12px;color:var(--text-muted)"></div>
           <div id="trends-results" style="margin-top:18px"></div>
+          <div id="trends-chat-wrap" style="margin-top:26px;display:none">
+            <div class="panel-title">Talk it through</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">A surfaced subject you have no standing to write about is not a dead end — say so here and work out the version you can.</div>
+            <div id="trends-chat" style="display:flex;flex-direction:column;gap:10px;max-height:420px;overflow-y:auto;padding:4px"></div>
+            <textarea id="trends-chat-input" rows="3" placeholder="e.g. I have never run an email launch, but one of our faculty runs a bakery and has opinions about deposits" style="width:100%;box-sizing:border-box;margin-top:10px;padding:8px;border:1px solid var(--border,#D9DEE5);border-radius:6px;font-family:inherit;font-size:13px"></textarea>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+              <button class="action-btn" id="trends-chat-send" onclick="sendTrendChat()">Send</button>
+              <button class="action-btn" id="trends-chat-use" onclick="useTrendChatTopic()" disabled>Use this topic →</button>
+              <button class="action-btn" onclick="clearTrendChat()" style="font-size:11px">↺ Start over</button>
+              <span id="trends-chat-status" role="status" style="font-size:11px;color:var(--text-muted)"></span>
+            </div>
+          </div>
         </div>
 
         <div class="tab-content" id="tab-refs">
@@ -5489,10 +5501,12 @@ async function interpretTrends(voice, scan){
 // broken. The gate says so out loud rather than silently returning nothing.
 const TREND_VOICES=['quinta'];
 let lastTrendInterp=null;
+let lastTrendScan=null;
 
 function trendVoice(){ return TREND_VOICES.includes(currentStream)?currentStream:null; }
 
 function renderTrends(){
+  renderTrendChat();
   const voice=trendVoice();
   const nameEl=document.getElementById('trends-brand-name');
   if(nameEl) nameEl.textContent=kbBrandLabel(currentStream);
@@ -5551,6 +5565,7 @@ async function runTrendScanUI(){
   status.textContent='Starting…';
   try{
     const scan=await runTrendScan(voice, function(msg){ status.textContent=msg; });
+    lastTrendScan=scan;
     if(!scan.outperformers.length){
       // A quiet week is a real answer, not a failure. Still render, so the
       // channels that WERE read are visible and an empty result can be told
@@ -5612,6 +5627,7 @@ function renderTrendResults(scan,interp){
     parts.push('<div style="margin-top:6px;font-size:11px;color:#B45309">Could not read: '+bad+'</div>');
   }
   el.innerHTML=parts.join('');
+  renderTrendChat();
 }
 
 // Hands the topic to Step 1 rather than generating anything: the decision to
@@ -5622,6 +5638,156 @@ function useTrendTopic(i){
   if(!topic){ showToast('No topic on that pattern','error'); return; }
   const t=document.getElementById('topic-input');
   if(t) t.value=topic;
+  goStep('setup');
+  showToast('Topic loaded into Step 1','success');
+}
+
+// ── Trend conversation ──
+// The scan surfaces subjects Erika may have no standing to write about -- an
+// email-launch pattern is real and still useless to her if she has never run
+// one. The failure mode to avoid is the model inventing experience on her
+// behalf, so the prompt below tells it to ASK what she has actually seen and
+// to reach for the faculty of named local practitioners, which is Quinta's
+// documented wedge, rather than fill the gap itself.
+const TREND_CHAT_KEY='eridion_trend_chat';
+
+function trendChatState(voice){
+  try{
+    const all=JSON.parse(localStorage.getItem(TREND_CHAT_KEY)||'{}');
+    const st=all[voice];
+    if(st&&Array.isArray(st.turns)) return st;
+  }catch(_){}
+  return {turns:[], topic:''};
+}
+function saveTrendChat(voice,st){
+  let all={};
+  try{ all=JSON.parse(localStorage.getItem(TREND_CHAT_KEY)||'{}')||{}; }catch(_){}
+  all[voice]=st;
+  try{ localStorage.setItem(TREND_CHAT_KEY,JSON.stringify(all)); }catch(_){}
+}
+function clearTrendChat(){
+  const voice=trendVoice(); if(!voice) return;
+  saveTrendChat(voice,{turns:[],topic:''});
+  renderTrendChat();
+}
+
+function renderTrendChat(){
+  const voice=trendVoice();
+  const wrap=document.getElementById('trends-chat-wrap');
+  if(!wrap) return;
+  // Only offered once there is a scan to talk about; without one there is no
+  // shared subject and it would just be a chat box.
+  wrap.style.display = (voice && lastTrendScan && lastTrendScan.outperformers.length) ? 'block' : 'none';
+  if(!voice) return;
+  const st=trendChatState(voice);
+  const box=document.getElementById('trends-chat');
+  box.innerHTML = st.turns.length ? st.turns.map(function(t){
+    const mine=t.role==='user';
+    return '<div style="border:1px solid var(--border,#D9DEE5);border-left:3px solid '+(mine?'var(--navy,#153862)':'var(--green,#32A200)')+';border-radius:6px;padding:10px 12px;background:'+(mine?'var(--off-white,#fafaf6)':'var(--white,#fff)')+'">'
+      + '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:4px">'+(mine?'You':'Studio')+'</div>'
+      + '<div style="font-size:13px;white-space:pre-wrap">'+escapeHTML(t.text)+'</div></div>';
+  }).join('') : '<div style="font-size:12px;color:var(--text-muted)">Nothing yet. Tell it which of the patterns above you can and cannot speak to.</div>';
+  box.scrollTop=box.scrollHeight;
+  const useBtn=document.getElementById('trends-chat-use');
+  if(useBtn){
+    useBtn.disabled=!st.topic;
+    useBtn.textContent = st.topic ? ('Use: ' + (st.topic.length>46?st.topic.slice(0,46)+'…':st.topic) + ' →') : 'Use this topic →';
+  }
+}
+
+// The model proposes at most one headline per reply, on a final TOPIC: line.
+// A marker beats asking for JSON here: the rest of the reply is conversation
+// meant to be read as prose, and a chat that answers in JSON is unreadable.
+function parseTrendTopic(text){
+  const m=/^TOPIC:\s*(.+)$/m.exec(String(text||''));
+  if(!m) return {body:String(text||'').trim(), topic:''};
+  return {body:String(text||'').replace(m[0],'').trim(), topic:m[1].trim()};
+}
+
+async function sendTrendChat(){
+  const voice=trendVoice(); if(!voice) return;
+  const input=document.getElementById('trends-chat-input');
+  const status=document.getElementById('trends-chat-status');
+  const send=document.getElementById('trends-chat-send');
+  const msg=(input.value||'').trim();
+  if(!msg){ status.textContent='Write something first.'; return; }
+  if(!lastTrendScan||!lastTrendScan.outperformers.length){ status.textContent='Run a scan first.'; return; }
+  const st=trendChatState(voice);
+  st.turns.push({role:'user', text:msg});
+  saveTrendChat(voice,st);
+  input.value=''; renderTrendChat();
+  send.disabled=true; status.textContent='Thinking…';
+  try{
+    const evidence=lastTrendScan.outperformers.map(function(v){
+      return '- ' + v.channel + ' | ' + v.format + ' | ' + v.multiple + 'x usual | ' + v.title;
+    }).join('\n');
+    const read = lastTrendInterp && lastTrendInterp.patterns
+      ? lastTrendInterp.patterns.map(function(pt){ return '- ' + pt.pattern + (pt.transfers===false?' (does not transfer to writing)':''); }).join('\n')
+      : '(no interpretation this run)';
+    const libTopics=library.filter(function(it){ return it.voice===voice; }).map(function(it){ return it.topic||it.title||''; }).filter(Boolean).reverse();
+    const avoid=[...new Set(libTopics)].slice(0,30);
+    const system=[
+      (voicePrompts&&voicePrompts[voice])||'',
+      '',
+      'BUSINESS FACTS FOR '+voice.toUpperCase()+':',
+      getKB(voice),
+      '',
+      'THIS WEEK\u2019S SCAN \u2014 what beat the usual for its channel and format:',
+      evidence,
+      '',
+      'PATTERNS READ FROM IT:',
+      read,
+      '',
+      'ALREADY COVERED \u2014 do not land on these:',
+      avoid.length?avoid.map(function(t){ return '- '+t; }).join('\n'):'(nothing yet)',
+      '',
+      'You are helping the author decide what to write THIS WEEK from the scan above.',
+      '',
+      'She will often say a subject is outside her experience. That is information,',
+      'not an obstacle, and it is never a reason to invent experience for her.',
+      'When it happens: ask what she HAS seen firsthand, or which of her faculty',
+      'or clients has. This brand\u2019s advantage is named local practitioners in',
+      'trades, craft and service businesses, so the usable version of a national',
+      'influencer topic is almost always the same subject told through one of',
+      'them with real numbers.',
+      '',
+      'Ask at most ONE question per reply, and only when the answer would change',
+      'what you suggest. Otherwise make the suggestion.',
+      '',
+      'Keep replies under 120 words. Plain sentences. No bullet lists of options,',
+      'no restating what she just said back to her.',
+      '',
+      'When you have a headline she could actually write, end your reply with a',
+      'final line exactly like this and nothing after it:',
+      'TOPIC: the headline',
+      'Only include that line when the topic is genuinely ready \u2014 it must be',
+      '90 characters or less and must yield at least 5 standalone claims, since',
+      'it becomes a week of snippets. Leave it off while you are still asking.',
+    ].join('\n');
+    const messages=st.turns.map(function(t){ return {role:t.role, content:t.text}; });
+    const data=await callClaude({model:MODEL_CREATIVE, max_tokens:2000, system, messages});
+    const reply=claudeText(data);
+    if(!reply) throw new Error('Empty reply.');
+    const parsed=parseTrendTopic(reply);
+    const st2=trendChatState(voice);
+    st2.turns.push({role:'assistant', text:parsed.body});
+    if(parsed.topic) st2.topic=parsed.topic;
+    saveTrendChat(voice,st2);
+    status.textContent = parsed.topic ? 'A topic is ready — see the button.' : '';
+    renderTrendChat();
+  }catch(e){
+    status.textContent='Failed: '+e.message;
+  }finally{
+    send.disabled=false;
+  }
+}
+
+function useTrendChatTopic(){
+  const voice=trendVoice(); if(!voice) return;
+  const st=trendChatState(voice);
+  if(!st.topic){ showToast('No topic agreed yet','error'); return; }
+  const t=document.getElementById('topic-input');
+  if(t) t.value=st.topic;
   goStep('setup');
   showToast('Topic loaded into Step 1','success');
 }
