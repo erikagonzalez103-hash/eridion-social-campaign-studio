@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 12:54</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 13:16</span></div>
     </div>
   </header>
 
@@ -5266,36 +5266,53 @@ function ytMedian(nums){
   return a.length%2 ? a[mid] : (a[mid-1]+a[mid])/2;
 }
 
-// Scores one channel's videos against that channel's own median.
+// Scores one channel's videos against that channel's own median FOR THE SAME
+// FORMAT CLASS.
 //
-// Age is the trap here: a video published yesterday has had less time to gather
-// views than one from three weeks ago, so comparing them directly rewards age
-// rather than performance. Both the candidates AND the median they are measured
-// against are therefore drawn from the SAME age window, which keeps the
-// comparison honest without needing a view-decay model.
+// Per-channel alone was not enough. A channel that posts forty Shorts at ~200
+// views and two podcast episodes at ~28,000 has a whole-channel median down at
+// Shorts level, so every episode scores 140x and the 'outperformers' list is
+// really just a list of which channels post long-form. That is a format census,
+// not a signal. Erika's first real scan showed exactly this: ten of twelve rows
+// long-form, top entry 141x on 29,606 views.
 //
-// minAgeDays exists because a video from this morning has no meaningful number
-// yet; maxAgeDays keeps the window to recent behaviour rather than all history.
+// So a Short is judged against that channel's other Shorts and an episode
+// against its other episodes. Two classes, split at three minutes - the real
+// divide on YouTube, and coarse enough to keep each bucket's sample healthy.
+//
+// Age is the other trap: a video from yesterday has had less time to gather
+// views than one from three weeks ago, so comparing them rewards age rather
+// than performance. Candidates AND the median they are measured against come
+// from the same age window, which keeps that honest without a decay model.
+function ytClassOf(seconds){ return seconds>0 && seconds<=180 ? 'short' : 'long'; }
 function scoreChannelVideos(videos, opts){
   const o=Object.assign({minAgeDays:5, maxAgeDays:45, minSample:4, now:Date.now()}, opts||{});
   const day=86400000;
-  const inWindow=videos.filter(v=>{
+  const inWindow=videos.filter(function(v){
     const age=(o.now-new Date(v.publishedAt).getTime())/day;
     return age>=o.minAgeDays && age<=o.maxAgeDays;
-  });
-  // Too few comparable videos means any 'median' is noise, so say so rather
-  // than hand back a confident-looking multiple built on two data points.
-  const median=ytMedian(inWindow.map(v=>v.views));
-  const lowConfidence = inWindow.length < o.minSample || median<=0;
-  return inWindow.map(v=>{
+  }).map(function(v){
     const seconds=ytDurationSeconds(v.duration);
+    return Object.assign({},v,{seconds, cls:ytClassOf(seconds), format:ytFormatLabel(seconds)});
+  });
+  // One median per class, from that class only.
+  const medians={}, counts={};
+  ['short','long'].forEach(function(c){
+    const mine=inWindow.filter(function(v){ return v.cls===c; });
+    counts[c]=mine.length;
+    medians[c]=ytMedian(mine.map(function(v){ return v.views; }));
+  });
+  return inWindow.map(function(v){
+    const med=medians[v.cls];
+    // Too few comparable videos in THIS class means any multiple is noise, so
+    // say so rather than hand back a confident number built on two points.
+    const low = counts[v.cls] < o.minSample || !(med>0);
     return Object.assign({},v,{
-      seconds,
-      format:ytFormatLabel(seconds),
       ageDays:Math.round((o.now-new Date(v.publishedAt).getTime())/day),
-      channelMedian:median,
-      multiple: median>0 ? +(v.views/median).toFixed(2) : 0,
-      lowConfidence,
+      classMedian:med,
+      classCount:counts[v.cls],
+      multiple: med>0 ? +(v.views/med).toFixed(2) : 0,
+      lowConfidence:low,
     });
   });
 }
@@ -5423,8 +5440,10 @@ async function interpretTrends(voice, scan){
     'BUSINESS FACTS FOR '+voice.toUpperCase()+':',
     getKB(voice),
     '',
-    'These videos each beat their OWN channel’s median for the period, so the',
-    'multiple is a signal about the topic and format, not about audience size:',
+    'Each of these beat the median of its OWN channel AND its own format class',
+    '(short-form under 3 minutes, or long-form over). So the multiple is a',
+    'signal about the topic, independent of both audience size and of whether',
+    'that creator mostly posts Shorts or mostly posts long episodes:',
     '',
     rows,
     '',
@@ -5574,7 +5593,7 @@ function renderTrendResults(scan,interp){
         + '<span style="min-width:150px;color:var(--text-muted)">'+escapeHTML(v.channel)+'</span>'
         + '<span style="min-width:140px;color:var(--text-muted)">'+escapeHTML(v.format)+'</span>'
         + '<a href="'+escapeHTML(v.url)+'" target="_blank" rel="noopener" style="flex:1">'+escapeHTML(v.title)+'</a>'
-        + '<span style="color:var(--text-muted)">'+v.views.toLocaleString()+' / '+v.ageDays+'d</span></div>';
+        + '<span style="color:var(--text-muted)">'+v.views.toLocaleString()+' vs '+Number(v.classMedian||0).toLocaleString()+' usual · '+v.ageDays+'d</span></div>';
     }).join('');
     parts.push('<div style="display:flex;flex-direction:column;gap:6px">'+rows+'</div>');
   }
