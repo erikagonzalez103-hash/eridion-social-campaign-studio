@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 14:31</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 15:12</span></div>
     </div>
   </header>
 
@@ -11942,7 +11942,7 @@ function imageChatMount(){
   <details><summary class="ic-label">Source &amp; brand context</summary><div id="ic-source" class="ic-source"></div></details></section>
   <section aria-label="Image conversation"><div class="ic-idea"><h3>A starting idea for this post</h3><div id="ic-idea-copy" class="ic-idea-copy" aria-live="polite"></div><div class="ic-controls"><button class="action-btn" id="ic-create-idea" onclick="createImageChatIdea()">Create this idea</button><button class="action-btn" id="ic-suggest" onclick="suggestImageChat()">Suggest another direction</button><button class="action-btn" onclick="resetImageChatThread()" title="Forget this post’s image conversation and start from the post copy alone">↺ Start fresh</button></div></div><div id="ic-thread" class="ic-thread" role="log" aria-live="polite"></div>
   <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea>
-  <div class="ic-controls"><select id="ic-action" aria-label="Image action"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-format" aria-label="Asset format" title="What KIND of asset to make"><option value="auto">✦ Format: Auto — read the post and choose</option><option value="image">Editorial photo</option><option value="quote">Quote card</option><option value="stat">Stat card</option><option value="infographic">Infographic / diagram</option><option value="chart">Chart (real numbers)</option><option value="carousel">Carousel slide</option><option value="reel">Reel cover frame</option><option value="freeform">Free-form — my words only</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
+  <div class="ic-controls"><select id="ic-action" aria-label="Image action" onchange="syncImageChatSendLabel()"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-format" aria-label="Asset format" title="What KIND of asset to make"><option value="auto">✦ Format: Auto — read the post and choose</option><option value="image">Editorial photo</option><option value="quote">Quote card</option><option value="stat">Stat card</option><option value="infographic">Infographic / diagram</option><option value="chart">Chart (real numbers)</option><option value="carousel">Carousel slide</option><option value="reel">Reel cover frame</option><option value="freeform">Free-form — my words only</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
   <div class="ic-controls"><button class="action-btn" id="ic-send" onclick="sendImageChat()">Send</button><button class="action-btn" id="ic-recover" onclick="recoverImageChat()" hidden>Check last request</button><button class="action-btn" id="ic-save-recovery" onclick="saveImageChatRecovery()" hidden>Save returned version</button></div>
   <div id="ic-status" role="status"></div>
   <details><summary class="ic-label">Carry a correction into later posts</summary><label class="ic-label" for="ic-guidance-scope">Apply to</label><select id="ic-guidance-scope" onchange="loadImageGuidance()"><option value="campaign">This source-blog campaign only</option><option value="brand">This brand only</option></select><label class="ic-label" for="ic-guidance">Reusable direction</label><textarea id="ic-guidance" maxlength="3000" placeholder="For example: keep people candid and imperfect; avoid staged stock poses."></textarea><button class="action-btn" onclick="saveImageGuidance()">Save direction</button><div class="ic-meta">Saved only for the scope above. Post-specific edits stay in this conversation.</div></details></section></div>`;
@@ -11960,7 +11960,13 @@ async function openImageChat(id){
       if(!state.activeId&&state.versions.length)state.activeId=state.versions[0].id;
     });
   }catch(e){showToast('Could not save image session: '+e.message,'error');return;}
-  document.getElementById('ic-message').value='';document.getElementById('ic-action').value='discuss';
+  document.getElementById('ic-message').value='';
+  // Was hardwired to 'discuss' on every open, so typing an adjustment and
+  // pressing Send produced a paragraph ABOUT the change and left the image
+  // untouched -- which reads as the field doing nothing. With an image
+  // already on screen, the thing you almost always want is a revision.
+  document.getElementById('ic-action').value=
+    (imageChatState(it).versions||[]).length ? 'revise' : 'discuss';
   document.getElementById('ic-guidance-scope').value='campaign';loadImageGuidance();renderImageChat();
   const dialog=document.getElementById('image-chat-dialog');if(!dialog.open)dialog.showModal();
   imageChatNotice('Checking image connection…');
@@ -11995,6 +12001,7 @@ function renderImageChat(){
   document.getElementById('ic-undo').disabled=!state.undo?.length||imageChatBusy;
   document.getElementById('ic-compare-button').disabled=!active?.parentId;
   const download=document.getElementById('ic-download');download.hidden=!active;
+  syncImageChatSendLabel();
   document.getElementById('ic-reviewed').checked=false;document.getElementById('ic-comparison').innerHTML='';
   document.getElementById('ic-source').textContent='Source: '+(source.title||'This post')+'\n'+(source.blogUrl||'No source blog URL saved')+'\n\n'+context.sourceBlog+'\n\n'+(BRAND_IMAGE_BRIEFS[voice]||'');
   document.getElementById('ic-recover').hidden=!state.pending;
@@ -12106,14 +12113,45 @@ async function imageChatFormatBrief(it, fmt, note){
   // beating the format instruction: every request came back as the same cream
   // still-life with no copy on it. A typographic format has to say outright that
   // the brand's photography default does not apply to THIS piece.
+  // Quinta's brand brief is written for PHOTOGRAPHY and leans on 'quiet',
+  // 'calm', 'restrained', 'generous white space'. Applied to a typographic
+  // card with no layout direction at all, that produced dead-centred
+  // symmetry at one type size -- Erika's words: 'a personal planning journal,
+  // not editorial at all'. Editorial means magazine CRAFT, so the craft has
+  // to be stated. Applies to both brands: centred-and-uniform is weak for
+  // Eridion too.
+  const EDITORIAL_LAYOUT = 'LAYOUT - A MAGAZINE PAGE, NOT A CENTRED CARD. '
+    + 'Dead-centre symmetry at one type size is the failure here. Required: '
+    + 'ASYMMETRY - off-centre grid, one side weighted, unequal margins. '
+    + 'SCALE CONTRAST - headline several times the smallest label, not one step up. '
+    + 'A KICKER - short letter-spaced uppercase department label above the headline (e.g. OPERATIONS). '
+    + 'RULES that divide with intent, full-bleed or deliberately short - not a hairline centred under the title. '
+    + 'ONE PULL QUOTE set apart in size and weight. '
+    + 'A SECONDARY ELEMENT subordinate to the headline - small sidebar, numbered list or split column - never a second headline. '
+    + 'White space ACTIVE and pushed to one side, not even padding round a centred stack. '
+    + 'Magazine spread, not poster. Brand palette and typefaces exactly as specified.';
   const TYPOGRAPHIC = ['quote','stat','infographic','chart','carousel'];
   const STANDS_ALONE=' THE PIECE MUST MAKE SENSE WITH NO CAPTION. Someone scrolling sees the image before they read a word of the post, and stops only if the image itself tells them something. A figure, a claim or a line that needs the caption to be understood has failed. Carry the comparison or the consequence on the card itself.';
   const assertion = TYPOGRAPHIC.indexOf(chosen)>=0
     ? 'MAKE A '+String(ASSET_FMT_LABEL[chosen]||chosen).toUpperCase()+'. This is a DESIGNED TYPOGRAPHIC PIECE, not a photograph. The words specified below MUST appear in the image, rendered as the subject - an image with no text on it is a failed result. Where the brand brief names photography as its primary visual language, that does NOT apply to this piece: follow the brand for palette, type and restraint only. Do not substitute a still-life, a desk scene or any photograph for the card.'+STANDS_ALONE
     : 'MAKE A PHOTOGRAPHIC IMAGE in this brand. Do not render headlines, captions or any overlaid copy on it. The scene itself has to carry the idea — choose a subject that means something without words.';
-  brief = assertion + '\n\n' + TYPE_RULE + '\n\n' + brief.trim();
+  // The server rejects anything over 4,000 characters and the old guard cut
+  // the TAIL, which is the brief describing THIS post - the one part that
+  // cannot be spared. Layout craft is the luxury here, so when it will not
+  // fit it is dropped whole rather than shortening the content.
+  const core = assertion + '\n\n' + TYPE_RULE + '\n\n' + brief.trim();
+  const wantsLayout = TYPOGRAPHIC.indexOf(chosen)>=0;
+  const withLayout = assertion + '\n\n' + EDITORIAL_LAYOUT + '\n\n' + TYPE_RULE + '\n\n' + brief.trim();
+  brief = (wantsLayout && withLayout.length<=3900) ? withLayout : core;
   if(brief.length>3900) brief = brief.slice(0,3900).replace(/\s+\S*$/,'');   // server rejects >4000
   return {format:chosen, rationale:String(d.rationale||''), brief};
+}
+
+// The action a Send will perform was invisible until it had already happened.
+function syncImageChatSendLabel(){
+  const sel=document.getElementById('ic-action'), btn=document.getElementById('ic-send');
+  if(!sel||!btn) return;
+  btn.textContent = {discuss:'Discuss', create:'Create image', revise:'Revise image'}[sel.value] || 'Send';
 }
 
 async function sendImageChat(options={}){
