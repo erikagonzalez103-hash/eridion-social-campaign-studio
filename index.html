@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 13:31</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 14:12</span></div>
     </div>
   </header>
 
@@ -5239,7 +5239,11 @@ function getYtKey(){
 function getWatchlist(voice){
   try{
     const all=JSON.parse(localStorage.getItem(YT_WATCHLIST_KEY)||'{}');
-    if(Array.isArray(all[voice])) return all[voice];
+    // An EMPTY stored array used to win over the seed, so once the list was
+    // emptied -- by removing entries, or by anything that wrote [] -- the tab
+    // showed nothing for ever and looked broken. An empty watchlist has no
+    // use anyway, so it falls back to the seed instead.
+    if(Array.isArray(all[voice]) && all[voice].length) return all[voice];
   }catch(_){}
   return (YT_WATCHLIST_SEED[voice]||[]).slice();
 }
@@ -5506,6 +5510,19 @@ let lastTrendScan=null;
 function trendVoice(){ return TREND_VOICES.includes(currentStream)?currentStream:null; }
 
 function renderTrends(){
+  const v=trendVoice();
+  // Bring back the last scan for this brand before drawing anything, so a
+  // refresh shows the results and the conversation rather than a blank tab.
+  if(v && !lastTrendScan){
+    const saved=loadLastScan(v);
+    if(saved){
+      lastTrendScan={outperformers:saved.outperformers, resolved:saved.resolved||[], failed:saved.failed||[]};
+      lastTrendInterp=saved.interp||null;
+      try{ renderTrendResults(lastTrendScan, lastTrendInterp); }catch(_){}
+      const st=document.getElementById('trends-status');
+      if(st && saved.scannedAt) st.textContent='Showing the scan from '+new Date(saved.scannedAt).toLocaleString()+'.';
+    }
+  }
   renderTrendChat();
   const voice=trendVoice();
   const nameEl=document.getElementById('trends-brand-name');
@@ -5515,7 +5532,7 @@ function renderTrends(){
   const countEl=document.getElementById('trends-count');
   if(!box) return;
   if(!voice){
-    box.innerHTML='<div class="placeholder-card"><p>Trend Scan is set up for Quinta &amp; Co only. Switch the brand to Quinta to use it.<br><br>It reads YouTube, where competitor numbers are public — Eridion’s competitors publish almost nothing there, so a scan would come back empty.</p></div>';
+    box.innerHTML='<div class="placeholder-card"><p>Trend Scan runs for Quinta &amp; Co only — you are on '+escapeHTML(kbBrandLabel(currentStream))+'.<br><br>It reads YouTube, where competitor numbers are public. Eridion’s competitors publish almost nothing there, so a scan would come back empty every week.</p><button class="action-btn" onclick="setStream(\'quinta\');switchTab(\'trends\')">Switch to Quinta &amp; Co →</button></div>';
     if(countEl) countEl.textContent='';
     if(scanBtn) scanBtn.disabled=true;
     return;
@@ -5570,6 +5587,7 @@ async function runTrendScanUI(){
       // A quiet week is a real answer, not a failure. Still render, so the
       // channels that WERE read are visible and an empty result can be told
       // apart from a broken one.
+      saveLastScan(voice,scan,null);
       renderTrendResults(scan,null);
       status.textContent='Nothing beat its channel median this window. That is a quiet week, not an error.';
       return;
@@ -5578,6 +5596,7 @@ async function runTrendScanUI(){
     let interp=null;
     try{ interp=await interpretTrends(voice,scan); lastTrendInterp=interp; }
     catch(e){ status.textContent='Scan done. Interpretation failed: '+e.message; }
+    saveLastScan(voice,scan,interp);
     renderTrendResults(scan,interp);
     if(interp) status.textContent='Scanned '+scan.resolved.length+' channel'+(scan.resolved.length===1?'':'s')+'.';
   }catch(e){
@@ -5650,6 +5669,30 @@ function useTrendTopic(i){
 // to reach for the faculty of named local practitioners, which is Quinta's
 // documented wedge, rather than fill the gap itself.
 const TREND_CHAT_KEY='eridion_trend_chat';
+const TREND_SCAN_KEY='eridion_trend_lastscan';
+
+// A scan costs API quota and about a minute, so losing it on refresh is a
+// real cost, not just an inconvenience -- and the conversation panel hangs
+// off it, so a reload was silently hiding a thread that was still saved.
+function saveLastScan(voice, scan, interp){
+  try{
+    let all={};
+    try{ all=JSON.parse(localStorage.getItem(TREND_SCAN_KEY)||'{}')||{}; }catch(_){}
+    // Only what the UI redraws from. The full per-video set is large and
+    // the library already shares this localStorage budget.
+    all[voice]={outperformers:scan.outperformers, resolved:scan.resolved, failed:scan.failed,
+                scannedAt:scan.scannedAt, interp:interp||null};
+    localStorage.setItem(TREND_SCAN_KEY, JSON.stringify(all));
+  }catch(_){}
+}
+function loadLastScan(voice){
+  try{
+    const all=JSON.parse(localStorage.getItem(TREND_SCAN_KEY)||'{}');
+    const st=all[voice];
+    if(st && Array.isArray(st.outperformers)) return st;
+  }catch(_){}
+  return null;
+}
 
 function trendChatState(voice){
   try{
