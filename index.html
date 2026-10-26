@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 16:51</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 17:05</span></div>
     </div>
   </header>
 
@@ -12510,8 +12510,7 @@ async function imageChatFormatBrief(it, fmt, note){
   const szv=((document.getElementById('ic-size')||{}).value||'1024x1280').split('x');
   const IW=Number(szv[0])||1024, IH=Number(szv[1])||1280;
   const ph=p=>Math.round(IH*p/100), pw=p=>Math.round(IW*p/100), tall=IH/IW>=1.2;
-  const TYPE_RULE='MINIMUM TYPE SIZES - HARD FLOORS, NOT SUGGESTIONS. This canvas is '+IW+'x'+IH+'. Sizes are a percentage of image HEIGHT, and the pixel figures below are exact for THIS canvas - do not scale them from any other size. Main headline or hero number: 10-16% = '+ph(10)+'-'+ph(16)+'px. Secondary headline: 6-9% = '+ph(6)+'-'+ph(9)+'px. Body and supporting lines: 4-5% = '+ph(4)+'-'+ph(5)+'px. Labels, eyebrows, captions, attributions, CTAs and URLs: 3% = '+ph(3)+'px MINIMUM. THAT FLOOR INCLUDES ANNOTATION AND CALLOUT LABELS - the short texts on leader lines pointing at parts of a photo or diagram. They are the most common violation. A technical or architectural drawing style is NOT a reason to set them smaller: every callout is at least '+ph(3)+'px. NOTHING on this canvas may be smaller than '+ph(3)+'px. If the words will not fit, CUT WORDS or CUT CALLOUTS - never go below the floor. Three readable callouts beat six unreadable ones. SAFE AREA - KEEP ALL FOUR EDGES CLEAR. Reserve the TOP band for the brand mark: the studio stamps the real logo centred there afterwards, so leave it genuinely empty - no headline, no rule, no decoration creeping into it. Leave a margin with NOTHING in it - no text, no logo, no key subject, no part of a box or rule: at least '+pw(8)+'px on the LEFT and RIGHT, '+ph(10)+'px at the TOP, and '+ph(12)+'px at the BOTTOM where captions and controls sit. Backgrounds, textures and incidental foliage MAY bleed to the edge - that is what the margin is for; it is the CONTENT that must stay inside.'+(tall?' This canvas is 4:5 or taller, so Instagram’s profile grid will centre-crop it to a square: keep the headline, the key figure and the CTA inside the CENTRE SQUARE so the crop never removes them.':'');
-  let brief = buildPromptForDay(voice, chosen, specFromDecision(d), text);
+  const TYPE_RULE='MINIMUM TYPE SIZES - HARD FLOORS. Canvas is '+IW+'x'+IH+'; these pixel figures are exact for it, do not scale them from another size. Main headline or hero number: '+ph(10)+'-'+ph(16)+'px. Secondary headline: '+ph(6)+'-'+ph(9)+'px. Body: '+ph(4)+'-'+ph(5)+'px. Labels, eyebrows, captions, attributions, CTAs and URLs: '+ph(3)+'px MINIMUM - and that floor INCLUDES annotation and callout labels on a diagram or photo, the most common violation. A technical drawing style is NOT a reason to go smaller. NOTHING may be under '+ph(3)+'px. If the words will not fit, CUT WORDS or CUT CALLOUTS; three readable beat six unreadable. SAFE AREA: reserve the TOP band for the brand mark - leave it genuinely empty. Keep text, logo, key subject and any box or rule at least '+pw(8)+'px from LEFT and RIGHT, '+ph(10)+'px from TOP, '+ph(12)+'px from BOTTOM. Backgrounds and textures MAY bleed; CONTENT stays inside.'+(tall?' This canvas is 4:5 or taller so Instagram grid-crops it square: keep the headline, key figure and CTA inside the CENTRE SQUARE.':'');
   brief = brief.split(QUALITY_BAR).join('');
   const bb = BRAND_IMAGE_BRIEFS[voice];
   if(bb) brief = brief.split(bb).join('');
@@ -12528,30 +12527,56 @@ async function imageChatFormatBrief(it, fmt, note){
   // not editorial at all'. Editorial means magazine CRAFT, so the craft has
   // to be stated. Applies to both brands: centred-and-uniform is weak for
   // Eridion too.
-  const EDITORIAL_LAYOUT = 'LAYOUT - A MAGAZINE PAGE, NOT A CENTRED CARD. '
-    + 'Dead-centre symmetry at one type size is the failure here. Required: '
-    + 'ASYMMETRY - off-centre grid, one side weighted, unequal margins. '
-    + 'SCALE CONTRAST - headline several times the smallest label, not one step up. '
-    + 'A KICKER - short letter-spaced uppercase department label above the headline (e.g. OPERATIONS). '
-    + 'RULES that divide with intent, full-bleed or deliberately short - not a hairline centred under the title. '
-    + 'ONE PULL QUOTE set apart in size and weight. '
-    + 'A SECONDARY ELEMENT subordinate to the headline - small sidebar, numbered list or split column - never a second headline. '
-    + 'White space ACTIVE and pushed to one side, not even padding round a centred stack. '
-    + 'Magazine spread, not poster. Brand palette and typefaces exactly as specified.';
+  // Second pass. The first version was adjectives -- 'asymmetry', 'scale
+  // contrast' -- and produced a dead-centred checklist with three identical
+  // rows and a headline that was a file name. Adjectives are opinions; these
+  // are tests. It also lost to the brand brief, which is written for
+  // PHOTOGRAPHY and says quiet, calm, restrained, generous white space six
+  // times over; given contradictory instructions the model averaged them, and
+  // the average of bold and quiet is bland. So it now says outright which one
+  // governs layout.
+  // Added on top of PIECE_RULES when the budget allows. Craft detail only --
+  // everything that must always ship is in PIECE_RULES.
+  const EDITORIAL_LAYOUT_EXTRA = 'FURTHER LAYOUT CRAFT: a KICKER above the headline, short, letter-spaced, uppercase, naming the department (e.g. OPERATIONS, FIELD NOTE). Left and right margins differ, and the headline sits on a different column width from the body. Rules divide with intent, full-bleed or deliberately short, never a hairline centred under a title. White space pushed to ONE side to create tension, never even padding on four. Do not draw a control that reports a state - no ticked or empty checkboxes, toggles or progress bars - unless the state is real and stated. Brand palette and typefaces exactly as specified.';
+  // The full block is ~1,400 characters and on a normal brief that pushes the
+  // whole message past the 4,000 the server accepts -- so the better rules
+  // would have been dropped on every single run, silently. These are the four
+  // that did the most work, kept short enough to always survive. Layout is
+  // never dropped to nothing now; it degrades to this.
+  const EDITORIAL_LAYOUT_MIN = 'LAYOUT - NOT A CENTRED CARD. The brand brief describes PHOTOGRAPHY; its quiet/calm/restrained wording governs MOOD, not layout. Required: NOTHING horizontally centred (at most one deliberate exception); largest type at LEAST 3x the smallest; repeated items are NOT identical rows - vary size or weight so the most important one looks it; and the HEADLINE CARRIES THE IDEA - the largest words must be the most interesting words, not a label for them. If it could be called tasteful and nothing else, it has failed.';
+
+  // ENGAGEMENT and the layout minimum overlapped (both ended at 'the headline
+  // carries the idea') and together they crowded each other out of the 4,000
+  // character budget, so layout was dropped on a normal brief. Merged into one
+  // essentials block that always ships; the fuller craft detail is added on top
+  // when there is room.
+  //
+  // From Erika on the finished card: 'there is NO call to action' and 'we
+  // aren't creating these posts for the hugs - we want engagement'. Both
+  // outrank layout: a piece that states a framework and asks for nothing
+  // cannot be replied to, saved or sent on, however well it is set.
+  const PIECE_RULES = 'THIS PIECE MUST ASK FOR SOMETHING. One that only states an idea is decoration. Decide which ONE job it does and build for it: (a) ASKS a question answerable in a comment in a few words - specific, never rhetorical, never "thoughts?"; (b) is worth SAVING as a reference someone returns to; (c) is worth SENDING to one person because it names a situation they are in. Put the ask IN the image in words, not implied, and set it no smaller than any other label - a CTA too small to read is not a CTA. Naming a framework and asking nothing is the failure to avoid: name it AND ask which part of it they are getting wrong. LAYOUT - NOT A CENTRED CARD. The brand brief describes PHOTOGRAPHY; its quiet/calm/restrained wording governs MOOD, not layout. Required: NOTHING horizontally centred, at most one deliberate exception; largest type at LEAST 3x the smallest; repeated items are NOT identical rows, vary size or weight so the most important one looks it; the HEADLINE CARRIES THE IDEA - the largest words must be the most interesting words, not a label for them. If it could be called tasteful and nothing else, it has failed.';
+
   const TYPOGRAPHIC = ['quote','stat','infographic','chart','carousel'];
   const STANDS_ALONE=' THE PIECE MUST MAKE SENSE WITH NO CAPTION. Someone scrolling sees the image before they read a word of the post, and stops only if the image itself tells them something. A figure, a claim or a line that needs the caption to be understood has failed. Carry the comparison or the consequence on the card itself.';
   const assertion = TYPOGRAPHIC.indexOf(chosen)>=0
     ? 'MAKE A '+String(ASSET_FMT_LABEL[chosen]||chosen).toUpperCase()+'. This is a DESIGNED TYPOGRAPHIC PIECE, not a photograph. The words specified below MUST appear in the image, rendered as the subject - an image with no text on it is a failed result. Where the brand brief names photography as its primary visual language, that does NOT apply to this piece: follow the brand for palette, type and restraint only. Do not substitute a still-life, a desk scene or any photograph for the card.'+STANDS_ALONE
     : 'MAKE A PHOTOGRAPHIC IMAGE in this brand. Do not render headlines, captions or any overlaid copy on it. The scene itself has to carry the idea — choose a subject that means something without words.';
-  // The server rejects anything over 4,000 characters and the old guard cut
-  // the TAIL, which is the brief describing THIS post - the one part that
-  // cannot be spared. Layout craft is the luxury here, so when it will not
-  // fit it is dropped whole rather than shortening the content.
-  const core = assertion + '\n\n' + TYPE_RULE + '\n\n' + brief.trim();
-  const wantsLayout = TYPOGRAPHIC.indexOf(chosen)>=0;
-  const withLayout = assertion + '\n\n' + EDITORIAL_LAYOUT + '\n\n' + TYPE_RULE + '\n\n' + brief.trim();
-  brief = (wantsLayout && withLayout.length<=3900) ? withLayout : core;
-  if(brief.length>3900) brief = brief.slice(0,3900).replace(/\s+\S*$/,'');   // server rejects >4000
+  const typo = TYPOGRAPHIC.indexOf(chosen)>=0;
+  const essentials = typo ? PIECE_RULES + '\n\n' : '';
+  const extraBlock = EDITORIAL_LAYOUT_EXTRA + '\n\n';
+  const build = (extra, body) => assertion + '\n\n' + essentials + extra + TYPE_RULE + '\n\n' + body;
+  const body = brief.trim();
+  // The server rejects anything over 4,000 characters. Budget the BODY against
+  // what the rules leave, rather than slicing the finished string and cutting
+  // whatever happens to land last: a half-stated type floor or a half-stated
+  // ask is worse than a shorter description of the post. The trim is marked so
+  // a thin result has a visible cause.
+  const roomPlain = 3900 - build('', '').length;
+  const roomExtra = 3900 - build(extraBlock, '').length;
+  brief = (typo && body.length<=roomExtra) ? build(extraBlock, body)
+        : (body.length<=roomPlain)         ? build('', body)
+        : build('', body.slice(0, Math.max(120, roomPlain-18)).replace(/\s+\S*$/, '') + ' [trimmed to fit]');
   return {format:chosen, rationale:String(d.rationale||''), brief};
 }
 
