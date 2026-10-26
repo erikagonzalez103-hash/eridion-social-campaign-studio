@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 13:16</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 13:27</span></div>
     </div>
   </header>
 
@@ -5429,9 +5429,9 @@ async function runTrendScan(voice, onProgress){
 // doing well is noise, three doing well for the same reason is a signal.
 async function interpretTrends(voice, scan){
   const rows=scan.outperformers.map(v=>
-    '- ' + v.channel + ' | ' + v.format + ' | ' + v.multiple + 'x its channel median | ' +
+    '- ' + v.channel + ' | ' + v.format + ' | ' + v.multiple + 'x the usual for that channel AND that format | ' +
     v.views.toLocaleString() + ' views in ' + v.ageDays + ' days | ' + v.title
-  ).join(chr(10));
+  ).join('\n');
   if(!scan.outperformers.length) throw new Error('Nothing outperformed this window - nothing to interpret.');
   const libTopics=library.filter(it=>it.voice===voice).map(it=>it.topic||it.title||'').filter(Boolean).reverse();
   const avoid=[...new Set(libTopics)].slice(0,40);
@@ -5448,10 +5448,14 @@ async function interpretTrends(voice, scan){
     rows,
     '',
     'ALREADY COVERED — do not propose these subjects again:',
-    avoid.length?avoid.map(t=>'- '+t).join(chr(10)):'(nothing yet)',
+    avoid.length?avoid.map(t=>'- '+t).join('\n'):'(nothing yet)',
     '',
     'Find the 2-4 PATTERNS that explain why these outperformed. A pattern needs',
-    'at least two videos behind it; one video is noise. A pattern can be about',
+    'at least two videos behind it; one video is noise. A pattern that holds',
+    'ACROSS DIFFERENT CHANNELS is worth far more than one inside a single',
+    'channel - channels do not share audiences, so a repeat across them is',
+    'about the subject rather than about one creator. Rank those first and',
+    'name which channels carry each. A pattern can be about',
     'FORMAT (length, how it opens), TOPIC (what question it answers), or FRAMING',
     '(who it argues with, what it refuses to say).',
     '',
@@ -5473,7 +5477,7 @@ async function interpretTrends(voice, scan){
     '- topic: a blog headline this brand could actually write, 90 characters max,',
     '  that must yield at least 5 standalone claims. Empty when transfers is false.',
     '- readout: one plain sentence on what this week is telling you. 30 words max.',
-  ].join(chr(10));
+  ].join('\n');
   const data=await callClaude({model:MODEL_CREATIVE,max_tokens:4000,messages:[{role:'user',content:prompt}]});
   return extractJSONFromResponse(data);
 }
