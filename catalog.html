@@ -42,8 +42,13 @@
   .badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;color:#fff;font-family:var(--mono);text-transform:uppercase;letter-spacing:.03em}
   .b-hero{background:var(--green-bright)} .b-skip{background:#9AA3AD} .b-showcase{background:#7C3AED}
   .b-watermark{background:var(--amber)} .b-sales{background:#0369A1} .b-progress{background:#64748B}
-  .dot{position:absolute;top:6px;right:6px;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.1)}
+  .dot{position:absolute;top:6px;right:34px;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.1)}
   .dot.reviewed{background:var(--green-bright)} .dot.unreviewed{background:#D1D5DB}
+  .selbox{position:absolute;top:5px;right:5px;z-index:6;width:23px;height:23px;background:rgba(255,255,255,.93);border:1px solid var(--hair);border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .selbox input{width:15px;height:15px;cursor:pointer;margin:0}
+  .card.selected{outline:3px solid var(--green-bright);outline-offset:-3px}
+  #selBar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:none;justify-content:center;align-items:center;gap:14px;padding:12px;background:rgba(17,29,51,.97);box-shadow:0 -4px 16px rgba(0,0,0,.22)}
+  #selBar .selcount{color:#fff;font-weight:600;font-family:var(--mono);font-size:13px}
   /* editor */
   .overlay{position:fixed;inset:0;background:rgba(14,39,65,.55);z-index:40;display:none;align-items:stretch;justify-content:flex-end}
   .overlay.open{display:flex}
@@ -108,6 +113,12 @@
 </div>
 
 <main><div class="grid" id="grid"></div><div class="empty" id="empty" style="display:none">No images match these filters.</div></main>
+
+<div id="selBar">
+  <span class="selcount" id="selCount"></span>
+  <button class="btn save" onclick="downloadSelected()">⬇ Download selected</button>
+  <button class="btn ghost" style="color:#fff;border-color:rgba(255,255,255,.5)" onclick="clearSelected()">Clear</button>
+</div>
 
 <!-- Editor drawer -->
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeEditor()">
@@ -226,7 +237,7 @@ function render(){
   const frag=document.createDocumentFragment();
   view.forEach((a,i)=>{
     const card=document.createElement('div');
-    card.className='card'+(isReviewed(a)?' reviewed':'');
+    card.className='card'+(isReviewed(a)?' reviewed':'')+(selected.has(a.id)?' selected':'');
     const badges=[];
     if((a.flags||[]).includes('showcase'))badges.push('<span class="badge b-showcase">suite</span>');
     if((a.flags||[]).includes('watermark'))badges.push('<span class="badge b-watermark">mark</span>');
@@ -236,16 +247,27 @@ function render(){
     if(a.grade==='skip')badges.push('<span class="badge b-skip">skip</span>');
     const tags=(a.product||[]).slice(0,3).map(t=>'<span class="minitag">'+t+'</span>').join('');
     card.innerHTML=
+      '<label class="selbox"><input type="checkbox"></label>'+
       '<div class="badges">'+badges.join('')+'</div>'+
       '<div class="dot '+(isReviewed(a)?'reviewed':'unreviewed')+'"></div>'+
       '<img class="thumb" loading="lazy" src="'+BASE+a.thumb+'" alt="">'+
       '<div class="meta"><div class="cap">'+(a.caption||'<span style="color:#aaa">— untagged —</span>')+'</div><div class="tagrow">'+tags+'</div></div>';
     card.onclick=()=>openEditor(i);
+    // Selection checkbox — toggles without opening the editor, survives re-render.
+    const sb=card.querySelector('.selbox'), cb=sb.querySelector('input');
+    cb.checked=selected.has(a.id);
+    sb.addEventListener('click',e=>e.stopPropagation());
+    cb.addEventListener('change',()=>{
+      if(cb.checked) selected.add(a.id); else selected.delete(a.id);
+      card.classList.toggle('selected',cb.checked);
+      updateSelBar();
+    });
     frag.appendChild(card);
   });
   grid.appendChild(frag);
   updateProgress();
   document.getElementById('countPill').textContent=view.length+' shown';
+  updateSelBar();
 }
 
 function updateProgress(){
@@ -290,22 +312,44 @@ function renderChips(){
   mk('grpFlags','flags',VOCAB.flags,false);
 }
 function closeEditor(){ document.getElementById('overlay').classList.remove('open'); curIdx=-1; }
+// Save one asset's full-res image. The grid thumbnail <img> primes the browser
+// cache with a NON-CORS copy (no Access-Control-Allow-Origin, since <img> sends
+// no Origin); a plain fetch() of the same URL reuses it and fails CORS — which
+// silently dropped the download. A unique query key + no-store forces a fresh
+// CORS request that r2.dev answers with the ACAO header.
+async function saveAssetFile(a){
+  const name=(a.filename||a.id);
+  const url=BASE+a.web+(a.web.includes('?')?'&':'?')+'dl='+Date.now()+Math.random().toString(36).slice(2,6);
+  const r=await fetch(url,{mode:'cors',cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const b=await r.blob(); const u=URL.createObjectURL(b);
+  const link=document.createElement('a'); link.href=u; link.download=name; document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
 async function downloadCurrent(){
   const a=view[curIdx]; if(!a) return;
-  const name=(a.filename||a.id);
-  // The grid thumbnail <img> primes the browser cache with a NON-CORS copy of
-  // this image (no Access-Control-Allow-Origin header, since <img> sends no
-  // Origin). A plain fetch() of the same URL reuses that cached copy and fails
-  // CORS — which silently dropped the download. A unique query key + no-store
-  // forces a fresh CORS request that r2.dev answers with the ACAO header.
-  const url=BASE+a.web+(a.web.includes('?')?'&':'?')+'dl='+Date.now();
-  try{
-    const r=await fetch(url,{mode:'cors',cache:'no-store'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const b=await r.blob(); const u=URL.createObjectURL(b);
-    const link=document.createElement('a'); link.href=u; link.download=name; document.body.appendChild(link); link.click(); link.remove();
-    setTimeout(()=>URL.revokeObjectURL(u),1500);
-  }catch(e){ window.open(BASE+a.web,'_blank','noopener'); }
+  try{ await saveAssetFile(a); }catch(e){ window.open(BASE+a.web,'_blank','noopener'); }
+}
+// ---- multi-select download ----
+const selected=new Set();
+function updateSelBar(){
+  const n=selected.size;
+  const c=document.getElementById('selCount'); if(c) c.textContent=n+' selected';
+  const bar=document.getElementById('selBar'); if(bar) bar.style.display=n?'flex':'none';
+}
+function clearSelected(){ selected.clear(); updateSelBar(); render(); }
+async function downloadSelected(){
+  const ids=[...selected]; if(!ids.length) return;
+  const byId={}; ASSETS.forEach(a=>byId[a.id]=a);
+  const label=document.getElementById('selCount');
+  let ok=0, fail=0;
+  for(let i=0;i<ids.length;i++){
+    const a=byId[ids[i]]; if(!a){fail++;continue;}
+    if(label) label.textContent='Downloading '+(i+1)+' / '+ids.length+'…';
+    try{ await saveAssetFile(a); ok++; }catch(e){ fail++; }
+    await new Promise(r=>setTimeout(r,450)); // pace multi-file saves so the browser accepts them
+  }
+  if(label) label.textContent=ok+' downloaded'+(fail?(' · '+fail+' failed'):'')+' · '+selected.size+' still selected';
 }
 function step(d){
   if(curIdx<0)return;
