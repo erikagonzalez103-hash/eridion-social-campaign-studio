@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 18:09</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 19:49</span></div>
     </div>
   </header>
 
@@ -12731,7 +12731,15 @@ async function sendImageChat(options={}){
       imageChatCommit(id,next=>{next.imageChat.pending=null;});throw Error(result.error||'Image request failed ('+r.status+').');
     }
     if(result.status==='completed')imageChatRecovery={id,result};imageChatAccept(id,result);document.getElementById('ic-message').value='';imageChatNotice('Saved. Review the result, continue the conversation, or choose a version for this post.');
-  }catch(e){imageChatNotice(e.message+'\nIf the request may still be running, use “Check last request” before generating again.');}
+  }catch(e){
+    // Only point at Check last request when it is actually there. A definitive
+    // rejection -- OpenAI out of credits, a bad payload -- clears `pending` and
+    // hides that button, so the advice sent Erika looking for a control that
+    // was correctly absent. A dropped connection leaves pending set, and then
+    // the advice is right.
+    const stillPending=!!imageChatState(library.find(x=>x.id===id)).pending;
+    imageChatNotice(e.message+(stillPending?'\nThe request may still be running — use “Check last request” before generating again.':''));
+  }
   finally{imageChatBusy=false;renderImageChat();document.getElementById('ic-send').disabled=!!imageChatState(library.find(x=>x.id===id)).pending;}
 }
 // A request that fails at the NETWORK level -- “Failed to fetch” -- never reaches
