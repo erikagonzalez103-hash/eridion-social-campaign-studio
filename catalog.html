@@ -292,12 +292,20 @@ function renderChips(){
 function closeEditor(){ document.getElementById('overlay').classList.remove('open'); curIdx=-1; }
 async function downloadCurrent(){
   const a=view[curIdx]; if(!a) return;
-  const url=BASE+a.web;
+  const name=(a.filename||a.id);
+  // The grid thumbnail <img> primes the browser cache with a NON-CORS copy of
+  // this image (no Access-Control-Allow-Origin header, since <img> sends no
+  // Origin). A plain fetch() of the same URL reuses that cached copy and fails
+  // CORS — which silently dropped the download. A unique query key + no-store
+  // forces a fresh CORS request that r2.dev answers with the ACAO header.
+  const url=BASE+a.web+(a.web.includes('?')?'&':'?')+'dl='+Date.now();
   try{
-    const r=await fetch(url); const b=await r.blob(); const u=URL.createObjectURL(b);
-    const link=document.createElement('a'); link.href=u; link.download=(a.filename||a.id); document.body.appendChild(link); link.click(); link.remove();
+    const r=await fetch(url,{mode:'cors',cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const b=await r.blob(); const u=URL.createObjectURL(b);
+    const link=document.createElement('a'); link.href=u; link.download=name; document.body.appendChild(link); link.click(); link.remove();
     setTimeout(()=>URL.revokeObjectURL(u),1500);
-  }catch(e){ window.open(url,'_blank','noopener'); }
+  }catch(e){ window.open(BASE+a.web,'_blank','noopener'); }
 }
 function step(d){
   if(curIdx<0)return;
