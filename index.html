@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-06 12:10</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-06 16:35</span></div>
     </div>
   </header>
 
@@ -11287,6 +11287,121 @@ const REAL_PHOTO_GUIDE = "\n\nIF I ATTACH A REAL JOB PHOTO to edit (instead of g
   "• Professional / DSLR shots — light touch only: keep color true to life, lift exposure/contrast subtly, straighten the verticals, and CROP to a strong architectural composition (lead with a clean line, rule-of-thirds, let negative space breathe). It should read like Architectural Digest, never over-filtered.\n"+
   "• iPhone / rough shots — do more work: correct white balance and exposure, crop in tighter to hero the glass, and clean out clutter or distractions in the frame. Never redraw, over-relight, or replace the real installation — it must stay authentically the actual job.\n"+
   "• Crop for drama when it earns it: go tight on an edge, a piece of hardware, or a reflection, and use a 4:5 portrait crop for feed impact.";
+
+// ── TRADE ACCURACY (ERIDION ONLY) ──
+// Everything else in the image brief tells the model how Eridion should FEEL.
+// Nothing ever told it how glass is actually BUILT, so it invented hardware:
+// a pull bolted to a fixed panel, a shower with no door, hinges floating
+// mid-pane. A builder spots that instantly, and a beautiful photograph of an
+// impossible installation costs more credibility than posting nothing.
+// Erika, 2026-11-06: "the tool has forgotten what showers look like."
+//
+// ERIDION ONLY, deliberately. Quinta, The Practice and Erika build nothing and
+// have no hardware to get wrong; glass rules on a Quinta post would be noise.
+// Both functions below return '' for every other voice.
+//
+// SPLIT IN TWO, because of the 4,000-character cap the worker enforces on
+// body.message. The full per-product rules run 1,200-1,500 characters and the
+// message already spends 2,889 on the CTA rules and type floors -- adding them
+// there would leave ~270 characters to describe the actual post. So:
+//   glassTruthCore()  -> short, binding, goes in the MESSAGE
+//   glassTruthFor()   -> full detail, goes in context.brandGuidance, which the
+//                        worker caps at 70,000 and which costs the message
+//                        nothing. The core line points the model at it.
+// The clipboard / Prompt Pack path has no cap and gets the full thing.
+//
+// Sourced from trade and code material rather than written from memory:
+// CRL hinge specs (two hinges to ~110lb and three to ~140lb on a 36" door,
+// 3/8"-1/2" tempered), IBC 2407 glass guards (laminated; cap rail omitted only
+// on laminated), IRC AG105.2 pool barriers (48" minimum, 4" sphere, outswing
+// self-closing self-latching gate), steam enclosures (ceiling glass or a
+// sealed transom), wine rooms (sealed, insulated dual-pane, gasketed door),
+// mirrors (a J-channel or clips carry the weight, never mastic alone).
+const GLASS_TRUTH_CORE =
+  'GLASS ACCURACY OUTRANKS STYLING — this is a glazier’s shop and a builder spots a wrong assembly instantly. Hardware mounts at a glass EDGE or corner, never mid-pane. A door carries hinges on ONE vertical edge with the pull on the OPPOSITE edge; only a door gets a handle, and a shower must have a way in. Follow the per-product construction rules given in the brand guidance exactly. IF YOU CANNOT RENDER AN ASSEMBLY CORRECTLY, CROP IT OUT OF FRAME rather than invent it.';
+
+const GLASS_TRUTH_PREAMBLE =
+  'CONSTRUCTION RULES — HOW THIS WORK IS ACTUALLY BUILT. These are physical facts, not style, and they override every aesthetic instruction. Getting one wrong is instantly visible to a builder.\n'
++ '• HARDWARE MOUNTS AT AN EDGE. Hinges, clips, patches and standoffs sit on a glass edge or a corner — never floating in the middle of a pane.\n'
++ '• A DOOR READS AS A DOOR: a continuous gap down its latch edge and across top and bottom. A fixed panel is sealed or clipped on every edge. Never blur the two.\n'
++ '• Panels are flat, plumb and polished-edged — dead-straight lines, no bend, taper or ripple.\n'
++ '• If an assembly cannot be rendered correctly, CROP IT OUT OF FRAME rather than invent it.';
+
+const GLASS_TRUTH = {
+  shower:
+    'SHOWER ENCLOSURE.\n'
+  + '• IT MUST HAVE A WAY IN — a hinged door, a sliding door, or a deliberate walk-in opening. Never glass sealed on all sides.\n'
+  + '• HINGES AND PULL GO ON OPPOSITE EDGES. Two or three hinges stack on ONE vertical edge (three on a wide or heavy door) and the pull sits on the FAR edge. A pull with no hinges opposite it is wrong; a pull on the hinge side is wrong.\n'
+  + '• ONLY THE DOOR GETS A HANDLE. Fixed panels are held by clips, channel or a header and carry none.\n'
+  + '• A hinged shower door swings OUT over the bathroom floor — leave it clearance.\n'
+  + '• Glass is thick (3/8" or 1/2"), tempered and polished-edged. Hinges are wall-to-glass or glass-to-glass and always come as a set on the same edge.',
+  steam:
+    'STEAM SHOWER. Everything true of a shower enclosure applies — a way in, hinges and pull on opposite edges, no handle on a fixed panel — and one thing more: it MUST BE CLOSED AT THE TOP, with glass carried to the ceiling or a sealed transom panel above the door. An open-topped steam enclosure is wrong. Seals run the full height of the jamb and a sweep meets the curb.',
+  railing:
+    'GLASS RAILING OR GUARD.\n'
+  + '• EVERY PANEL NEEDS VISIBLE SUPPORT — a base shoe, a channel, or standoffs and clamps in pairs. Glass never appears to rest on nothing.\n'
+  + '• Panels are LAMINATED: thick, with a visible seam line at the polished edge, not a thin single sheet.\n'
+  + '• A continuous cap rail is common and may be left off only on laminated panels — and then the top edge is polished and dead level.\n'
+  + '• The guard reads TALL: roughly 36 inches residential and 42 commercial, measured from the walking surface.\n'
+  + '• Gaps between panels are narrow and even; posts and standoffs line up on one straight axis.',
+  pool:
+    'POOL BARRIER — a safety barrier, not a decorative railing.\n'
+  + '• It stands AT LEAST 48 INCHES above the outside grade, visibly taller than a deck rail.\n'
+  + '• NO FOOTHOLDS: no horizontal rails, ledges or cross-members on the outside face that a child could climb.\n'
+  + '• No gap passes a 4-INCH SPHERE — panel gaps are narrow and even, and the gap down to the deck is small.\n'
+  + '• A gate swings OUTWARD, away from the water, and is self-closing and self-latching with the latch high and on the pool side.\n'
+  + '• Panels still need a base shoe or clamps in pairs; laminated glass, polished edges.',
+  wine:
+    'GLASS WINE ROOM.\n'
+  + '• It is a SEALED, climate-controlled box: glass meets floor, ceiling and walls with no open gaps, or it could not hold temperature.\n'
+  + '• The door is FRAMED or fully gasketed, with a bottom seal, closing against a stop — not a loose frameless slab standing off the floor.\n'
+  + '• Glazing is insulated dual-pane, so a spacer line shows at the edge.\n'
+  + '• Racking behind the glass is real and loaded, and bottles lie horizontal.',
+  mirror:
+    'INSTALLED MIRROR.\n'
+  + '• A large mirror is carried by a bottom J-channel or by clips — never floating with no visible support.\n'
+  + '• Edges are polished or trimmed, and the backing is never visible.\n'
+  + '• THE REFLECTION MUST BE CORRECT — it shows what is actually opposite the mirror, reversed, lit by the same light, in true perspective. A reflection that does not match the room is the most obvious error in the trade and the easiest to spot.',
+  partition:
+    'GLASS PARTITION, STOREFRONT OR MARKER BOARD.\n'
+  + '• Panels sit in a head channel above and a floor channel or base shoe below, or hang from visible patch fittings — never unsupported.\n'
+  + '• A door leaf carries hinges or patches on ONE edge with the pull opposite, and a visible gap down its full strike edge.\n'
+  + '• Joints between fixed lites are narrow, even and dead plumb.'
+};
+
+// Order matters, and the first match wins its family: steam supersedes shower
+// (its block restates the shower rules), pool supersedes railing. Two blocks
+// maximum - a post covering a shower and a mirror gets both; one that
+// name-drops five products gets the two it leads with.
+const GLASS_TRUTH_MATCH = [
+  ['steam',     /\bsteam\b/i,                                                              'shower'],
+  ['pool',      /\bpool\b|\bspa (?:fence|barrier)\b|\bbarrier\b/i,                          'railing'],
+  ['wine',      /\bwine\b|\bcellar\b/i,                                                     null],
+  ['railing',   /\brail(?:ing)?s?\b|\bguard(?:rail)?s?\b|\bstair|\bbalcon|\bbalustrad/i,    null],
+  ['partition', /\bpartition|\bstorefront|\bmarker ?board|\boffice front|\bdemising/i,      null],
+  ['shower',    /\bshower|\benclosure|\bglass door|\bcurb\b|\bniche\b|\bwet ?room/i,        null],
+  ['mirror',    /\bmirror|\bvanity\b|\bantiqued glass/i,                                    null]
+];
+
+// The short binding line, for the character-capped message.
+function glassTruthCore(voice){
+  return voice==='eridion' ? GLASS_TRUTH_CORE : '';
+}
+
+// The full per-product detail, for context.brandGuidance and the clipboard path.
+function glassTruthFor(voice, text){
+  if(voice!=='eridion') return '';
+  const t=String(text||''), hits=[], blocked={};
+  for(const pair of GLASS_TRUTH_MATCH){
+    if(blocked[pair[0]] || !pair[1].test(t)) continue;
+    hits.push(pair[0]);
+    if(pair[2]) blocked[pair[2]]=true;
+    if(hits.length===2) break;
+  }
+  if(!hits.length) return GLASS_TRUTH_PREAMBLE;
+  return GLASS_TRUTH_PREAMBLE+'\n\n'+hits.map(function(k){return GLASS_TRUTH[k];}).join('\n\n');
+}
+
 // Short-form video (Reel / TikTok / Short) brief — voice-aware, and honest about
 // audio: it suggests a SOUND MOOD only; the real trending audio is picked inside
 // Instagram at post time (there's no API for trending sounds). Used by the
@@ -11319,7 +11434,20 @@ LENGTH: total target in seconds (aim 15–30s).
 Match the ${String(voice).toUpperCase()} voice and keep every claim consistent with the post. No preamble — start at HOOK.`;
 }
 
+// Trade accuracy rides along on every Eridion image brief. This clipboard /
+// Prompt Pack path has no character cap, so it gets the FULL per-product
+// rules. The image-chat path strips them straight back out and spends only
+// the short binding core, because its message is capped at 4,000.
+// A reel is a shooting script, not an image, so it is left alone.
 function buildPromptForDay(voice, format, spec, fallbackText){
+  const out = buildPromptForDayBase(voice, format, spec, fallbackText);
+  if(format==='reel') return out;
+  const probe = [fallbackText, spec && spec.image_prompt, spec && spec.stock_query,
+                 spec && spec.headline].filter(Boolean).join(' ');
+  const t = glassTruthFor(voice, probe);
+  return t ? out + '\n\n' + t : out;
+}
+function buildPromptForDayBase(voice, format, spec, fallbackText){
   spec=spec||{};
   if(format==='reel') return buildReelPrompt(voice, fallbackText);
   if(format==='quote') return brandQuotePrompt(voice, spec, fallbackText);
@@ -12218,7 +12346,13 @@ function imageChatContext(it){
   return {title:it.title||'',caption:plain(it.linkedin_text||it.blog_text),sourceTitle:source.title||'',
     sourceBlog:plain(source.blog_text||source.linkedin_text),sourceBlogUrl:source.blogUrl||it.blogUrl||'',
     brandBrief:BRAND_IMAGE_BRIEFS[voice]||'',businessFacts:getKB(voice),
-    brandGuidance:[imageGuidance()[voice]||'', lessonsBlock(voice)].filter(Boolean).join(String.fromCharCode(10,10)),
+    // The full per-product construction rules ride here rather than in the
+    // capped message. Detected from the post itself, so a shower post carries
+    // shower rules and a railing post carries railing rules.
+    brandGuidance:[imageGuidance()[voice]||'',
+      glassTruthFor(voice,[it.title||'',source.title||'',plain(source.blog_text||source.linkedin_text).slice(0,2000)].join(' ')),
+      (voice==='eridion'?REAL_PHOTO_GUIDE:''),
+      lessonsBlock(voice)].filter(Boolean).join(String.fromCharCode(10,10)),
     campaignGuidance:source.imageCampaignGuidance?.[voice]||''};
 }
 function imageChatEndpoint(){return WORKER.replace(/\/api\/messages$/,'/api/image-chat');}
@@ -12577,6 +12711,20 @@ async function imageChatFormatBrief(it, fmt, note){
   brief = brief.split(QUALITY_BAR).join('');
   const bb = BRAND_IMAGE_BRIEFS[voice];
   if(bb) brief = brief.split(bb).join('');
+  // buildPromptForDay appended the FULL per-product construction rules, ~1,400
+  // characters. They travel FREE in context.brandGuidance (the worker caps that
+  // at 70,000), so strip them here and spend only the short binding core on the
+  // message, which is capped at 4,000. ERIDION ONLY: glassTruthCore returns ''
+  // for every other brand, so Quinta's brief is unchanged byte for byte.
+  const gtCore = glassTruthCore(voice);
+  if(gtCore){
+    const gtFull = glassTruthFor(voice, text);
+    if(gtFull) brief = brief.split(gtFull).join('');
+    // REAL_PHOTO_GUIDE only applies when a real photo is attached, and it rides
+    // in brandGuidance too now. That is 784 characters back for describing the
+    // actual post -- which is what pays for the core above.
+    brief = brief.split(REAL_PHOTO_GUIDE).join('');
+  }
   // The worker does not pass this straight to the image model - it is an art
   // director that WEIGHS this message against context.brandBrief. Quinta's brief
   // says 'PRIMARY visual language: quiet EDITORIAL PHOTOGRAPHY', and that was
@@ -12645,7 +12793,7 @@ async function imageChatFormatBrief(it, fmt, note){
     : 'MAKE A PHOTOGRAPHIC IMAGE in this brand, with the scene carrying the idea \u2014 choose a subject that means something without words doing the work. A short headline and a call to action MAY be set over it where the post needs them, and when they are, they follow the type sizes and the CTA rules below; the photograph still has to work as a photograph underneath.'
   const typo = TYPOGRAPHIC.indexOf(chosen)>=0;
   // CTA on every format; the page-setting tests only where a page is set.
-  const essentials = CTA_RULES + '\n\n' + (typo ? LAYOUT_RULES + '\n\n' : '');
+  const essentials = CTA_RULES + '\n\n' + (typo ? LAYOUT_RULES + '\n\n' : '') + (gtCore ? gtCore + '\n\n' : '');
   const extraBlock = EDITORIAL_LAYOUT_EXTRA + '\n\n';
   const build = (extra, body) => assertion + '\n\n' + essentials + extra + TYPE_RULE + '\n\n' + body;
   const body = brief.trim();
