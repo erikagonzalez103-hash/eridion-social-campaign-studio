@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-10-26 19:49</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-06 12:10</span></div>
     </div>
   </header>
 
@@ -12569,6 +12569,11 @@ async function imageChatFormatBrief(it, fmt, note){
   const IW=Number(szv[0])||1024, IH=Number(szv[1])||1280;
   const ph=p=>Math.round(IH*p/100), pw=p=>Math.round(IW*p/100), tall=IH/IW>=1.2;
   const TYPE_RULE='MINIMUM TYPE SIZES - HARD FLOORS. Canvas is '+IW+'x'+IH+'; these pixel figures are exact for it, do not scale them from another size. Main headline or hero number: '+ph(10)+'-'+ph(16)+'px. Secondary headline: '+ph(6)+'-'+ph(9)+'px. Body: '+ph(4)+'-'+ph(5)+'px. Labels, eyebrows, captions, attributions, CTAs and URLs: '+ph(3)+'px MINIMUM - and that floor INCLUDES annotation and callout labels on a diagram or photo, the most common violation. A technical drawing style is NOT a reason to go smaller. NOTHING may be under '+ph(3)+'px. If the words will not fit, CUT WORDS or CUT CALLOUTS; three readable beat six unreadable. SAFE AREA: reserve the TOP band for the brand mark - leave it genuinely empty. Keep text, logo, key subject and any box or rule at least '+pw(8)+'px from LEFT and RIGHT, '+ph(10)+'px from TOP, '+ph(12)+'px from BOTTOM. Backgrounds and textures MAY bleed; CONTENT stays inside.'+(tall?' This canvas is 4:5 or taller so Instagram grid-crops it square: keep the headline, key figure and CTA inside the CENTRE SQUARE.':'');
+  // Restored. Lost in 36d435f: condensing TYPE_RULE replaced two lines with
+  // one, because mixed CRLF/LF endings made the slice overshoot and swallow
+  // this declaration. Every formatted create then failed with 'brief is not
+  // defined' -- valid syntax, so node --check passed; only calling it showed.
+  let brief = buildPromptForDay(voice, chosen, specFromDecision(d), text);
   brief = brief.split(QUALITY_BAR).join('');
   const bb = BRAND_IMAGE_BRIEFS[voice];
   if(bb) brief = brief.split(bb).join('');
