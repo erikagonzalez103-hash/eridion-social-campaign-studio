@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-11 09:55</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-11 10:20</span></div>
     </div>
   </header>
 
@@ -3442,7 +3442,7 @@ textarea { min-height: 80px; line-height: 1.6; }
 
             <div class="sched-field">
               <label class="field-label">Voice</label>
-              <select id="qp-voice" onchange="renderQuickPostChannels()">
+              <select id="qp-voice">
                 <option value="eridion">Eridion Glass</option>
                 <option value="erika">Erika Harrison</option>
                 <option value="quinta">Quinta &amp; Co</option>
@@ -3484,11 +3484,6 @@ textarea { min-height: 80px; line-height: 1.6; }
               </div>
             </div>
 
-            <div class="sched-field">
-              <label class="field-label">Channels</label>
-              <div id="qp-channels" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"></div>
-            </div>
-
             <div class="sched-field" style="display:flex;gap:12px;flex-wrap:wrap">
               <div style="flex:1;min-width:140px">
                 <label class="field-label">Date</label>
@@ -3501,7 +3496,8 @@ textarea { min-height: 80px; line-height: 1.6; }
             </div>
 
             <div style="display:flex;gap:8px;margin-top:20px">
-              <button class="action-btn primary" style="flex:1" onclick="confirmQuickPost()">+ Save to Library (Scheduled)</button>
+              <button class="action-btn primary" style="flex:1" onclick="qpSaveAndPush()">+ Save &amp; Push to Buffer →</button>
+              <button class="action-btn" style="flex:1" onclick="confirmQuickPost()">Save to Library only</button>
               <button class="action-btn" onclick="closeQuickPostModal()">Cancel</button>
             </div>
           </div>
@@ -10040,7 +10036,6 @@ function openQuickPostModal(){
   document.getElementById('qp-image-preview').src = '';
   document.getElementById('qp-image-status').textContent = '';
   qpImageUrls = [];
-  renderQuickPostChannels();
   qpCheckTells();
   // Default date = today, time = 09:00
   const now = new Date();
@@ -10090,44 +10085,6 @@ function qpUpdateImagePreview(url){
     img.style.display = 'none';
   }
 }
-// Quick Post used to hardcode a LinkedIn + Instagram pair and write its choice
-// to entry.qp_channels, which NOTHING ever read -- ticking Instagram there did
-// nothing at all. Channels now come from CHANNEL_KINDS like everywhere else,
-// and openBufferPreviewModal honours what was picked.
-function renderQuickPostChannels(){
-  const voice = document.getElementById('qp-voice').value;
-  const box = document.getElementById('qp-channels');
-  if(!box) return;
-  const list = configuredChannelsFor(voice);
-  if(!list.length){
-    box.innerHTML = '<div style="font-size:12px;color:#B45309">No channels saved for '+escapeHTML(kbBrandLabel(voice))
-      + ' yet \u2014 open API Keys \u2192 Fetch My Channels. You can still schedule the post and push it later.</div>';
-    return;
-  }
-  // LinkedIn on by default where the voice has it, otherwise the first channel,
-  // so a TikTok-only brand does not open with nothing ticked.
-  const dflt = list.some(k=>k.kind==='linkedin') ? 'linkedin' : list[0].kind;
-  const lastIg = localStorage.getItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY) || 'post';
-  box.innerHTML = list.map(function(k){
-    const typeSel = k.hasIgType
-      ? '<select id="qp-type-'+k.kind+'" style="padding:2px 6px;font-size:11px;margin-left:2px">'
-        + ['post','reel','story'].map(function(t){
-            return '<option value="'+t+'"'+(lastIg===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';
-          }).join('')
-        + '</select>'
-      : '';
-    return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap">'
-      + '<input type="checkbox" id="qp-ch-'+k.kind+'"'+(k.kind===dflt?' checked':'')+'> '
-      + k.icon+' '+escapeHTML(k.label)+typeSel+'</label>';
-  }).join('');
-  const unset = channelsForVoice(voice).filter(function(k){ return !getChannelIdFor(voice,k.kind); })
-    .map(function(k){ return k.label; });
-  if(unset.length){
-    box.innerHTML += '<div style="flex-basis:100%;font-size:11px;color:#B45309;margin-top:4px">No channel ID saved for '
-      + escapeHTML(unset.join(' and '))+' \u2014 API Keys \u2192 Fetch My Channels.</div>';
-  }
-}
-
 // Same warning the composer and the spin cards show, on the caption field.
 // It is what tells her the button is worth pressing.
 function qpCheckTells(){
@@ -10156,24 +10113,6 @@ async function qpDeAi(){
   }
 }
 
-function qpSelectedChannels(){
-  const voice = document.getElementById('qp-voice').value;
-  const map = {}, kinds = [];
-  let igType = null;
-  for(const k of configuredChannelsFor(voice)){
-    const cb = document.getElementById('qp-ch-'+k.kind);
-    const on = !!(cb && cb.checked);
-    map[k.kind] = on;
-    if(on) kinds.push(k.kind);
-    if(k.hasIgType){
-      const sel = document.getElementById('qp-type-'+k.kind);
-      if(sel) igType = sel.value;
-    }
-  }
-  if(igType) map.ig_type = igType;
-  return {map:map, kinds:kinds, igType:igType};
-}
-
 // Shared by both buttons. requireImage is false for the AI path, because the
 // whole point there is that there is no image yet.
 function qpBuildEntry(opts){
@@ -10185,16 +10124,13 @@ function qpBuildEntry(opts){
   const imageUrl = document.getElementById('qp-image-url').value.trim();
   const dateStr = document.getElementById('qp-date').value;
   const time = document.getElementById('qp-time').value || '09:00';
-  const picked = qpSelectedChannels();
   if(opts.requireImage && !imageUrl){ showToast('Add an image, or use \u2726 Create image with AI','error'); return null; }
   if(!caption && !title){ showToast('Add a caption or title','error'); return null; }
   if(!dateStr){ showToast('Pick a date','error'); return null; }
-  if(!picked.kinds.length){ showToast('Pick at least one channel','error'); return null; }
   const parts = time.split(':').map(function(n){ return parseInt(n,10)||0; });
   const dt = new Date(dateStr + 'T00:00:00');
   dt.setHours(parts[0], parts[1], 0, 0);
   const hashtags = hashtagText.split(/\s+/).filter(function(h){ return h.startsWith('#'); });
-  if(picked.igType) localStorage.setItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY, picked.igType);
   const entry = addToLibrary({
     voice: voice,
     bucket: 'quick_post',
@@ -10217,8 +10153,6 @@ function qpBuildEntry(opts){
     entry.image_url = qpUrls[0];
   }
   entry.is_quick_post = true;
-  // Keyed by channel KIND now, and actually read by openBufferPreviewModal.
-  entry.qp_channels = picked.map;
   persistLibrary();
   renderLibrary();
   renderCalendar();
@@ -10234,6 +10168,17 @@ async function qpCreateImage(){
   showToast('Saved \u2014 opening the image creator','success');
   try{ await openImageChat(entry.id); }
   catch(e){ showToast('Could not open the image creator: '+e.message,'error'); }
+}
+
+// Channels are NOT asked for here. Preview & Push already picks them, with
+// per-channel character counts, image warnings and already-queued detection --
+// a second, dumber picker in this modal just meant choosing twice. Save, then
+// hand straight to the real one.
+function qpSaveAndPush(){
+  const entry = qpBuildEntry({requireImage:true});
+  if(!entry) return;
+  closeQuickPostModal();
+  pushPostToBuffer(entry.id);
 }
 
 function confirmQuickPost(){
@@ -10918,10 +10863,7 @@ function openBufferPreviewModal(id){
   const imageUrls = getItemImageUrls(item);
   const imageUrl = imageUrls[0]||null;
   const imgCount = imageUrls.length;
-  // A Quick Post records which channels were chosen. Honour it here rather
-  // than letting the field sit unread, which is what it did before.
-  const qpPick = item.qp_channels || null;
-  const lastIgType = (qpPick && qpPick.ig_type) || localStorage.getItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY) || 'post';
+  const lastIgType = localStorage.getItem(BUFFER_PREVIEW_LAST_IG_TYPE_KEY) || 'post';
   const cards = [];
   const voiceLabel = kbBrandLabel(voice);
   // One card per CONFIGURED channel for this voice, built from the table.
@@ -10933,8 +10875,6 @@ function openBufferPreviewModal(id){
     // channels it already went to is not.
     const queuedAt = item['buffer_'+k.slot+'_queued_at'];
     const already = !!queuedAt;
-    // Explicitly unticked in Quick Post -> stays unticked here.
-    const qpOff = !!(qpPick && qpPick[k.kind] === false);
     const imgLabel = imgCount>1
       ? (k.hasIgType ? `📎 ${imgCount} images (carousel · Post type only)` : `📎 ${imgCount} images (carousel)`)
       : '📎 image attached';
@@ -10952,7 +10892,7 @@ function openBufferPreviewModal(id){
     cards.push(`
       <div class="bp-card" data-channel="${k.kind}">
         <div class="bp-card-head">
-          <label class="bp-card-toggle"><input type="checkbox" id="bp-include-${k.kind}" ${(over||already||qpOff)?'':'checked'} onchange="onBufferPreviewToggle(this,'${k.kind}')"> Include</label>
+          <label class="bp-card-toggle"><input type="checkbox" id="bp-include-${k.kind}" ${(over||already)?'':'checked'} onchange="onBufferPreviewToggle(this,'${k.kind}')"> Include</label>
           <span class="bp-card-channel">${k.icon} ${k.label} · ${escapeHTML(voiceLabel)}</span>
           ${typeSel}
         </div>
