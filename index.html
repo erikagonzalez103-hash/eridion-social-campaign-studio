@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-11 09:40</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-11 09:55</span></div>
     </div>
   </header>
 
@@ -3456,7 +3456,12 @@ textarea { min-height: 80px; line-height: 1.6; }
 
             <div class="sched-field">
               <label class="field-label">Caption</label>
-              <textarea id="qp-caption" placeholder="The post text. Keep it short — the image carries it." style="min-height:120px;resize:vertical;width:100%;padding:10px;border:1px solid var(--hairline);border-radius:4px;font-family:inherit;font-size:13px;line-height:1.6"></textarea>
+              <textarea id="qp-caption" oninput="qpCheckTells()" placeholder="The post text. Keep it short — the image carries it." style="min-height:120px;resize:vertical;width:100%;padding:10px;border:1px solid var(--hairline);border-radius:4px;font-family:inherit;font-size:13px;line-height:1.6"></textarea>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+                <button type="button" class="action-btn" id="qp-deai-btn" onclick="qpDeAi()" style="font-size:12px"
+                  title="Rewrite this caption to strip AI-tell phrasing, keeping your voice and facts">✦ De-AI</button>
+                <span id="qp-tell-warn" style="display:none;font-size:11px;color:#B45309"></span>
+              </div>
             </div>
 
             <div class="sched-field">
@@ -7713,6 +7718,18 @@ async function deAiBlog(){
 // ── De-AI pass ──
 // Re-run the current LinkedIn draft through an editor pass that strips AI-tell phrasing/cadence
 // while preserving the voice, every fact, and the length. For salvaging older or slipped-through copy.
+// The De-AI pass with no DOM in it, so the composer and the Quick Post caption
+// can run the SAME cleanup. Previously this logic lived inside deAiDraft() and
+// was welded to #linkedin-output, which is why Quick Post never had it.
+async function deAiText(voiceKey, current, onStatus){
+  const voice=voicePrompts[voiceKey]||'';
+  const prompt=`${voice}\n${HOUSE_STYLE}\n\nYou are editing an EXISTING post to remove AI-tell phrasing and cadence. Apply the HOUSE WRITING STANDARDS above aggressively to the draft below — this is a cleanup pass, not a rewrite of the substance.\n\nDRAFT:\n---\n${current}\n---\n\nReturn the same post with the worn phrases and AI cadence removed: keep the voice, keep every fact and number, keep roughly the same length and structure, and do not introduce new claims or a different point. If a line already sounds human, leave it alone. Return ONLY the cleaned-up post — no preamble, no commentary, no quotes around it.`;
+  const data=await callClaude({model:MODEL_CREATIVE,max_tokens:1000,messages:[{role:'user',content:prompt}]},onStatus);
+  const text=claudeText(data);
+  if(!text) throw new Error('Empty response');
+  return text;
+}
+
 async function deAiDraft(){
   const liOut=document.getElementById('linkedin-output');
   const current=((liOut&&(liOut.innerText||liOut.textContent))||'').trim();
@@ -7722,12 +7739,8 @@ async function deAiDraft(){
   const btn=document.getElementById('deai-btn');
   if(btn){btn.disabled=true; btn.textContent='De-AI-ing…';}
   setStatus('Stripping AI tells…',true);
-  const voice=voicePrompts[currentStream]||'';
-  const prompt=`${voice}\n${HOUSE_STYLE}\n\nYou are editing an EXISTING post to remove AI-tell phrasing and cadence. Apply the HOUSE WRITING STANDARDS above aggressively to the draft below — this is a cleanup pass, not a rewrite of the substance.\n\nDRAFT:\n---\n${current}\n---\n\nReturn the same post with the worn phrases and AI cadence removed: keep the voice, keep every fact and number, keep roughly the same length and structure, and do not introduce new claims or a different point. If a line already sounds human, leave it alone. Return ONLY the cleaned-up post — no preamble, no commentary, no quotes around it.`;
   try{
-    const data=await callClaude({model:MODEL_CREATIVE,max_tokens:1000,messages:[{role:'user',content:prompt}]},m=>setStatus(m,true));
-    const text=claudeText(data);
-    if(!text) throw new Error('Empty response');
+    const text=await deAiText(currentStream, current, m=>setStatus(m,true));
     generatedLinkedIn=text;
     liOut.innerHTML=''; liOut.textContent=text;
     updateCharCount();
@@ -10028,6 +10041,7 @@ function openQuickPostModal(){
   document.getElementById('qp-image-status').textContent = '';
   qpImageUrls = [];
   renderQuickPostChannels();
+  qpCheckTells();
   // Default date = today, time = 09:00
   const now = new Date();
   document.getElementById('qp-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -10111,6 +10125,34 @@ function renderQuickPostChannels(){
   if(unset.length){
     box.innerHTML += '<div style="flex-basis:100%;font-size:11px;color:#B45309;margin-top:4px">No channel ID saved for '
       + escapeHTML(unset.join(' and '))+' \u2014 API Keys \u2192 Fetch My Channels.</div>';
+  }
+}
+
+// Same warning the composer and the spin cards show, on the caption field.
+// It is what tells her the button is worth pressing.
+function qpCheckTells(){
+  const el=document.getElementById('qp-tell-warn');
+  if(!el) return;
+  const tells=findAiTells((document.getElementById('qp-caption')||{}).value||'');
+  if(tells.length){ el.style.display=''; el.textContent='\u26a0 AI-tell phrasing: '+tells.join(' \u00b7 ')+' \u2014 run De-AI or edit'; }
+  else el.style.display='none';
+}
+
+async function qpDeAi(){
+  const ta=document.getElementById('qp-caption');
+  const current=((ta&&ta.value)||'').trim();
+  if(!current){ showToast('Write a caption first','error'); return; }
+  const btn=document.getElementById('qp-deai-btn');
+  if(btn){ btn.disabled=true; btn.textContent='De-AI-ing\u2026'; }
+  try{
+    const text=await deAiText(document.getElementById('qp-voice').value, current);
+    ta.value=text;
+    qpCheckTells();
+    showToast('De-AI pass done \u2014 review before scheduling','success');
+  }catch(e){
+    showToast('De-AI failed: '+e.message,'error');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='\u2726 De-AI'; }
   }
 }
 
