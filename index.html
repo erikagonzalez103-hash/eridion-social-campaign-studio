@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-11 10:20</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-11 11:05</span></div>
     </div>
   </header>
 
@@ -3472,11 +3472,11 @@ textarea { min-height: 80px; line-height: 1.6; }
             <div class="sched-field">
               <label class="field-label">Image</label>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <input type="file" id="qp-image-file" accept="image/*" multiple onchange="qpHandleImageUpload(event)" style="font-size:12px" />
+                <input type="file" id="qp-image-file" accept="image/*,video/*" multiple onchange="qpHandleImageUpload(event)" style="font-size:12px" />
                 <span style="color:var(--text-muted);font-size:11px">— or —</span>
                 <input type="text" id="qp-image-url" placeholder="Paste public image URL" style="flex:1;min-width:200px;font-family:var(--font-mono);font-size:11px" oninput="qpOnUrlInput(this.value)" />
               </div>
-              <img id="qp-image-preview" style="display:none;max-width:100%;max-height:200px;margin-top:10px;border:1px solid var(--hairline);border-radius:4px" />
+              <div id="qp-image-preview" style="display:none;margin-top:10px"></div>
               <div id="qp-image-status" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div>
               <div style="margin-top:8px">
                 <button type="button" class="action-btn" onclick="qpCreateImage()" style="font-size:12px">✦ Create image with AI</button>
@@ -6797,6 +6797,20 @@ async function handleUpload(e){
 
 const ALLOWED_IMG_EXT=/\.(jpe?g|png|webp|gif)$/i;
 const MAX_UPLOAD_BYTES=32*1024*1024; // worker /api/upload ceiling
+// Video is bigger than a still by an order of magnitude, but the worker does
+// request.arrayBuffer() and a Cloudflare Worker has 128MB of memory, so the
+// whole file has to fit there with room to spare. 64MB is the safe ceiling;
+// a phone export above that needs trimming or a lower bitrate.
+const MAX_VIDEO_UPLOAD_BYTES=64*1024*1024;
+// The worker names the R2 key from the file extension, falling back to the
+// SUBTYPE of the content-type when it is not a known image one. So an iPhone
+// .mov arrives as content-type video/quicktime and lands at ...mov.quicktime,
+// and an .avi at ...avi.x-msvideo. Those subtypes have to be matched here or
+// the file is treated as a still and sent to Buffer as { image: { url } },
+// which it rejects. The worker could strip this properly in three lines, but
+// that is a production deploy; matching the subtypes costs nothing and works.
+const VIDEO_URL_RE=/\.(mp4|mov|m4v|webm|quicktime|x-m4v|mpeg|avi|x-msvideo|3gpp)(\?|#|$)/i;
+function isVideoUrl(u){ return VIDEO_URL_RE.test(String(u||'')); }
 
 // Primary uploader: host the image on the user's own Cloudflare R2 bucket via
 // the worker's /api/upload route. R2 serves a stable public URL that Buffer AND
@@ -6806,8 +6820,13 @@ const MAX_UPLOAD_BYTES=32*1024*1024; // worker /api/upload ceiling
 // breaks before the worker is updated.
 async function uploadImage(file){
   if(!file) throw new Error('No file selected');
-  if(file.size>MAX_UPLOAD_BYTES) throw new Error('File over 32MB');
-  if(!file.type.startsWith('image/')) throw new Error('That doesn\'t look like an image');
+  const isVid=(file.type||'').startsWith('video/');
+  if(!isVid && !(file.type||'').startsWith('image/')) throw new Error('That doesn\'t look like an image or a video');
+  if(file.size > (isVid?MAX_VIDEO_UPLOAD_BYTES:MAX_UPLOAD_BYTES)){
+    throw new Error(isVid
+      ? 'Video over 64MB \u2014 trim it or export at a lower bitrate'
+      : 'File over 32MB');
+  }
   const fname=(file.name||'upload').replace(/[^\w.\-]+/g,'-').slice(0,80);
   const endpoint=WORKER.replace(/\/api\/messages$/,'/api/upload')+'?name='+encodeURIComponent(fname);
   let res;
@@ -6818,7 +6837,7 @@ async function uploadImage(file){
     // preflight fails.
     res=await fetch(endpoint,{
       method:'POST',
-      headers:{ 'Content-Type': file.type||'image/png' },
+      headers:{ 'Content-Type': file.type||(isVid?'video/mp4':'image/png') },
       body:file
     });
   }catch(e){
@@ -10065,7 +10084,7 @@ async function qpHandleImageUpload(e){
       }
     }
     qpImageUrls = urls;
-    statusEl.textContent = urls.length>1 ? `✓ ${urls.length} images uploaded — carousel (first shown)` : '✓ Uploaded';
+    statusEl.textContent = urls.length>1 ? `✓ ${urls.length} files uploaded — carousel (first shown)` : (isVideoUrl(urls[0]) ? '✓ Video uploaded' : '✓ Uploaded');
   }catch(err){
     statusEl.textContent = '✗ ' + err.message;
   }
@@ -10077,13 +10096,14 @@ function qpOnUrlInput(url){
   qpUpdateImagePreview(url);
 }
 function qpUpdateImagePreview(url){
-  const img = document.getElementById('qp-image-preview');
-  if(url && /^https?:\/\//.test(url)){
-    img.src = url;
-    img.style.display = 'block';
-  } else {
-    img.style.display = 'none';
-  }
+  const box = document.getElementById('qp-image-preview');
+  if(!box) return;
+  if(!(url && /^https?:\/\//.test(url))){ box.style.display='none'; box.innerHTML=''; return; }
+  const style='max-width:100%;max-height:200px;border:1px solid var(--hairline);border-radius:4px;display:block';
+  box.innerHTML = isVideoUrl(url)
+    ? '<video src="'+escapeHTML(url)+'" controls playsinline muted style="'+style+'"></video>'
+    : '<img src="'+escapeHTML(url)+'" alt="" style="'+style+'">';
+  box.style.display='block';
 }
 // Same warning the composer and the spin cards show, on the caption field.
 // It is what tells her the button is worth pressing.
@@ -10692,6 +10712,12 @@ async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduled
   // NOTE: the `input` object above is NOT what gets sent — only `inlineMutation`
   // below is. So the metadata literal has to be built here, as a string.
   const fc=(firstComment||'').trim();
+  // A VIDEO is a different variant of the same input: { video: { url } }, where
+  // url is the ONLY required field (VideoAssetInput). thumbnailUrl must NOT be
+  // sent -- the docs say the API rejects video assets that set it. Buffer fetches
+  // the URL at PUBLISH time, not when the post is created, so the link has to
+  // still work days later: R2 URLs are permanent, which is why this works.
+  // See developers.buffer.com/types/VideoAssetInput.html
   // Buffer's assets input is an ordered array [{ image: { url } }] as of the
   // 2026-05-25 breaking change; more than one entry is a carousel/multi-image.
   // See developers.buffer.com/guides/assets-input-migration.html
@@ -10708,6 +10734,10 @@ async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduled
   // otherwise each service's own cap applies (Instagram 10, TikTok 10).
   if(kdef && kdef.hasIgType && (igType||'post')!=='post') mediaUrls = mediaUrls.slice(0,1);
   else if(kdef && kdef.maxImages) mediaUrls = mediaUrls.slice(0, kdef.maxImages);
+  // Buffer has no video carousel and will not mix a video with stills, so if
+  // anything in the set is a video the post carries that one asset alone.
+  const firstVideo = mediaUrls.find(isVideoUrl);
+  if(firstVideo) mediaUrls = [firstVideo];
   // Per-service metadata, declared in CHANNEL_KINDS rather than branched on
   // here. Instagram and Facebook both REQUIRE a lowercase type enum
   // (post/reel/story); Instagram additionally requires shouldShareToFeed.
@@ -10736,7 +10766,7 @@ async function createBufferPost({channelId, text, imageUrl, imageUrls, scheduled
         mode: customScheduled,
         dueAt: ${JSON.stringify(scheduledForIso)}
         ${metadataLiteral}
-        ${mediaUrls.length?`, assets: [${mediaUrls.map(u=>`{ image: { url: ${JSON.stringify(u)} } }`).join(', ')}]`:''}
+        ${mediaUrls.length?`, assets: [${mediaUrls.map(u=>isVideoUrl(u)?`{ video: { url: ${JSON.stringify(u)} } }`:`{ image: { url: ${JSON.stringify(u)} } }`).join(', ')}]`:''}
       }) {
         ... on PostActionSuccess { post { id } }
         ... on MutationError { message }
@@ -10875,12 +10905,16 @@ function openBufferPreviewModal(id){
     // channels it already went to is not.
     const queuedAt = item['buffer_'+k.slot+'_queued_at'];
     const already = !!queuedAt;
-    const imgLabel = imgCount>1
-      ? (k.hasIgType ? `📎 ${imgCount} images (carousel · Post type only)` : `📎 ${imgCount} images (carousel)`)
-      : '📎 image attached';
+    // A video posts alone, so a "carousel" count would be a lie next to one.
+    const isVid = isVideoUrl(imageUrl||'');
+    const imgLabel = isVid
+      ? '🎬 video attached' + (imgCount>1 ? ' · the stills are dropped, Buffer takes one video alone' : '')
+      : (imgCount>1
+        ? (k.hasIgType ? `📎 ${imgCount} images (carousel · Post type only)` : `📎 ${imgCount} images (carousel)`)
+        : '📎 image attached');
     const noImg = k.imageRequired
-      ? '<span style="color:#DC2626">⚠ image required for '+k.label+'</span>'
-      : '<span style="color:#DC2626">⚠ no image</span>';
+      ? '<span style="color:#DC2626">⚠ image or video required for '+k.label+'</span>'
+      : '<span style="color:#DC2626">⚠ no media</span>';
     const typeSel = k.hasIgType ? `<div class="bp-card-spacer"></div>
           <div class="bp-card-type">Type:
             <select id="bp-type-${k.kind}" class="select-wrap">
@@ -10897,7 +10931,7 @@ function openBufferPreviewModal(id){
           ${typeSel}
         </div>
         <div class="bp-card-body">
-          ${imageUrl ? `<img class="bp-card-img" src="${escapeHTML(imageUrl)}" alt="">` : `<div class="bp-card-img missing">🖼</div>`}
+          ${imageUrl ? (isVideoUrl(imageUrl) ? `<video class="bp-card-img" src="${escapeHTML(imageUrl)}" muted playsinline preload="metadata"></video>` : `<img class="bp-card-img" src="${escapeHTML(imageUrl)}" alt="">`) : `<div class="bp-card-img missing">🖼</div>`}
           <div class="bp-card-text">${escapeHTML(body)}</div>
         </div>
         <div class="bp-card-meta">
