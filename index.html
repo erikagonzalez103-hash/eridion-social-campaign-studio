@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 17:10</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 18:05</span></div>
     </div>
   </header>
 
@@ -2900,6 +2900,18 @@ textarea { min-height: 80px; line-height: 1.6; }
           <div id="auth-badge-blog"></div>
           <div class="content-display" id="blog-output" contenteditable="true">
             <span class="content-placeholder">Your full blog post will appear here. Select "Blog + LinkedIn" format.</span>
+          </div>
+          <div id="blog-rewrite" style="display:none;border:1px solid var(--hairline,#E6E8EC);border-left:3px solid var(--navy,#1F2A4A);border-radius:6px;padding:12px;margin:10px 0;background:var(--off-white,#F5F6F8)">
+            <div style="font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--navy,#1F2A4A)">Rewrite the selected passage</div>
+            <div id="blog-rewrite-sel" style="font-size:12px;line-height:1.5;color:var(--text-muted);margin:6px 0 10px;font-style:italic;max-height:66px;overflow:auto"></div>
+            <div id="blog-rewrite-presets" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+            <input type="text" id="blog-rewrite-ask" placeholder="Describe the change — e.g. write this in a more conversational, story-telling voice" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--hairline,#E6E8EC);border-radius:4px;font-family:inherit;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();runBlogRewrite();}">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
+              <button class="action-btn primary" id="blog-rewrite-go" onclick="runBlogRewrite()" style="font-size:12px">Rewrite this passage</button>
+              <button class="action-btn" onclick="closeBlogRewrite()" style="font-size:12px">Cancel</button>
+              <button class="action-btn" id="blog-rewrite-undo" onclick="undoBlogRewrite()" style="font-size:12px;display:none">↩ Undo last rewrite</button>
+              <span id="blog-rewrite-status" style="font-size:11px;color:var(--text-muted)"></span>
+            </div>
           </div>
           <div id="blog-tell-warn" style="display:none;color:var(--error);font-size:11px;margin:6px 0 2px"></div>
           <div id="factcheck-report" style="margin:10px 0"></div>
@@ -7674,6 +7686,152 @@ document.getElementById('linkedin-output').addEventListener('input',function(){
   updateCharCount();
   queueEditorSave();
 });
+// ── SELECT-AND-REWRITE ──
+// Erika, 2026-11-13: "if I don't like a sentence, I can highlight it or
+// something and in a change box describe the edit I want made."
+//
+// Works on the live SELECTION RANGE, not on string matching. Matching the
+// selected text against the markdown looks simpler but breaks the moment a
+// sentence appears twice, or the selection crosses a bold span whose markers
+// are not in the rendered text. A cloned Range splices back exactly where it
+// came from.
+//
+// The Range is captured the moment the selection is made and held, because
+// clicking into the instruction box collapses the selection - so the panel is
+// NEVER hidden on a collapsed selection, only by Cancel or a finished rewrite.
+let blogRewriteRange = null;
+let blogRewriteUndoHTML = null;
+let blogRewriteBusy = false;
+
+const BLOG_REWRITE_PRESETS = [
+  ['Conversational',  'Rewrite this in a more conversational, story-telling voice.'],
+  ['Make it simpler', "This example isn't clear to me \u2014 make it simpler and more concrete."],
+  ['Tighten',         'Say this in fewer words without losing any fact or nuance.'],
+  ['Less salesy',     'Make this plainer and less salesy \u2014 matter-of-fact, builder to builder.'],
+  ['Stronger open',   'Give this a stronger opening line that earns the next sentence.']
+];
+
+function blogRewriteSelection(){
+  const box = document.getElementById('blog-output');
+  const sel = window.getSelection();
+  if(!box || !sel || !sel.rangeCount || sel.isCollapsed) return;
+  const r = sel.getRangeAt(0);
+  // Only a selection INSIDE the blog box counts.
+  if(!box.contains(r.commonAncestorContainer)) return;
+  const text = r.toString().trim();
+  if(text.length < 3) return;
+  if(/will appear here/i.test(text)) return;   // the placeholder
+  blogRewriteRange = r.cloneRange();
+  const panel = document.getElementById('blog-rewrite');
+  const prev = document.getElementById('blog-rewrite-sel');
+  if(prev) prev.textContent = '\u201c' + (text.length > 300 ? text.slice(0,300) + '\u2026' : text) + '\u201d';
+  const presets = document.getElementById('blog-rewrite-presets');
+  if(presets && !presets.childElementCount){
+    presets.innerHTML = BLOG_REWRITE_PRESETS.map(function(p,i){
+      return '<button type="button" class="action-btn" style="font-size:11px;padding:4px 8px" onclick="blogRewritePreset('+i+')">'+escapeHTML(p[0])+'</button>';
+    }).join('');
+  }
+  const status = document.getElementById('blog-rewrite-status');
+  if(status) status.textContent = '';
+  if(panel){ panel.style.display = 'block'; }
+}
+
+// A preset FILLS the box rather than firing, so she can adjust it first.
+function blogRewritePreset(i){
+  const p = BLOG_REWRITE_PRESETS[i]; if(!p) return;
+  const box = document.getElementById('blog-rewrite-ask');
+  if(box){ box.value = p[1]; box.focus(); }
+}
+
+function closeBlogRewrite(){
+  const panel = document.getElementById('blog-rewrite');
+  if(panel) panel.style.display = 'none';
+  blogRewriteRange = null;
+  const ask = document.getElementById('blog-rewrite-ask');
+  if(ask) ask.value = '';
+}
+
+async function runBlogRewrite(){
+  if(blogRewriteBusy) return;
+  const askEl = document.getElementById('blog-rewrite-ask');
+  const statusEl = document.getElementById('blog-rewrite-status');
+  const goBtn = document.getElementById('blog-rewrite-go');
+  const instruction = ((askEl && askEl.value) || '').trim();
+  if(!blogRewriteRange){ if(statusEl) statusEl.textContent = 'Select the passage again \u2014 the selection was lost.'; return; }
+  if(!instruction){ if(statusEl) statusEl.textContent = 'Say what you want changed first.'; return; }
+  const passage = blogRewriteRange.toString().trim();
+  if(!passage){ if(statusEl) statusEl.textContent = 'That selection is empty.'; return; }
+  const box = document.getElementById('blog-output');
+  const full = (box.innerText || box.textContent || '').trim();
+
+  blogRewriteBusy = true;
+  if(goBtn){ goBtn.disabled = true; goBtn.textContent = 'Rewriting\u2026'; }
+  if(statusEl) statusEl.textContent = '';
+  const voice = voicePrompts[currentStream] || '';
+  // The surrounding post goes in as CONTEXT ONLY. Without it the rewrite loses
+  // the thread; with it unlabelled, the model rewrites the whole thing.
+  const prompt = voice + '\n' + HOUSE_STYLE + '\n\nYou are editing ONE PASSAGE inside an existing blog post. Everything else stays exactly as it is.\n\nTHE FULL POST, for context only \u2014 do NOT rewrite or return any of it:\n---\n' + full.slice(0,6000) + '\n---\n\nTHE PASSAGE TO REWRITE \u2014 this exact text and nothing else:\n---\n' + passage + '\n---\n\nWHAT THE AUTHOR WANTS CHANGED:\n' + instruction + '\n\nRules: keep every fact, figure, name and link that is in the passage, and introduce NO new fact, figure, statistic or claim that is not already in the passage or the post above. Keep roughly the same length unless the instruction asks otherwise, and the same number of paragraphs. Match the voice and the house standards above. It must read naturally where it sits, joining what comes before and after.\n\nReturn ONLY the rewritten passage as plain prose. No preamble, no commentary, no quotation marks around it, no markdown fences, no heading.';
+  try{
+    const data = await callClaude({model:MODEL_CREATIVE, max_tokens:1500, messages:[{role:'user',content:prompt}]});
+    const text = claudeText(data);
+    if(!text) throw new Error('Empty response');
+    spliceBlogRewrite(text.trim());
+    const tells = findAiTells(text);
+    if(statusEl) statusEl.textContent = '';
+    showToast('Passage rewritten' + (tells.length ? ' \u2014 but it still reads as AI: ' + tells.join(', ') : '') + ' \u00b7 Undo is in the panel', tells.length ? 'error' : 'success');
+    closeBlogRewrite();
+    const undoBtn = document.getElementById('blog-rewrite-undo');
+    const panel = document.getElementById('blog-rewrite');
+    // Keep the panel up with ONLY undo showing, so the escape hatch survives.
+    if(undoBtn && panel){
+      panel.style.display = 'block';
+      undoBtn.style.display = '';
+      document.getElementById('blog-rewrite-sel').textContent = 'Rewrote: \u201c' + (passage.length>140?passage.slice(0,140)+'\u2026':passage) + '\u201d';
+    }
+  }catch(e){
+    if(statusEl) statusEl.textContent = 'Rewrite failed: ' + e.message;
+  }finally{
+    blogRewriteBusy = false;
+    if(goBtn){ goBtn.disabled = false; goBtn.textContent = 'Rewrite this passage'; }
+  }
+}
+
+// Splice through the saved Range, then run exactly what the input listener runs
+// so generatedBlog, the AI-tell readout and the Library save all stay in step.
+function spliceBlogRewrite(newText){
+  const box = document.getElementById('blog-output');
+  blogRewriteUndoHTML = box.innerHTML;
+  const r = blogRewriteRange;
+  r.deleteContents();
+  const frag = document.createDocumentFragment();
+  String(newText).split(/\n{2,}/).forEach(function(para, i){
+    if(i){ frag.appendChild(document.createElement('br')); frag.appendChild(document.createElement('br')); }
+    frag.appendChild(document.createTextNode(para.replace(/\s*\n\s*/g,' ').trim()));
+  });
+  r.insertNode(frag);
+  generatedBlog = blogHtmlToMarkdown(box.innerHTML || '');
+  renderBlogTellWarn();
+  queueEditorSave();
+}
+
+function undoBlogRewrite(){
+  if(blogRewriteUndoHTML == null){ showToast('Nothing to undo','error'); return; }
+  const box = document.getElementById('blog-output');
+  box.innerHTML = blogRewriteUndoHTML;
+  blogRewriteUndoHTML = null;
+  generatedBlog = blogHtmlToMarkdown(box.innerHTML || '');
+  renderBlogTellWarn();
+  queueEditorSave();
+  document.getElementById('blog-rewrite-undo').style.display = 'none';
+  closeBlogRewrite();
+  showToast('Rewrite undone','success');
+}
+
+document.getElementById('blog-output').addEventListener('mouseup', function(){ setTimeout(blogRewriteSelection, 0); });
+document.getElementById('blog-output').addEventListener('keyup', function(e){
+  if(e.shiftKey || e.key==='Shift' || /^Arrow/.test(e.key)) setTimeout(blogRewriteSelection, 0);
+});
+
 document.getElementById('blog-output').addEventListener('input',function(){
   generatedBlog=blogHtmlToMarkdown(this.innerHTML||'');
   renderBlogTellWarn();
