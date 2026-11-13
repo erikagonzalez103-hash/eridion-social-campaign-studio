@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 16:25</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 17:10</span></div>
     </div>
   </header>
 
@@ -12384,6 +12384,24 @@ function imageChatCommit(id,change){
 }
 function imageGuidance(){ try{return JSON.parse(localStorage.getItem(IMAGE_GUIDANCE_KEY)||'{}');}catch(_){return {};} }
 
+// The scope dropdown used to be reset to 'campaign' every single time the image
+// dialog opened, so the BRAND-level guidance was invisible unless you happened
+// to change the dropdown -- and brand guidance is the text that rides on every
+// post. Erika, 2026-11-13, on finding it: "make the dropdown remember my last
+// choice instead of resetting." One global preference, not per brand: this is
+// about how she works, not about a brand.
+const IMAGE_GUIDANCE_SCOPE_KEY='eridion_image_guidance_scope';
+function lastGuidanceScope(){
+  let v=null;
+  try{ v=localStorage.getItem(IMAGE_GUIDANCE_SCOPE_KEY); }catch(_){}
+  // Anything unexpected falls back to the old default rather than a broken select.
+  return (v==='brand'||v==='campaign') ? v : 'campaign';
+}
+function rememberGuidanceScope(v){
+  if(v!=='brand'&&v!=='campaign') return;
+  try{ localStorage.setItem(IMAGE_GUIDANCE_SCOPE_KEY,v); }catch(_){}
+}
+
 // ── Learned corrections ──
 // There was already a 'carry a correction into later posts' box, but it was
 // collapsed out of sight, had to be written from scratch each time, and was a
@@ -12598,7 +12616,7 @@ function imageChatMount(){
   <div class="ic-controls"><select id="ic-action" aria-label="Image action" onchange="syncImageChatSendLabel()"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-format" aria-label="Asset format" title="What KIND of asset to make"><option value="auto">✦ Format: Auto — read the post and choose</option><option value="image">Editorial photo</option><option value="quote">Quote card</option><option value="stat">Stat card</option><option value="infographic">Infographic / diagram</option><option value="chart">Chart (real numbers)</option><option value="carousel">Carousel slide</option><option value="reel">Reel cover frame</option><option value="freeform">Free-form — my words only</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
   <div class="ic-controls"><button class="action-btn" id="ic-send" onclick="sendImageChat()">Send</button><button class="action-btn" id="ic-recover" onclick="recoverImageChat()" hidden>Check last request</button><button class="action-btn" id="ic-save-recovery" onclick="saveImageChatRecovery()" hidden>Save returned version</button></div>
   <div id="ic-status" role="status"></div>
-  <div id="ic-reject-panel" style="display:none;border:1px solid var(--border);border-left:3px solid #DC2626;border-radius:6px;padding:12px;margin:10px 0"><div class="ic-label">What was wrong with it?</div><div id="ic-reject-reasons" style="display:flex;flex-direction:column;gap:6px;margin:8px 0"></div><input type="text" id="ic-reject-note" placeholder="Anything else, in your words (optional)" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit"><div class="ic-controls" style="margin-top:8px"><button class="action-btn" onclick="saveRejectLesson()">Remember this</button><button class="action-btn" onclick="toggleRejectPanel(false)">Cancel</button></div></div><details open><summary class="ic-label">What this brand has learned</summary><div id="ic-lessons" style="margin:8px 0"></div></details><details><summary class="ic-label">Carry a correction into later posts</summary><label class="ic-label" for="ic-guidance-scope">Apply to</label><select id="ic-guidance-scope" onchange="loadImageGuidance()"><option value="campaign">This source-blog campaign only</option><option value="brand">This brand only</option></select><label class="ic-label" for="ic-guidance">Reusable direction</label><textarea id="ic-guidance" maxlength="3000" placeholder="For example: keep people candid and imperfect; avoid staged stock poses."></textarea><button class="action-btn" onclick="saveImageGuidance()">Save direction</button><div class="ic-meta">Saved only for the scope above. Post-specific edits stay in this conversation.</div></details></section></div>`;
+  <div id="ic-reject-panel" style="display:none;border:1px solid var(--border);border-left:3px solid #DC2626;border-radius:6px;padding:12px;margin:10px 0"><div class="ic-label">What was wrong with it?</div><div id="ic-reject-reasons" style="display:flex;flex-direction:column;gap:6px;margin:8px 0"></div><input type="text" id="ic-reject-note" placeholder="Anything else, in your words (optional)" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit"><div class="ic-controls" style="margin-top:8px"><button class="action-btn" onclick="saveRejectLesson()">Remember this</button><button class="action-btn" onclick="toggleRejectPanel(false)">Cancel</button></div></div><details open><summary class="ic-label">What this brand has learned</summary><div id="ic-lessons" style="margin:8px 0"></div></details><details><summary class="ic-label">Carry a correction into later posts</summary><label class="ic-label" for="ic-guidance-scope">Apply to</label><select id="ic-guidance-scope" onchange="rememberGuidanceScope(this.value);loadImageGuidance()"><option value="campaign">This source-blog campaign only</option><option value="brand">This brand only</option></select><label class="ic-label" for="ic-guidance">Reusable direction</label><textarea id="ic-guidance" maxlength="3000" placeholder="For example: keep people candid and imperfect; avoid staged stock poses."></textarea><button class="action-btn" onclick="saveImageGuidance()">Save direction</button><div class="ic-meta">Saved only for the scope above. Post-specific edits stay in this conversation.</div></details></section></div>`;
   dialog.addEventListener('cancel',e=>{if(imageChatBusy){e.preventDefault();imageChatNotice('The request is still running. Please wait for the result.');}});
   document.body.appendChild(dialog);
 }
@@ -12626,7 +12644,7 @@ async function openImageChat(id){
   // button on a fresh post produced talk and no picture.
   document.getElementById('ic-action').value=
     (imageChatState(it).versions||[]).length ? 'revise' : 'create';
-  document.getElementById('ic-guidance-scope').value='campaign';loadImageGuidance();toggleRejectPanel(false);renderImageChat();
+  document.getElementById('ic-guidance-scope').value=lastGuidanceScope();loadImageGuidance();toggleRejectPanel(false);renderImageChat();
   const dialog=document.getElementById('image-chat-dialog');if(!dialog.open)dialog.showModal();
   imageChatNotice('Checking image connection…');
   try{
