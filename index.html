@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 18:05</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 18:30</span></div>
     </div>
   </header>
 
@@ -7770,7 +7770,7 @@ async function runBlogRewrite(){
   const voice = voicePrompts[currentStream] || '';
   // The surrounding post goes in as CONTEXT ONLY. Without it the rewrite loses
   // the thread; with it unlabelled, the model rewrites the whole thing.
-  const prompt = voice + '\n' + HOUSE_STYLE + '\n\nYou are editing ONE PASSAGE inside an existing blog post. Everything else stays exactly as it is.\n\nTHE FULL POST, for context only \u2014 do NOT rewrite or return any of it:\n---\n' + full.slice(0,6000) + '\n---\n\nTHE PASSAGE TO REWRITE \u2014 this exact text and nothing else:\n---\n' + passage + '\n---\n\nWHAT THE AUTHOR WANTS CHANGED:\n' + instruction + '\n\nRules: keep every fact, figure, name and link that is in the passage, and introduce NO new fact, figure, statistic or claim that is not already in the passage or the post above. Keep roughly the same length unless the instruction asks otherwise, and the same number of paragraphs. Match the voice and the house standards above. It must read naturally where it sits, joining what comes before and after.\n\nReturn ONLY the rewritten passage as plain prose. No preamble, no commentary, no quotation marks around it, no markdown fences, no heading.';
+  const prompt = voice + '\n' + HOUSE_STYLE + '\n\nYou are editing ONE PASSAGE inside an existing blog post. Everything else stays exactly as it is.\n\nTHE FULL POST, for context only \u2014 do NOT rewrite or return any of it:\n---\n' + full.slice(0,6000) + '\n---\n\nTHE PASSAGE TO REWRITE \u2014 this exact text and nothing else:\n---\n' + passage + '\n---\n\nWHAT THE AUTHOR WANTS CHANGED:\n' + instruction + '\n\nRules: THE AUTHOR\u2019S INSTRUCTION GOVERNS. Follow it even when it asks for something unusual — a different structure, a different length, a bulleted list, a question, a change of person or tense, a completely different approach to the same point. Do not water it down back towards the original.\n\nThe ONE thing the instruction cannot override: keep every fact, figure, name and link already in the passage, and introduce NO new fact, figure, statistic, link or claim that is not already in the passage or the post above. If the instruction asks for something you have no source for, write the passage without it rather than inventing it.\n\nWhere the instruction is silent, default to roughly the same length and the same number of paragraphs, match the voice and the house standards above, and make it read naturally where it sits, joining what comes before and after.\n\nReturn ONLY the rewritten passage. No preamble, no commentary, no quotation marks around it, no markdown fences.';
   try{
     const data = await callClaude({model:MODEL_CREATIVE, max_tokens:1500, messages:[{role:'user',content:prompt}]});
     const text = claudeText(data);
