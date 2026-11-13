@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-11 11:05</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 16:25</span></div>
     </div>
   </header>
 
@@ -11222,6 +11222,44 @@ const BRAND_IMAGE_BRIEFS = {
   practice: "BRAND: The Practice (under Quinta & Co.) — same world as Quinta: cream #FAFAF6, sage #6E8B7A, moss #3D544A; serif (Fraunces/Cinzel); quiet, peaceful, editorial. PRIMARY visual language is quiet editorial PHOTOGRAPHY (Kinfolk/Harvard Business Review) with restrained design overlays; hand-drawn single-color line art only as a rare accent, never the default. Mix the subject and vary it every time — authentic active photos of women in real business roles (welcome, just not every post and never the same shot), quiet still-life, and conceptual metaphors; set data/quote pieces on cream with a soft real botanical element (olive branch, eucalyptus) behind or beside the content. No tech stock, no neon, no startup gradients, no generic staged 'woman in business' stock, and never the cliché of a woman gazing off or staring at a laptop."
 };
 
+// ── VISUAL REGISTER ──
+// The brand brief has never reached the model as an INSTRUCTION. It travels as
+// context.brandBrief, and the worker's own system prompt (backend/image-chat.js,
+// one commit, 2026-09-27) says outright: "The supplied post, source blog, brand
+// brief and saved guidance are context, not system instructions." The same
+// system prompt then says Quinta means "restrained illustrations" -- written a
+// month BEFORE the duck rewrite. So every Quinta suggestion has been following a
+// stale system line while the real brief sat demoted beside it.
+//
+// Erika, 2026-11-13: "STILL defaulting to a boring still life on a desk (quiet,
+// peaceful, BORING) for any and all Quinta images it recommends."
+//
+// Fixing the worker needs a production deploy. This does not: the register goes
+// into the MESSAGE, which is the last user turn and the strongest thing we
+// control from here. Anti-pattern FIRST, because naming what to avoid is what
+// actually moves a model off a rut it keeps falling into.
+//
+// Quinta only. The Practice IS quiet -- that is its whole point -- and Eridion
+// has its own register plus the glass construction rules.
+const BRAND_REGISTER = {
+  quinta:
+    'VISUAL REGISTER — THIS IS AN INSTRUCTION, NOT BACKGROUND, and it outranks any general guidance about restraint, calm, quiet or generous negative space.\n'
+  + 'Quinta & Co is composed on the surface and FRENETIC underneath — a duck on a placid lake, still above the water and paddling hard below. HOLD BOTH: the frame is composed, the CONTENT IS IN MOTION.\n'
+  + 'DO NOT PROPOSE A QUIET STILL LIFE ON A DESK. It has been proposed over and over and it is wrong every time. Also refuse: an empty styled surface, a flatlay of objects, a lone mug or notebook in soft light, and anything whose only virtue is being tasteful. Serene for its own sake belongs to The Practice, NOT to Quinta.\n'
+  + 'INSTEAD, and vary it every single time: hands caught mid-work rather than posed; a woman active and specific in a real role (leading a workshop, mid-conversation, pinning notes to a wall); a beautifully set table caught mid-use; an elegant desk with ONE urgent thing on it; a conceptual metaphor carrying real velocity (a fork in the path, a threshold, a single chair in hard light).\n'
+  + 'Directional light with REAL shadow and contrast, never flat or washed out. Decisive crops: come close, let things run off the edge, use scale. Negative space weighted to ONE side to create TENSION — never even, calm padding on four sides.\n'
+  + 'Reference: Monocle, Vogue Business, The Gentlewoman. NOT Kinfolk stillness.\n'
+  + 'TEST BEFORE YOU ANSWER: if the idea could be called tasteful, gentle or calming and nothing more, it has FAILED — discard it and propose something with motion in it.'
+};
+// Condensed for imageChatFormatBrief, where the message is capped at 4,000 and
+// the CTA rules and type floors already spend most of it.
+const BRAND_REGISTER_SHORT = {
+  quinta:
+    'VISUAL REGISTER (AN INSTRUCTION — it outranks any guidance about restraint, calm or quiet): Quinta is composed on the surface and FRENETIC underneath. NO quiet still life on a desk, no empty styled surface, no flatlay, no lone mug in soft light — that is The Practice, not Quinta. Composed frame, content IN MOTION: hands mid-work, a woman active in a real role, a decisive crop, real directional shadow, negative space weighted to ONE side. If it is merely tasteful, it has failed.'
+};
+function brandRegister(voice){ return BRAND_REGISTER[voice] || ''; }
+function brandRegisterShort(voice){ return BRAND_REGISTER_SHORT[voice] || ''; }
+
 // Generate a single on-brand HERO image for a blog post (no text in the image),
 // brand brief injected. Landscape, gpt-image-1 -> ImgBB.
 function brandInfographicPrompt(voice, spec, fallbackText){
@@ -12473,7 +12511,10 @@ async function suggestImageChat(){
   // time, so “suggest another direction” never moved. Show it what it already
   // said and require something genuinely different.
   const again = prior ? ('\n\nYou ALREADY suggested this direction:\n---\n'+String(prior).slice(0,900)+'\n---\nGive a GENUINELY DIFFERENT one: a different asset format, a different layout, a different visual idea. Do not restate the above in new words. If the last was photographic, make this one typographic (a quote, stat, chart or infographic card), or the reverse.') : '';
-  return sendImageChat({kind:'suggestion',action:'discuss',message:'Read the supplied original post and source blog. Give me ONE useful starting visual direction: recommended format, a concrete scene or layout, exact short image copy, and why it suits this post.'+again});
+  // The register rides in the MESSAGE, not in context, because context is
+  // exactly what the worker's system prompt tells the model to discount.
+  const reg = brandRegister(imageVisualVoice(it));
+  return sendImageChat({kind:'suggestion',action:'discuss',message:(reg?reg+'\n\n':'')+'Read the supplied original post and source blog. Give me ONE useful starting visual direction: recommended format, a concrete scene or layout, exact short image copy, and why it suits this post.'+again});
 }
 // “Create from this idea” sends format:'freeform' so the approved direction is
 // not swapped for a freshly generated brief. That is right, but freeform also
@@ -12502,7 +12543,8 @@ async function createImageChatIdea(){
   // format:'freeform' deliberately. This button means “make THE idea I just read”,
   // so the Format select must not swap that idea for a freshly generated brief
   // and discard the direction she just approved.
-  return sendImageChat({action:'create',format:'freeform',message:'Create one image from this suggested direction. Preserve the post’s original payoff and the supplied brand guidance.\n\n'+idea+'\n\n'+ideaCraftRules()});
+  const reg = brandRegister(imageVisualVoice(it));
+  return sendImageChat({action:'create',format:'freeform',message:(reg?reg+'\n\n':'')+'Create one image from this suggested direction. Preserve the post’s original payoff and the supplied brand guidance.\n\n'+idea+'\n\n'+ideaCraftRules()});
 }
 // Was an <a target=_blank> pointing at the R2 URL. R2 serves PNGs inline and the
 // download attribute is ignored cross-origin, so it opened the image in a tab
@@ -12790,7 +12832,7 @@ async function imageChatFormatBrief(it, fmt, note){
   const szv=((document.getElementById('ic-size')||{}).value||'1024x1280').split('x');
   const IW=Number(szv[0])||1024, IH=Number(szv[1])||1280;
   const ph=p=>Math.round(IH*p/100), pw=p=>Math.round(IW*p/100), tall=IH/IW>=1.2;
-  const TYPE_RULE='MINIMUM TYPE SIZES - HARD FLOORS. Canvas is '+IW+'x'+IH+'; these pixel figures are exact for it, do not scale them from another size. Main headline or hero number: '+ph(10)+'-'+ph(16)+'px. Secondary headline: '+ph(6)+'-'+ph(9)+'px. Body: '+ph(4)+'-'+ph(5)+'px. Labels, eyebrows, captions, attributions, CTAs and URLs: '+ph(3)+'px MINIMUM - and that floor INCLUDES annotation and callout labels on a diagram or photo, the most common violation. A technical drawing style is NOT a reason to go smaller. NOTHING may be under '+ph(3)+'px. If the words will not fit, CUT WORDS or CUT CALLOUTS; three readable beat six unreadable. SAFE AREA: reserve the TOP band for the brand mark - leave it genuinely empty. Keep text, logo, key subject and any box or rule at least '+pw(8)+'px from LEFT and RIGHT, '+ph(10)+'px from TOP, '+ph(12)+'px from BOTTOM. Backgrounds and textures MAY bleed; CONTENT stays inside.'+(tall?' This canvas is 4:5 or taller so Instagram grid-crops it square: keep the headline, key figure and CTA inside the CENTRE SQUARE.':'');
+  const TYPE_RULE='TYPE FLOORS \u2014 HARD, and exact for this '+IW+'x'+IH+' canvas; do not rescale them from another size. Headline or hero number '+ph(10)+'-'+ph(16)+'px; secondary headline '+ph(6)+'-'+ph(9)+'px; body '+ph(4)+'-'+ph(5)+'px; labels, eyebrows, captions, attributions, CTAs AND any callout or annotation label '+ph(3)+'px MINIMUM \u2014 callouts are the usual violation, and a technical-drawing style is not an excuse to go smaller. Nothing under '+ph(3)+'px: if the words will not fit, CUT WORDS or CUT CALLOUTS, never shrink the type. SAFE AREA: leave the TOP band genuinely empty for the brand mark, and keep all content \u2014 text, logo, key subject, boxes, rules \u2014 at least '+pw(8)+'px from left and right, '+ph(10)+'px from top, '+ph(12)+'px from bottom. Backgrounds and textures may bleed; content may not.'+(tall?' This canvas is 4:5 or taller and Instagram grid-crops it square, so keep the headline, key figure and CTA inside the CENTRE SQUARE.':'');
   // Restored. Lost in 36d435f: condensing TYPE_RULE replaced two lines with
   // one, because mixed CRLF/LF endings made the slice overshoot and swallow
   // this declaration. Every formatted create then failed with 'brief is not
@@ -12837,12 +12879,6 @@ async function imageChatFormatBrief(it, fmt, note){
   // Added on top of CTA_RULES and LAYOUT_RULES when the budget allows.
   // Craft detail only -- everything that must always ship is in those two.
   const EDITORIAL_LAYOUT_EXTRA = 'FURTHER LAYOUT CRAFT: a KICKER above the headline, short, letter-spaced, uppercase, naming the department (e.g. OPERATIONS, FIELD NOTE). Left and right margins differ, and the headline sits on a different column width from the body. Rules divide with intent, full-bleed or deliberately short, never a hairline centred under a title. White space pushed to ONE side to create tension, never even padding on four. Do not draw a control that reports a state - no ticked or empty checkboxes, toggles or progress bars - unless the state is real and stated. Brand palette and typefaces exactly as specified.';
-  // The full block is ~1,400 characters and on a normal brief that pushes the
-  // whole message past the 4,000 the server accepts -- so the better rules
-  // would have been dropped on every single run, silently. These are the four
-  // that did the most work, kept short enough to always survive. Layout is
-  // never dropped to nothing now; it degrades to this.
-  const EDITORIAL_LAYOUT_MIN = 'LAYOUT - NOT A CENTRED CARD. The brand brief describes PHOTOGRAPHY; its quiet/calm/restrained wording governs MOOD, not layout. Required: NOTHING horizontally centred (at most one deliberate exception); largest type at LEAST 3x the smallest; repeated items are NOT identical rows - vary size or weight so the most important one looks it; and the HEADLINE CARRIES THE IDEA - the largest words must be the most interesting words, not a label for them. If it could be called tasteful and nothing else, it has failed.';
 
   // ENGAGEMENT and the layout minimum overlapped (both ended at 'the headline
   // carries the idea') and together they crowded each other out of the 4,000
@@ -12871,7 +12907,7 @@ async function imageChatFormatBrief(it, fmt, note){
   // worked for you", "Send this to someone you know", "Like to show support",
   // "Follow for more weekly AI tips", "Click through to read the entire blog"
   // are questions. A CTA is an IMPERATIVE naming one action.
-  const CTA_RULES = 'EVERY PIECE HAS TWO PARTS: THE CREATIVE AND THE CALL TO ACTION. They do different jobs and must LOOK like different things. \u2460 THE CREATIVE carries the idea \u2014 the photograph, the headline, the argument. A question in the headline is CREATIVE, not a call to action, and does NOT satisfy this requirement. \u2461 THE CALL TO ACTION is an INSTRUCTION: an imperative naming one action the reader can take right now. It is not a question, not a statement of the idea, and is never folded into the headline or the body. Write it as a direct instruction, for example: "Tell us below what worked for you." "Send this to someone deciding the same thing." "Save this for your next renewal date." "Follow for weekly AI tips." "Read the full post \u2014 link in bio." "Like if this is your week." Pick ONE, matched to what the piece deserves: comment, send, save, follow, read, or like. One instruction only \u2014 two asks is no ask. This applies to a PHOTOGRAPH as much as to a designed card: if the piece carries any words at all, it carries a call to action. Give the CTA ITS OWN ZONE: set apart by a rule, a change of colour or weight, or clear space around it, sitting LAST in the reading order near the bottom, inside the safe margin. It is set no smaller than any other label \u2014 a CTA too small to read is not a CTA. A piece with no call to action is unfinished. A question anywhere in the piece, however good, is not one. An instruction buried in the body is not one either. If the instruction mentions a link, say only "link in bio" or "link in the comments" \u2014 never write a URL into the image.';
+  const CTA_RULES = 'EVERY PIECE HAS TWO PARTS AND THEY MUST LOOK LIKE DIFFERENT THINGS. \u2460 THE CREATIVE carries the idea \u2014 the photograph, the headline, the argument. A question in the headline is CREATIVE, not a call to action, and does NOT satisfy this. \u2461 THE CALL TO ACTION is an INSTRUCTION: an imperative naming ONE action the reader can take right now. Never a question, never folded into the headline or the body. For example: "Tell us below what worked for you." "Send this to someone deciding the same thing." "Save this for your next renewal date." "Follow for weekly AI tips." "Read the full post \u2014 link in bio." Pick ONE \u2014 two asks is no ask. This applies to a PHOTOGRAPH as much as to a designed card: if the piece carries any words at all, it carries a call to action. Give it its OWN ZONE \u2014 set apart by a rule, a change of colour or weight, or clear space \u2014 sitting LAST in the reading order near the bottom, inside the safe margin, and no smaller than any other label. Never write a URL into the image: say "link in bio" or "link in the comments". A piece with no call to action is unfinished.';
   const LAYOUT_RULES = 'LAYOUT \u2014 NOT A CENTRED CARD. Where the brand brief and these rules disagree about ENERGY, these win. Required: NOTHING horizontally centred, at most one deliberate exception; largest type at LEAST 3x the smallest; repeated items are NOT identical rows, vary size or weight so the most important one looks it; the HEADLINE CARRIES THE IDEA \u2014 the largest words must be the most interesting words, not a label for them.';
 
   const TYPOGRAPHIC = ['quote','stat','infographic','chart','carousel'];
@@ -12881,21 +12917,73 @@ async function imageChatFormatBrief(it, fmt, note){
     : 'MAKE A PHOTOGRAPHIC IMAGE in this brand, with the scene carrying the idea \u2014 choose a subject that means something without words doing the work. A short headline and a call to action MAY be set over it where the post needs them, and when they are, they follow the type sizes and the CTA rules below; the photograph still has to work as a photograph underneath.'
   const typo = TYPOGRAPHIC.indexOf(chosen)>=0;
   // CTA on every format; the page-setting tests only where a page is set.
-  const essentials = CTA_RULES + '\n\n' + (typo ? LAYOUT_RULES + '\n\n' : '') + (gtCore ? gtCore + '\n\n' : '');
-  const extraBlock = EDITORIAL_LAYOUT_EXTRA + '\n\n';
-  const build = (extra, body) => assertion + '\n\n' + essentials + extra + TYPE_RULE + '\n\n' + body;
-  const body = brief.trim();
-  // The server rejects anything over 4,000 characters. Budget the BODY against
-  // what the rules leave, rather than slicing the finished string and cutting
-  // whatever happens to land last: a half-stated type floor or a half-stated
-  // ask is worse than a shorter description of the post. The trim is marked so
-  // a thin result has a visible cause.
-  const roomPlain = 3900 - build('', '').length;
-  const roomExtra = 3900 - build(extraBlock, '').length;
-  brief = (typo && body.length<=roomExtra) ? build(extraBlock, body)
-        : (body.length<=roomPlain)         ? build('', body)
-        : build('', body.slice(0, Math.max(120, roomPlain-18)).replace(/\s+\S*$/, '') + ' [trimmed to fit]');
-  return {format:chosen, rationale:String(d.rationale||''), brief};
+  // The brand brief is stripped from this message a few lines above and sent as
+  // context.brandBrief, which the worker demotes. The short register puts the
+  // brand's energy back where it binds, at a cost the budget can carry.
+  const reg = brandRegisterShort(voice);
+  // THE CAP IS REAL: backend/image-chat.js rejects a message over 4,000
+  // characters outright. The old arithmetic budgeted the BODY against whatever
+  // the rules left, which silently assumed the rules themselves fit -- and once
+  // the glass core landed on 2026-11-06 they stopped fitting. An Eridion quote
+  // card came to 4,121 characters before a word about the post, and the
+  // Math.max(120, ...) floor then added 120 more, so every typographic Eridion
+  // format had been over the limit since that day. Caught on 2026-11-13 while
+  // adding Quinta's register, which would have done the same to Quinta.
+  //
+  // So: nothing is assumed to fit. The blocks are dropped in a stated order of
+  // value until the post itself has room, and the result is clamped.
+  // On a TYPOGRAPHIC piece the body is not a description, it is the words to
+  // render -- the quote, the stat, the slide titles. Trimming it truncates the
+  // content itself, so it gets a floor equal to its own length and the RULES
+  // give way instead. A photographic body describes a scene and can be cut.
+  const CAP = 3900;
+  const bodyFull = brief.trim();
+  // 600, not the body's full length: a typographic body leads with the content
+  // (the quote is ~115 chars in, the stat sooner) and tails off into formatting
+  // notes that these rules already cover. Protecting the whole thing cost the
+  // layout tests on every card, which is a worse trade than losing that tail.
+  const BODY_FLOOR = typo ? Math.min(bodyFull.length, 600) : 350;
+  const opt = {
+    glass:  gtCore ? gtCore + '\n\n' : '',
+    reg:    reg ? reg + '\n\n' : '',
+    layout: typo ? LAYOUT_RULES + '\n\n' : '',
+    extra:  typo ? EDITORIAL_LAYOUT_EXTRA + '\n\n' : ''
+  };
+  // Least valuable first, and what is least valuable DEPENDS ON THE FORMAT.
+  // On a designed card the layout tests are the whole point and there is rarely
+  // any hardware in shot, so glass accuracy goes first. On a photograph it is
+  // the reverse: the brand's register and the physical truth of the thing being
+  // photographed are what matter, and the layout tests are not even included.
+  // The assertion, the CTA rules and the type floors are never dropped.
+  const DROP_ORDER = typo
+    ? ['extra','glass','reg','layout']
+    : ['extra','layout','reg','glass'];
+  const assemble = (o, bodyText) =>
+    assertion + '\n\n' + CTA_RULES + '\n\n' + o.glass + o.reg + o.layout + o.extra + TYPE_RULE + '\n\n' + bodyText;
+  const kept = Object.assign({}, opt);
+  const dropped = [];
+  for(const k of DROP_ORDER){
+    if(CAP - assemble(kept,'').length >= BODY_FLOOR) break;
+    if(kept[k]){ kept[k] = ''; dropped.push(k); }
+  }
+  const body = bodyFull;
+  const room = CAP - assemble(kept,'').length;
+  const bodyOut = body.length <= room
+    ? body
+    : (room > 40 ? body.slice(0, room - 18).replace(/\s+\S*$/, '') + ' [trimmed to fit]' : '');
+  brief = assemble(kept, bodyOut);
+  // Belt and braces: the invariant is that this NEVER goes out over the cap.
+  if(brief.length > CAP) brief = brief.slice(0, CAP);
+  // Silently dropping a rule is how the 4,000-cap bug stayed hidden for a week.
+  // Say it on screen, in her words, not just in the console.
+  const DROP_LABEL = {extra:'layout craft', layout:'layout rules', reg:'brand register', glass:'glass accuracy'};
+  // NOT `note` -- that is this function's third PARAMETER (the author's extra
+  // direction). Shadowing it threw "Identifier 'note' has already been declared"
+  // and took the whole script down on load.
+  const dropNote = dropped.length
+    ? ' · brief was tight, so ' + dropped.map(k=>DROP_LABEL[k]||k).join(' and ') + ' gave way to the post text'
+    : '';
+  return {format:chosen, rationale:String(d.rationale||'')+dropNote, brief};
 }
 
 // The action a Send will perform was invisible until it had already happened.
