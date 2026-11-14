@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 19:15</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 19:25</span></div>
     </div>
   </header>
 
@@ -13280,9 +13280,21 @@ function wireCraftRefInput(){
   const ta = document.getElementById('ic-message');
   if(!ta || ta.dataset.refsWired) return;
   ta.dataset.refsWired = '1';
+  // A screen grab (Win+Shift+S then Ctrl+V) is the main way this gets used, so
+  // read BOTH clipboard shapes: Chrome fills clipboardData.files for a pasted
+  // bitmap, but some sources populate only .items, and a paste that silently
+  // did nothing is exactly the failure this feature exists to fix.
   ta.addEventListener('paste', function(e){
-    const files = Array.from((e.clipboardData && e.clipboardData.files) || []);
-    const imgs = files.filter(function(f){ return (f.type||'').startsWith('image/'); });
+    const cd = e.clipboardData; if(!cd) return;
+    const imgs = Array.from(cd.files || []).filter(function(f){ return (f.type||'').startsWith('image/'); });
+    if(!imgs.length){
+      for(const item of Array.from(cd.items || [])){
+        if(item.kind === 'file' && (item.type||'').startsWith('image/')){
+          const f = item.getAsFile();
+          if(f) imgs.push(f);
+        }
+      }
+    }
     if(imgs.length){ e.preventDefault(); addCraftRefFiles(imgs); }
   });
   ta.addEventListener('dragover', function(e){ e.preventDefault(); });
