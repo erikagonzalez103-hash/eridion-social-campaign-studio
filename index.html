@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 19:25</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 20:10</span></div>
     </div>
   </header>
 
@@ -12770,7 +12770,7 @@ function imageChatMount(){
   <div class="ic-controls"><button class="action-btn" id="ic-use" onclick="imageChatUse()">Use for this post</button><button class="action-btn" id="ic-reject" onclick="toggleRejectPanel()" title="Say what is wrong with it so the next one is better">✗ Not this — teach it</button><button class="action-btn" id="ic-undo" onclick="imageChatUndo()">Undo image selection</button></div>
   <details><summary class="ic-label">Source &amp; brand context</summary><div id="ic-source" class="ic-source"></div></details></section>
   <section aria-label="Image conversation"><div class="ic-idea"><h3>A starting idea for this post</h3><div id="ic-idea-copy" class="ic-idea-copy" aria-live="polite"></div><div class="ic-controls"><button class="action-btn" id="ic-create-idea" onclick="createImageChatIdea()">Create this idea</button><button class="action-btn" id="ic-suggest" onclick="suggestImageChat()">Suggest another direction</button><button class="action-btn" onclick="resetImageChatThread()" title="Forget this post’s image conversation and start from the post copy alone">↺ Start fresh</button></div></div><div id="ic-thread" class="ic-thread" role="log" aria-live="polite"></div>
-  <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="action-btn" style="font-size:12px;cursor:pointer;margin:0">📎 Add reference photo<input type="file" accept="image/*" multiple style="display:none" onchange="addCraftRefFiles(this.files);this.value=''"></label><span style="font-size:11px;color:var(--text-muted)">or paste / drop a photo into the box above</span></div><div id="ic-refs-attached" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div><div id="ic-ref-status" style="font-size:11px;line-height:1.5;color:var(--text-muted);margin-top:4px"></div>
+  <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="action-btn" style="font-size:12px;cursor:pointer;margin:0">📎 Add reference photo<input type="file" accept="image/*" multiple style="display:none" onchange="addCraftRefFiles(this.files);this.value=''"></label><button type="button" class="action-btn" style="font-size:12px" onclick="toggleCatalogPicker()">📁 From catalog</button><span style="font-size:11px;color:var(--text-muted)">or paste / drop a photo into the box above</span></div><div id="ic-catalog" style="display:none;border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:8px;background:var(--off-white,#F5F6F8)"><div id="ic-catalog-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div><div id="ic-catalog-grid" style="display:flex;gap:6px;flex-wrap:wrap;max-height:230px;overflow:auto"></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><span style="font-size:11px;color:var(--text-muted)">Lay the post out on the chosen photo:</span><select id="ic-catalog-layout" style="padding:3px 6px;font-size:11px"></select></div><div id="ic-catalog-status" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div></div><div id="ic-refs-attached" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div><div id="ic-ref-status" style="font-size:11px;line-height:1.5;color:var(--text-muted);margin-top:4px"></div>
   <div class="ic-controls"><select id="ic-action" aria-label="Image action" onchange="syncImageChatSendLabel()"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-format" aria-label="Asset format" title="What KIND of asset to make"><option value="auto">✦ Format: Auto — read the post and choose</option><option value="image">Editorial photo</option><option value="quote">Quote card</option><option value="stat">Stat card</option><option value="infographic">Infographic / diagram</option><option value="chart">Chart (real numbers)</option><option value="carousel">Carousel slide</option><option value="reel">Reel cover frame</option><option value="freeform">Free-form — my words only</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
   <div class="ic-controls"><button class="action-btn" id="ic-send" onclick="sendImageChat()">Send</button><button class="action-btn" id="ic-recover" onclick="recoverImageChat()" hidden>Check last request</button><button class="action-btn" id="ic-save-recovery" onclick="saveImageChatRecovery()" hidden>Save returned version</button></div>
   <div id="ic-status" role="status"></div>
@@ -13168,6 +13168,174 @@ function syncImageChatSendLabel(){
   const sel=document.getElementById('ic-action'), btn=document.getElementById('ic-send');
   if(!sel||!btn) return;
   btn.textContent = {discuss:'Discuss', create:'Create image', revise:'Revise image'}[sel.value] || 'Send';
+}
+
+// ── THE JOB-PHOTO CATALOG ──
+// 946 tagged photos of real Eridion work sit on R2 already, 409 of them graded
+// "hero", product-tagged and captioned. Erika, 2026-11-13: pull from it, and
+// "i also want to be able to pull [one] and have a headline over it or a stat
+// to the left or right of it ... within the art directed social ad."
+//
+// That second half is the more valuable idea and the real answer to months of
+// wrong hardware: if the photograph IS a real installation, there is no glass
+// for the model to invent. It composes type around a finished photo instead of
+// imagining a shower. The model is told in as many words not to redraw it.
+// Reuses the existing loadCatalog() / catalogUrl() pair rather than adding a
+// second manifest fetch. My first attempt declared its own CATALOG_MANIFEST_URL
+// and collided with the one already here, which took the whole script down on
+// load. Worse, it would have skipped the junk filtering that one already does:
+// photos flagged no-product, sales-sheet, duplicate or watermark must never
+// reach a post. That loader also caches to localStorage for six hours.
+async function loadCatalogAssets(){
+  await loadCatalog();
+  const bad = ['no-product','sales-sheet','duplicate','watermark'];
+  return ((CATALOG && CATALOG.assets) || [])
+    .filter(function(a){
+      return a && a.web && a.grade !== 'skip'
+        && !bad.some(function(f){ return (a.flags||[]).includes(f); });
+    })
+    .map(function(a){ return Object.assign({}, a, {webUrl: catalogUrl(a,false), thumbUrl: catalogUrl(a,true)}); });
+}
+
+// The catalog's own product vocabulary, grouped the way a post talks about it.
+const CATALOG_GROUPS = [
+  {key:'shower',    label:'Showers',     products:['shower-enclosure','shower-door','shower-wall'], re:/\bshower|\benclosure|\bcurb\b|\bniche\b|\bwet ?room/i},
+  {key:'steam',     label:'Steam',       products:['steam-shower'],                                 re:/\bsteam\b/i},
+  {key:'mirror',    label:'Mirrors',     products:['mirror'],                                       re:/\bmirror|\bvanity\b|\bantiqued/i},
+  {key:'wine',      label:'Wine rooms',  products:['wine-room'],                                    re:/\bwine\b|\bcellar\b/i},
+  {key:'railing',   label:'Railings',    products:['glass-railing'],                                re:/\brail(?:ing)?s?\b|\bguard|\bstair|\bbalcon|\bbalustrad/i},
+  {key:'partition', label:'Partitions',  products:['glass-partition','storefront','glass-marker-board'], re:/\bpartition|\bstorefront|\bmarker ?board|\boffice/i},
+  {key:'other',     label:'Everything else', products:['backsplash','colorback-glass','cabinet-glass','shelving','tabletop','accent-wall'], re:/\bbacksplash|\bcabinet|\bshelv/i}
+];
+
+// Where the type sits relative to the photograph. Each is a real instruction,
+// not a label - the model gets the geometry, not the name.
+const PHOTO_LAYOUTS = [
+  {id:'headline-over', label:'Headline over the photo',
+   rule:'LAYOUT: the photograph fills the whole frame. Set the headline directly ON it, in the calmest area of the image, with a soft dark scrim or gradient behind the words ONLY where it is needed for contrast \u2014 never a hard box across the picture. The glass and the hardware stay fully visible and unobstructed.'},
+  {id:'stat-left', label:'Stat panel on the LEFT',
+   rule:'LAYOUT: split the canvas vertically. A solid brand-colour panel holds the LEFT third and carries the figure and its label; the photograph fills the right two thirds, full-bleed to the top, right and bottom edges. The join is a clean straight edge. Nothing overlaps the photo.'},
+  {id:'stat-right', label:'Stat panel on the RIGHT',
+   rule:'LAYOUT: split the canvas vertically. The photograph fills the LEFT two thirds, full-bleed to the top, left and bottom edges; a solid brand-colour panel holds the RIGHT third and carries the figure and its label. The join is a clean straight edge. Nothing overlaps the photo.'},
+  {id:'band-bottom', label:'Headline band across the bottom',
+   rule:'LAYOUT: the photograph fills the frame. A solid brand-colour band sits across the BOTTOM third, edge to edge, carrying the headline and the call to action. The band has a clean straight top edge and does not crop the glass out of the picture above it.'},
+  {id:'photo-top', label:'Photo on top, type beneath',
+   rule:'LAYOUT: the photograph occupies the TOP 60% of the canvas, full-bleed left, right and top. The remaining 40% is a solid brand-colour ground carrying the headline, any supporting line and the call to action. A clean straight horizontal join between them.'}
+];
+
+function detectCatalogGroup(){
+  const it = library.find(x=>x.id===imageChatPostId);
+  if(!it) return 'shower';
+  const src = imageSourcePost(it);
+  const el = document.createElement('div');
+  el.innerHTML = String(src.blog_text || src.linkedin_text || it.linkedin_text || '');
+  const text = (it.title || '') + ' ' + (src.title || '') + ' ' + (el.textContent || '').slice(0, 3000);
+  // Detection order is NOT the display order. "a steam shower needs a transom"
+  // matches /\bshower/ too, so the more specific product has to be asked first
+  // or every steam post lands in Showers. Same trap as the glass rules.
+  const DETECT_ORDER = ['steam','wine','railing','partition','other','shower','mirror'];
+  for(const key of DETECT_ORDER){
+    const g = CATALOG_GROUPS.find(function(x){ return x.key === key; });
+    if(g && g.re.test(text)) return g.key;
+  }
+  return 'shower';
+}
+
+let _catalogGroup = null;
+
+async function toggleCatalogPicker(){
+  const panel = document.getElementById('ic-catalog');
+  if(!panel) return;
+  if(panel.style.display !== 'none'){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  const sel = document.getElementById('ic-catalog-layout');
+  if(sel && !sel.childElementCount){
+    sel.innerHTML = PHOTO_LAYOUTS.map(function(l){ return '<option value="'+l.id+'">'+escapeHTML(l.label)+'</option>'; }).join('');
+  }
+  if(!_catalogGroup) _catalogGroup = detectCatalogGroup();
+  await renderCatalogPicker();
+}
+
+async function renderCatalogPicker(){
+  const grid = document.getElementById('ic-catalog-grid');
+  const chips = document.getElementById('ic-catalog-chips');
+  const status = document.getElementById('ic-catalog-status');
+  if(!grid) return;
+  grid.innerHTML = '<span style="font-size:11px;color:var(--text-muted)">Loading the catalog\u2026</span>';
+  let assets;
+  try{ assets = await loadCatalogAssets(); }
+  catch(e){ grid.innerHTML = '<span style="font-size:11px;color:#B45309">'+escapeHTML(e.message)+'</span>'; return; }
+  chips.innerHTML = CATALOG_GROUPS.map(function(g){
+    const on = g.key === _catalogGroup;
+    return '<button type="button" class="action-btn" onclick="pickCatalogGroup(\''+g.key+'\')" style="font-size:11px;padding:3px 8px;'+(on?'background:var(--navy,#1F2A4A);color:#fff;border-color:var(--navy,#1F2A4A)':'')+'">'+escapeHTML(g.label)+'</button>';
+  }).join('');
+  const group = CATALOG_GROUPS.find(function(g){ return g.key === _catalogGroup; }) || CATALOG_GROUPS[0];
+  // Hero first: these are the ones she already judged worth showing.
+  const match = assets.filter(function(a){ return (a.product||[]).some(function(p){ return group.products.indexOf(p) >= 0; }); })
+    .sort(function(a,b){ return (b.grade==='hero') - (a.grade==='hero'); })
+    .slice(0, 24);
+  if(!match.length){ grid.innerHTML = '<span style="font-size:11px;color:var(--text-muted)">Nothing tagged for that yet.</span>'; return; }
+  grid.innerHTML = match.map(function(a){
+    const cap = escapeHTML((a.caption||a.filename||'').slice(0,140));
+    return '<div style="width:88px">'
+      + '<img src="'+escapeHTML(a.thumbUrl)+'" alt="" title="'+cap+'" loading="lazy" style="width:88px;height:66px;object-fit:cover;border:1px solid var(--border);border-radius:4px;display:block">'
+      + '<div style="display:flex;gap:3px;margin-top:3px">'
+      + '<button type="button" class="action-btn" style="font-size:9px;padding:2px 4px;flex:1" title="Attach as a construction reference" onclick="catalogAddRef(\''+a.id+'\')">Ref</button>'
+      + '<button type="button" class="action-btn" style="font-size:9px;padding:2px 4px;flex:1" title="Use this real photo as the image and lay the post out on it" onclick="catalogUseAsPhoto(\''+a.id+'\')">Use</button>'
+      + '</div></div>';
+  }).join('');
+  if(status) status.textContent = match.length + ' photo' + (match.length===1?'':'s') + ' \u00b7 Ref = teach it the hardware \u00b7 Use = build the post on this real photo';
+}
+
+async function pickCatalogGroup(key){ _catalogGroup = key; await renderCatalogPicker(); }
+
+async function catalogAddRef(id){
+  const assets = await loadCatalogAssets();
+  const a = assets.find(function(x){ return x.id === id; });
+  if(!a) return;
+  const it = library.find(x=>x.id===imageChatPostId); if(!it) return;
+  if(craftRefs(it).length >= REF_SOFT_CAP){ updateCraftRefStatus('Five reference photos is the limit \u2014 remove one first.'); return; }
+  try{
+    imageChatCommit(imageChatPostId, function(next){
+      const st = next.imageChat = imageChatState(next);
+      st.craftRefs = (Array.isArray(st.craftRefs)?st.craftRefs:[]).concat([{url:a.webUrl, at:Date.now(), fromCatalog:true}]);
+    });
+  }catch(e){ updateCraftRefStatus('Could not attach: '+e.message); return; }
+  renderCraftRefs();
+}
+
+// The real answer to invented hardware: make the photograph the base image and
+// compose type around it, rather than asking for a shower to be imagined.
+async function catalogUseAsPhoto(id){
+  const assets = await loadCatalogAssets();
+  const a = assets.find(function(x){ return x.id === id; });
+  if(!a) return;
+  const it = library.find(x=>x.id===imageChatPostId); if(!it) return;
+  const layoutId = (document.getElementById('ic-catalog-layout')||{}).value || PHOTO_LAYOUTS[0].id;
+  const layout = PHOTO_LAYOUTS.find(function(l){ return l.id === layoutId; }) || PHOTO_LAYOUTS[0];
+  try{
+    imageChatCommit(imageChatPostId, function(next){
+      const st = next.imageChat = imageChatState(next);
+      const vid = crypto.randomUUID();
+      st.versions = (st.versions||[]).concat([{id:vid, url:a.webUrl, label:'Job photo', createdAt:Date.now(), parentId:null, fromCatalog:true}]);
+      st.activeId = vid;
+    });
+  }catch(e){ updateCraftRefStatus('Could not use that photo: '+e.message); return; }
+  renderImageChat();
+  const act = document.getElementById('ic-action'); if(act){ act.value = 'revise'; }
+  if(typeof syncImageChatSendLabel === 'function') syncImageChatSendLabel();
+  const ta = document.getElementById('ic-message');
+  if(ta){
+    ta.value = 'This is a REAL PHOTOGRAPH of our own finished work. Keep it exactly as it is \u2014 do not redraw, re-render, relight, extend or replace any part of the room, the glass or the hardware, and do not invent anything in it. Compose the post AROUND the photograph.\n\n'
+      + layout.rule + '\n\n'
+      + 'COPY: take the headline from this post\u2019s own payoff, in its voice. '
+      + (layoutId.indexOf('stat') === 0 ? 'Pull ONE figure that is already in the post for the stat panel, with a short label under it. Do not invent a number. ' : '')
+      + 'Every word must come from the post \u2014 add no claim that is not in it.\n\n'
+      + (typeof ideaCraftRules === 'function' ? ideaCraftRules() : '');
+    ta.focus();
+  }
+  const panel = document.getElementById('ic-catalog'); if(panel) panel.style.display = 'none';
+  updateCraftRefStatus('Job photo selected as the base \u2014 read the direction, then press Revise image.');
 }
 
 // ── REFERENCE PHOTOS ON THE MESSAGE ──
