@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 20:10</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 21:05</span></div>
     </div>
   </header>
 
@@ -12770,7 +12770,7 @@ function imageChatMount(){
   <div class="ic-controls"><button class="action-btn" id="ic-use" onclick="imageChatUse()">Use for this post</button><button class="action-btn" id="ic-reject" onclick="toggleRejectPanel()" title="Say what is wrong with it so the next one is better">✗ Not this — teach it</button><button class="action-btn" id="ic-undo" onclick="imageChatUndo()">Undo image selection</button></div>
   <details><summary class="ic-label">Source &amp; brand context</summary><div id="ic-source" class="ic-source"></div></details></section>
   <section aria-label="Image conversation"><div class="ic-idea"><h3>A starting idea for this post</h3><div id="ic-idea-copy" class="ic-idea-copy" aria-live="polite"></div><div class="ic-controls"><button class="action-btn" id="ic-create-idea" onclick="createImageChatIdea()">Create this idea</button><button class="action-btn" id="ic-suggest" onclick="suggestImageChat()">Suggest another direction</button><button class="action-btn" onclick="resetImageChatThread()" title="Forget this post’s image conversation and start from the post copy alone">↺ Start fresh</button></div></div><div id="ic-thread" class="ic-thread" role="log" aria-live="polite"></div>
-  <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="action-btn" style="font-size:12px;cursor:pointer;margin:0">📎 Add reference photo<input type="file" accept="image/*" multiple style="display:none" onchange="addCraftRefFiles(this.files);this.value=''"></label><button type="button" class="action-btn" style="font-size:12px" onclick="toggleCatalogPicker()">📁 From catalog</button><span style="font-size:11px;color:var(--text-muted)">or paste / drop a photo into the box above</span></div><div id="ic-catalog" style="display:none;border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:8px;background:var(--off-white,#F5F6F8)"><div id="ic-catalog-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div><div id="ic-catalog-grid" style="display:flex;gap:6px;flex-wrap:wrap;max-height:230px;overflow:auto"></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><span style="font-size:11px;color:var(--text-muted)">Lay the post out on the chosen photo:</span><select id="ic-catalog-layout" style="padding:3px 6px;font-size:11px"></select></div><div id="ic-catalog-status" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div></div><div id="ic-refs-attached" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div><div id="ic-ref-status" style="font-size:11px;line-height:1.5;color:var(--text-muted);margin-top:4px"></div>
+  <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="action-btn" style="font-size:12px;cursor:pointer;margin:0">📎 Add reference photo<input type="file" accept="image/*" multiple style="display:none" onchange="addCraftRefFiles(this.files);this.value=''"></label><button type="button" class="action-btn" style="font-size:12px" onclick="toggleCatalogPicker()">📁 From catalog</button><span style="font-size:11px;color:var(--text-muted)">or paste / drop a photo into the box above</span></div><div id="ic-catalog" style="display:none;border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:8px;background:var(--off-white,#F5F6F8)"><div id="ic-catalog-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"></div><input type="text" id="ic-catalog-q" placeholder="Search the caption — marble, brass, freestanding tub, black frame…" oninput="catalogSearchChanged()" style="width:100%;box-sizing:border-box;padding:5px 8px;margin-bottom:8px;border:1px solid var(--border);border-radius:4px;font-size:11px;font-family:inherit"><div id="ic-catalog-grid" style="display:flex;gap:6px;flex-wrap:wrap;max-height:230px;overflow:auto"></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><span style="font-size:11px;color:var(--text-muted)">Lay the post out on the chosen photo:</span><select id="ic-catalog-layout" style="padding:3px 6px;font-size:11px"></select></div><div id="ic-catalog-status" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div></div><div id="ic-refs-attached" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div><div id="ic-ref-status" style="font-size:11px;line-height:1.5;color:var(--text-muted);margin-top:4px"></div>
   <div class="ic-controls"><select id="ic-action" aria-label="Image action" onchange="syncImageChatSendLabel()"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-format" aria-label="Asset format" title="What KIND of asset to make"><option value="auto">✦ Format: Auto — read the post and choose</option><option value="image">Editorial photo</option><option value="quote">Quote card</option><option value="stat">Stat card</option><option value="infographic">Infographic / diagram</option><option value="chart">Chart (real numbers)</option><option value="carousel">Carousel slide</option><option value="reel">Reel cover frame</option><option value="freeform">Free-form — my words only</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
   <div class="ic-controls"><button class="action-btn" id="ic-send" onclick="sendImageChat()">Send</button><button class="action-btn" id="ic-recover" onclick="recoverImageChat()" hidden>Check last request</button><button class="action-btn" id="ic-save-recovery" onclick="saveImageChatRecovery()" hidden>Save returned version</button></div>
   <div id="ic-status" role="status"></div>
@@ -13242,6 +13242,17 @@ function detectCatalogGroup(){
 }
 
 let _catalogGroup = null;
+// Was a hard .slice(0,24) with a fixed sort, so the same two dozen photos
+// came up every time out of hundreds. Erika: "the images listed to choose
+// from catalog are limited and never change."
+let _catalogLimit = 24;
+let _catalogQuery = '';
+function catalogSearchChanged(){
+  _catalogQuery = (document.getElementById('ic-catalog-q')||{}).value || '';
+  _catalogLimit = 24;
+  renderCatalogPicker();
+}
+function catalogShowMore(){ _catalogLimit += 36; renderCatalogPicker(); }
 
 async function toggleCatalogPicker(){
   const panel = document.getElementById('ic-catalog');
@@ -13270,11 +13281,23 @@ async function renderCatalogPicker(){
     return '<button type="button" class="action-btn" onclick="pickCatalogGroup(\''+g.key+'\')" style="font-size:11px;padding:3px 8px;'+(on?'background:var(--navy,#1F2A4A);color:#fff;border-color:var(--navy,#1F2A4A)':'')+'">'+escapeHTML(g.label)+'</button>';
   }).join('');
   const group = CATALOG_GROUPS.find(function(g){ return g.key === _catalogGroup; }) || CATALOG_GROUPS[0];
-  // Hero first: these are the ones she already judged worth showing.
-  const match = assets.filter(function(a){ return (a.product||[]).some(function(p){ return group.products.indexOf(p) >= 0; }); })
-    .sort(function(a,b){ return (b.grade==='hero') - (a.grade==='hero'); })
-    .slice(0, 24);
-  if(!match.length){ grid.innerHTML = '<span style="font-size:11px;color:var(--text-muted)">Nothing tagged for that yet.</span>'; return; }
+  const q = _catalogQuery.trim().toLowerCase();
+  const words = q ? q.split(/\s+/) : [];
+  // Search looks at the caption and every tag axis, so "brass" or "freestanding
+  // tub" finds the shot even when the product group is right but the look is not.
+  const hay = function(a){
+    return [a.caption, a.filename, (a.product||[]).join(' '), (a.space||[]).join(' '),
+            (a.style||[]).join(' '), (a.tags||[]).join(' '), a.shot, a.orientation]
+           .filter(Boolean).join(' ').toLowerCase();
+  };
+  const all = assets.filter(function(a){
+    if(!(a.product||[]).some(function(p){ return group.products.indexOf(p) >= 0; })) return false;
+    if(!words.length) return true;
+    const h = hay(a);
+    return words.every(function(w){ return h.indexOf(w) >= 0; });
+  }).sort(function(a,b){ return (b.grade==='hero') - (a.grade==='hero'); });
+  const match = all.slice(0, _catalogLimit);
+  if(!match.length){ grid.innerHTML = '<span style="font-size:11px;color:var(--text-muted)">' + (q ? 'Nothing matches “'+escapeHTML(q)+'” in this group.' : 'Nothing tagged for that yet.') + '</span>'; if(status) status.textContent=''; return; }
   grid.innerHTML = match.map(function(a){
     const cap = escapeHTML((a.caption||a.filename||'').slice(0,140));
     return '<div style="width:88px">'
@@ -13284,7 +13307,11 @@ async function renderCatalogPicker(){
       + '<button type="button" class="action-btn" style="font-size:9px;padding:2px 4px;flex:1" title="Use this real photo as the image and lay the post out on it" onclick="catalogUseAsPhoto(\''+a.id+'\')">Use</button>'
       + '</div></div>';
   }).join('');
-  if(status) status.textContent = match.length + ' photo' + (match.length===1?'':'s') + ' \u00b7 Ref = teach it the hardware \u00b7 Use = build the post on this real photo';
+  if(status){
+    status.innerHTML = 'Showing ' + match.length + ' of ' + all.length
+      + ' \u00b7 Ref = teach it the hardware \u00b7 Use = build the post ON this real photo'
+      + (all.length > match.length ? ' \u00b7 <a href="#" onclick="event.preventDefault();catalogShowMore()">show more</a>' : '');
+  }
 }
 
 async function pickCatalogGroup(key){ _catalogGroup = key; await renderCatalogPicker(); }
@@ -13306,36 +13333,68 @@ async function catalogAddRef(id){
 
 // The real answer to invented hardware: make the photograph the base image and
 // compose type around it, rather than asking for a shower to be imagined.
-async function catalogUseAsPhoto(id){
-  const assets = await loadCatalogAssets();
-  const a = assets.find(function(x){ return x.id === id; });
-  if(!a) return;
-  const it = library.find(x=>x.id===imageChatPostId); if(!it) return;
-  const layoutId = (document.getElementById('ic-catalog-layout')||{}).value || PHOTO_LAYOUTS[0].id;
+// The marker that says this message is an EDIT of a real photograph. Checked
+// before sending, because the same brief fired as a plain "create" quietly
+// throws the photo away and invents a room instead -- which is exactly what
+// Erika saw: "it ignored the pic altogether ... not sure what it decided to
+// build."
+const PHOTO_BASE_MARKER = 'EDIT THE ATTACHED PHOTOGRAPH';
+
+// Shared by the catalog's USE and by USE on a photo she pasted or dropped.
+// The first version of this brief ran to 1,789 characters: "do not redraw" led
+// it, but ~1,500 characters of card-design craft rules followed, and on an EDIT
+// the model weighed all of it and re-rendered the bathroom. Short, ordered and
+// blunt beats thorough here -- the preservation rule and the layout are the
+// only two things that must land.
+function photoBaseBrief(layoutId){
   const layout = PHOTO_LAYOUTS.find(function(l){ return l.id === layoutId; }) || PHOTO_LAYOUTS[0];
+  return PHOTO_BASE_MARKER + ' \u2014 DO NOT GENERATE A NEW SCENE.\n'
+    + 'The attached image is a real photograph of our own finished work. Wherever the photograph appears in the output it must be THE ORIGINAL PHOTOGRAPH, unchanged: same room, same glass, same hardware, same fixtures, same light, same camera angle. Do not redraw, re-render, relight, restage, extend, crop differently or replace any part of it, and do not substitute a different bathroom. You are adding type to a photograph, not making a picture.\n\n'
+    + layout.rule + '\n\n'
+    + 'COPY: the headline comes from this post\u2019s own payoff, in its voice. '
+    + (String(layoutId).indexOf('stat') === 0 ? 'The figure must be one already in the post \u2014 do not invent a number. ' : '')
+    + 'Add no claim that is not in the post. Brand palette only. Largest type at least 3x the smallest, nothing centred, and keep all type clear of the outer eighth of the canvas. '
+    + 'Finish with ONE call to action \u2014 an instruction, not a question, for example \u201cRead the full post \u2014 link in bio.\u201d';
+}
+
+// Puts any photo in as the active version and writes the direction for it.
+function useAsBasePhoto(url, label){
+  const it = library.find(x=>x.id===imageChatPostId); if(!it) return false;
+  const layoutId = (document.getElementById('ic-catalog-layout')||{}).value || PHOTO_LAYOUTS[0].id;
   try{
     imageChatCommit(imageChatPostId, function(next){
       const st = next.imageChat = imageChatState(next);
       const vid = crypto.randomUUID();
-      st.versions = (st.versions||[]).concat([{id:vid, url:a.webUrl, label:'Job photo', createdAt:Date.now(), parentId:null, fromCatalog:true}]);
+      st.versions = (st.versions||[]).concat([{id:vid, url:url, label:label||'Job photo', createdAt:Date.now(), parentId:null, fromCatalog:true}]);
       st.activeId = vid;
     });
-  }catch(e){ updateCraftRefStatus('Could not use that photo: '+e.message); return; }
+  }catch(e){ updateCraftRefStatus('Could not use that photo: '+e.message); return false; }
   renderImageChat();
-  const act = document.getElementById('ic-action'); if(act){ act.value = 'revise'; }
+  const act = document.getElementById('ic-action');
+  if(act){ act.value = 'revise'; }
   if(typeof syncImageChatSendLabel === 'function') syncImageChatSendLabel();
   const ta = document.getElementById('ic-message');
-  if(ta){
-    ta.value = 'This is a REAL PHOTOGRAPH of our own finished work. Keep it exactly as it is \u2014 do not redraw, re-render, relight, extend or replace any part of the room, the glass or the hardware, and do not invent anything in it. Compose the post AROUND the photograph.\n\n'
-      + layout.rule + '\n\n'
-      + 'COPY: take the headline from this post\u2019s own payoff, in its voice. '
-      + (layoutId.indexOf('stat') === 0 ? 'Pull ONE figure that is already in the post for the stat panel, with a short label under it. Do not invent a number. ' : '')
-      + 'Every word must come from the post \u2014 add no claim that is not in it.\n\n'
-      + (typeof ideaCraftRules === 'function' ? ideaCraftRules() : '');
-    ta.focus();
-  }
+  if(ta){ ta.value = photoBaseBrief(layoutId); ta.focus(); }
   const panel = document.getElementById('ic-catalog'); if(panel) panel.style.display = 'none';
-  updateCraftRefStatus('Job photo selected as the base \u2014 read the direction, then press Revise image.');
+  const lay = PHOTO_LAYOUTS.find(function(l){ return l.id === layoutId; }) || PHOTO_LAYOUTS[0];
+  updateCraftRefStatus('Using that photo as the base \u00b7 layout: ' + lay.label + ' \u00b7 press \u201cRevise image\u201d (not Create).');
+  return true;
+}
+
+async function catalogUseAsPhoto(id){
+  const assets = await loadCatalogAssets();
+  const a = assets.find(function(x){ return x.id === id; });
+  if(!a) return;
+  useAsBasePhoto(a.webUrl, 'Job photo');
+}
+
+// FIX 1: a photo she pasted or dropped had no way to say "use THIS one" -- the
+// only thing it could be was a hardware reference, so it looked ignored.
+function useCraftRefAsPhoto(i){
+  const it = library.find(x=>x.id===imageChatPostId); if(!it) return;
+  const r = craftRefs(it)[i];
+  if(!r) return;
+  useAsBasePhoto(r.url, 'Your photo');
 }
 
 // ── REFERENCE PHOTOS ON THE MESSAGE ──
@@ -13377,6 +13436,7 @@ function renderCraftRefs(){
     return '<span style="position:relative;display:inline-block">'
       + '<img src="'+escapeHTML(r.url)+'" alt="" style="width:64px;height:64px;object-fit:cover;border:1px solid var(--border);border-radius:4px;display:block">'
       + '<button type="button" title="Remove" onclick="removeCraftRef('+i+')" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;line-height:16px;padding:0;border-radius:9px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:12px">\u00d7</button>'
+      + '<button type="button" class="action-btn" title="Build the post ON this photo instead of only referencing it" onclick="useCraftRefAsPhoto('+i+')" style="display:block;width:64px;font-size:9px;padding:2px 0;margin-top:3px">Use as photo</button>'
       + '</span>';
   }).join('');
   updateCraftRefStatus();
@@ -13481,6 +13541,16 @@ async function sendImageChat(options={}){
   const id=imageChatPostId,it=library.find(x=>x.id===id),s=imageChatState(it),action=options.action||document.getElementById('ic-action').value;
   // let, not const: a selected format REPLACES this with the generated brief.
   let message=(options.message||document.getElementById('ic-message').value).trim();
+  // BEFORE anything else: a photo-edit direction sent as a CREATE drops the
+  // chosen photograph and invents a scene instead. This has to be caught here,
+  // not later, because a selected format REPLACES `message` with a generated
+  // brief further down -- a guard after that point never sees the photo brief
+  // and a generation is wasted first.
+  if(action==='create' && message.indexOf(PHOTO_BASE_MARKER)===0){
+    imageChatNotice('This direction edits the photo you chose, so send it as “Revise selected image” — Create would ignore the photo and invent a room instead. Switch the action to Revise, then send.');
+    const act=document.getElementById('ic-action'); if(act){ act.value='revise'; if(typeof syncImageChatSendLabel==='function') syncImageChatSendLabel(); }
+    return;
+  }
   const fmtEl=document.getElementById('ic-format');
   const chosenFmt=(options.format||(fmtEl?fmtEl.value:'freeform'));
   // Remember the choice per brand - picking “Quote card” once should not reset to
