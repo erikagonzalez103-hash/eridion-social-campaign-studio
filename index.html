@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 21:05</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 22:30</span></div>
     </div>
   </header>
 
@@ -12770,7 +12770,7 @@ function imageChatMount(){
   <div class="ic-controls"><button class="action-btn" id="ic-use" onclick="imageChatUse()">Use for this post</button><button class="action-btn" id="ic-reject" onclick="toggleRejectPanel()" title="Say what is wrong with it so the next one is better">✗ Not this — teach it</button><button class="action-btn" id="ic-undo" onclick="imageChatUndo()">Undo image selection</button></div>
   <details><summary class="ic-label">Source &amp; brand context</summary><div id="ic-source" class="ic-source"></div></details></section>
   <section aria-label="Image conversation"><div class="ic-idea"><h3>A starting idea for this post</h3><div id="ic-idea-copy" class="ic-idea-copy" aria-live="polite"></div><div class="ic-controls"><button class="action-btn" id="ic-create-idea" onclick="createImageChatIdea()">Create this idea</button><button class="action-btn" id="ic-suggest" onclick="suggestImageChat()">Suggest another direction</button><button class="action-btn" onclick="resetImageChatThread()" title="Forget this post’s image conversation and start from the post copy alone">↺ Start fresh</button></div></div><div id="ic-thread" class="ic-thread" role="log" aria-live="polite"></div>
-  <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="action-btn" style="font-size:12px;cursor:pointer;margin:0">📎 Add reference photo<input type="file" accept="image/*" multiple style="display:none" onchange="addCraftRefFiles(this.files);this.value=''"></label><button type="button" class="action-btn" style="font-size:12px" onclick="toggleCatalogPicker()">📁 From catalog</button><span style="font-size:11px;color:var(--text-muted)">or paste / drop a photo into the box above</span></div><div id="ic-catalog" style="display:none;border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:8px;background:var(--off-white,#F5F6F8)"><div id="ic-catalog-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"></div><input type="text" id="ic-catalog-q" placeholder="Search the caption — marble, brass, freestanding tub, black frame…" oninput="catalogSearchChanged()" style="width:100%;box-sizing:border-box;padding:5px 8px;margin-bottom:8px;border:1px solid var(--border);border-radius:4px;font-size:11px;font-family:inherit"><div id="ic-catalog-grid" style="display:flex;gap:6px;flex-wrap:wrap;max-height:230px;overflow:auto"></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><span style="font-size:11px;color:var(--text-muted)">Lay the post out on the chosen photo:</span><select id="ic-catalog-layout" style="padding:3px 6px;font-size:11px"></select></div><div id="ic-catalog-status" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div></div><div id="ic-refs-attached" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div><div id="ic-ref-status" style="font-size:11px;line-height:1.5;color:var(--text-muted);margin-top:4px"></div>
+  <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="action-btn" style="font-size:12px;cursor:pointer;margin:0">📎 Add reference photo<input type="file" accept="image/*" multiple style="display:none" onchange="addCraftRefFiles(this.files);this.value=''"></label><button type="button" class="action-btn" style="font-size:12px" onclick="toggleCatalogPicker()">📁 From catalog</button><span style="font-size:11px;color:var(--text-muted)">or paste / drop a photo into the box above</span></div><div id="ic-catalog" style="display:none;border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:8px;background:var(--off-white,#F5F6F8)"><div id="ic-catalog-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"></div><input type="text" id="ic-catalog-q" placeholder="Search the caption — marble, brass, freestanding tub, black frame…" oninput="catalogSearchChanged()" style="width:100%;box-sizing:border-box;padding:5px 8px;margin-bottom:8px;border:1px solid var(--border);border-radius:4px;font-size:11px;font-family:inherit"><div id="ic-catalog-grid" style="display:flex;gap:6px;flex-wrap:wrap;max-height:230px;overflow:auto"></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><span style="font-size:11px;color:var(--text-muted)">Lay the post out on the chosen photo:</span><select id="ic-catalog-layout" style="padding:3px 6px;font-size:11px"></select></div><div id="ic-catalog-status" style="font-size:11px;color:var(--text-muted);margin-top:6px"></div></div><details id="ic-compose-wrap" style="margin-top:8px;border:1px solid var(--border);border-radius:6px;padding:8px"><summary class="ic-label" style="cursor:pointer;margin:0">⌛ Compose it exactly — no AI touches the photo</summary><div style="font-size:11px;color:var(--text-muted);margin:6px 0 8px">Pick a job photo with <b>Use</b> above, then compose here. The photograph is drawn untouched and the type is laid over it in your browser — it cannot invent a different room.</div><select id="ic-compose-layout" style="width:100%;padding:6px;font-size:12px;margin-bottom:6px"></select><input type="text" id="ic-compose-head" placeholder="Headline" style="width:100%;box-sizing:border-box;padding:6px 8px;font-size:12px;margin-bottom:5px;border:1px solid var(--border);border-radius:4px;font-family:inherit"><div style="display:flex;gap:5px;margin-bottom:5px"><input type="text" id="ic-compose-stat" placeholder="$3,750" style="width:110px;box-sizing:border-box;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;font-family:inherit"><input type="text" id="ic-compose-statlabel" placeholder="what the figure is" style="flex:1;min-width:0;box-sizing:border-box;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:4px;font-family:inherit"></div><input type="text" id="ic-compose-line" placeholder="One supporting line (optional)" style="width:100%;box-sizing:border-box;padding:6px 8px;font-size:12px;margin-bottom:5px;border:1px solid var(--border);border-radius:4px;font-family:inherit"><input type="text" id="ic-compose-cta" placeholder="Read the full post — link in bio." style="width:100%;box-sizing:border-box;padding:6px 8px;font-size:12px;margin-bottom:6px;border:1px solid var(--border);border-radius:4px;font-family:inherit"><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="action-btn" style="font-size:11px" onclick="composeWriteCopy()">✦ Write the copy for me</button><button type="button" class="action-btn primary" style="font-size:11px" onclick="composeExact()">Compose from the selected photo</button></div><div id="ic-compose-status" style="font-size:11px;line-height:1.5;color:var(--text-muted);margin-top:6px"></div></details><div id="ic-refs-attached" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div><div id="ic-ref-status" style="font-size:11px;line-height:1.5;color:var(--text-muted);margin-top:4px"></div>
   <div class="ic-controls"><select id="ic-action" aria-label="Image action" onchange="syncImageChatSendLabel()"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-format" aria-label="Asset format" title="What KIND of asset to make"><option value="auto">✦ Format: Auto — read the post and choose</option><option value="image">Editorial photo</option><option value="quote">Quote card</option><option value="stat">Stat card</option><option value="infographic">Infographic / diagram</option><option value="chart">Chart (real numbers)</option><option value="carousel">Carousel slide</option><option value="reel">Reel cover frame</option><option value="freeform">Free-form — my words only</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
   <div class="ic-controls"><button class="action-btn" id="ic-send" onclick="sendImageChat()">Send</button><button class="action-btn" id="ic-recover" onclick="recoverImageChat()" hidden>Check last request</button><button class="action-btn" id="ic-save-recovery" onclick="saveImageChatRecovery()" hidden>Save returned version</button></div>
   <div id="ic-status" role="status"></div>
@@ -12794,6 +12794,13 @@ async function openImageChat(id){
   if(clearStalePending(id)) showToast('Cleared a stalled image request — you can generate again','success');
   document.getElementById('ic-message').value='';
   wireCraftRefInput(); renderCraftRefs();
+  (function(){
+    const cs = document.getElementById('ic-compose-layout');
+    if(cs && !cs.childElementCount){
+      cs.innerHTML = PHOTO_LAYOUTS.map(function(l){ return '<option value="'+l.id+'">'+escapeHTML(l.label)+'</option>'; }).join('');
+      cs.value = 'stat-right';
+    }
+  })();
   // Was hardwired to 'discuss' on every open, so typing an adjustment and
   // pressing Send produced a paragraph ABOUT the change and left the image
   // untouched -- which reads as the field doing nothing. With an image
@@ -13170,6 +13177,293 @@ function syncImageChatSendLabel(){
   btn.textContent = {discuss:'Discuss', create:'Create image', revise:'Revise image'}[sel.value] || 'Send';
 }
 
+// ── EXACT COMPOSITION, IN THE BROWSER ──
+// Asking an image model to EDIT a photograph means it can always decide to
+// re-render instead, and twice it did: Erika picked a real job photo and got
+// back a plausible but invented bathroom. Posting a room that is not ours as
+// our work is worse than wrong hardware.
+//
+// So the job is split where each side is actually good. The MODEL writes the
+// words -- it is reliable at that, and it is Claude, so no image credits. The
+// BROWSER draws the pixels: the photograph is drawn from its own bytes and the
+// type is laid over it on a canvas. The photo cannot change, by construction.
+const COMPOSE_BRAND = {
+  eridion:  {panel:'#153862', ink:'#FFFFFF', accent:'#32A200', dim:'#C9D3E2',
+             head:'"Archivo Expanded","Outfit",system-ui,sans-serif', headWeight:700, upper:true,
+             body:'"Inter",system-ui,sans-serif'},
+  erika:    {panel:'#1F2A4A', ink:'#FFFFFF', accent:'#43B047', dim:'#C9D3E2',
+             head:'"Archivo Expanded","Outfit",system-ui,sans-serif', headWeight:700, upper:false,
+             body:'"Inter",system-ui,sans-serif'},
+  quinta:   {panel:'#3D544A', ink:'#FAFAF6', accent:'#DFE7E0', dim:'#C3D0C6',
+             head:'"Fraunces",Georgia,serif', headWeight:600, upper:false,
+             body:'"Inter",system-ui,sans-serif'},
+  practice: {panel:'#4F6B5C', ink:'#FAFAF6', accent:'#DFE7E0', dim:'#C3D0C6',
+             head:'"Fraunces",Georgia,serif', headWeight:600, upper:false,
+             body:'"Inter",system-ui,sans-serif'}
+};
+
+// R2 images must be fetched as a CORS request or toBlob() throws SecurityError
+// on the tainted canvas. The cache-buster is not optional: a plain <img> may
+// already have cached a NON-CORS copy of this exact URL, and the browser will
+// reuse it -- the same r2.dev trap that broke catalog downloads.
+function composeLoadImage(url){
+  return new Promise(function(resolve, reject){
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function(){ resolve(img); };
+    img.onerror = function(){ reject(new Error('Could not load that photo for composing.')); };
+    img.src = url + (url.indexOf('?') < 0 ? '?' : '&') + 'compose=' + Date.now();
+  });
+}
+
+function composeWrap(ctx, text, maxWidth){
+  const words = String(text||'').split(/\s+/).filter(Boolean);
+  const lines = []; let line = '';
+  for(const w of words){
+    const test = line ? line + ' ' + w : w;
+    if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line = w; }
+    else line = test;
+  }
+  if(line) lines.push(line);
+  return lines;
+}
+
+// Shrink until the block fits its box. Type floors still apply, so if it will
+// not fit at the floor the copy is too long and we say so rather than render
+// something unreadable.
+function composeFitBlock(ctx, text, fam, weight, maxWidth, maxHeight, startPx, minPx, lh){
+  for(let px = startPx; px >= minPx; px -= Math.max(1, Math.round(startPx*0.03))){
+    ctx.font = weight + ' ' + px + 'px ' + fam;
+    const lines = composeWrap(ctx, text, maxWidth);
+    if(lines.length * px * lh <= maxHeight) return {px:px, lines:lines};
+  }
+  ctx.font = weight + ' ' + minPx + 'px ' + fam;
+  return {px:minPx, lines:composeWrap(ctx, text, maxWidth), overflow:true};
+}
+
+function composeDrawLines(ctx, lines, x, y, px, lh){
+  let yy = y;
+  for(const l of lines){ ctx.fillText(l, x, yy + px); yy += px * lh; }
+  return yy;
+}
+
+// Cover-fit, so the photo fills its rect without distortion.
+function composeDrawPhoto(ctx, img, x, y, w, h){
+  const r = Math.max(w / img.width, h / img.height);
+  const dw = img.width * r, dh = img.height * r;
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.drawImage(img, x + (w - dw)/2, y + (h - dh)/2, dw, dh);
+  ctx.restore();
+}
+
+function composeGeometry(layoutId, W, H){
+  switch(layoutId){
+    case 'stat-left':   return {photo:{x:W/3, y:0, w:W*2/3, h:H},   panel:{x:0, y:0, w:W/3, h:H}};
+    case 'stat-right':  return {photo:{x:0, y:0, w:W*2/3, h:H},     panel:{x:W*2/3, y:0, w:W/3, h:H}};
+    case 'band-bottom': return {photo:{x:0, y:0, w:W, h:H},         panel:{x:0, y:H*0.66, w:W, h:H*0.34}};
+    case 'photo-top':   return {photo:{x:0, y:0, w:W, h:H*0.6},     panel:{x:0, y:H*0.6, w:W, h:H*0.4}};
+    default:            return {photo:{x:0, y:0, w:W, h:H},         panel:{x:0, y:H*0.58, w:W, h:H*0.42}, scrim:true};
+  }
+}
+
+async function composeExact(){
+  const status = document.getElementById('ic-compose-status');
+  const say = function(m){ if(status) status.textContent = m; };
+  const it = library.find(x=>x.id===imageChatPostId);
+  if(!it){ say('Open a post first.'); return; }
+  const st = imageChatState(it);
+  let active = (st.versions||[]).find(function(v){ return v.id === st.activeId; });
+  if(!active){ say('Pick a job photo with \u201cUse\u201d above first \u2014 there is no photo selected.'); return; }
+  // Composing leaves the COMPOSED image active, so a second pass -- fixing a
+  // headline, trying another layout -- would draw a panel on top of a panel.
+  // Walk back to the photograph this was built from.
+  let guard = 0;
+  while(active && active.composed && active.parentId && guard++ < 12){
+    const parent = (st.versions||[]).find(function(v){ return v.id === active.parentId; });
+    if(!parent) break;
+    active = parent;
+  }
+  if(active && active.composed){ say('That version is already a composed card. Pick the job photo again with \u201cUse\u201d.'); return; }
+
+  const voice = imageVisualVoice(it);
+  const brand = COMPOSE_BRAND[voice] || COMPOSE_BRAND.eridion;
+  const layoutId = (document.getElementById('ic-compose-layout')||{}).value || 'stat-right';
+  const head = (document.getElementById('ic-compose-head').value||'').trim();
+  const stat = (document.getElementById('ic-compose-stat').value||'').trim();
+  const statLabel = (document.getElementById('ic-compose-statlabel').value||'').trim();
+  const line = (document.getElementById('ic-compose-line').value||'').trim();
+  const cta = (document.getElementById('ic-compose-cta').value||'').trim();
+  if(!head && !stat){ say('Give it a headline or a figure first \u2014 or press \u201cWrite the copy for me\u201d.'); return; }
+
+  const szv = ((document.getElementById('ic-size')||{}).value || '1024x1280').split('x');
+  const W = Number(szv[0])||1024, H = Number(szv[1])||1280;
+
+  say('Loading the photograph\u2026');
+  let img;
+  try{ img = await composeLoadImage(active.url); }
+  catch(e){ say(e.message); return; }
+
+  try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){}
+
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const g = composeGeometry(layoutId, W, H);
+
+  ctx.fillStyle = brand.panel; ctx.fillRect(0,0,W,H);
+  composeDrawPhoto(ctx, img, g.photo.x, g.photo.y, g.photo.w, g.photo.h);
+
+  if(g.scrim){
+    const grad = ctx.createLinearGradient(0, H*0.40, 0, H);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.78)');
+    ctx.fillStyle = grad; ctx.fillRect(0, H*0.40, W, H*0.60);
+  } else {
+    ctx.fillStyle = brand.panel;
+    ctx.fillRect(g.panel.x, g.panel.y, g.panel.w, g.panel.h);
+  }
+
+  // TEXT LAYOUT. The first version shrank each block only until its HEIGHT
+  // fitted, which broke twice on the first real compose: "$3,750" is a single
+  // unbreakable token, so it stayed one line WIDER than the panel and was
+  // clipped; and the call to action was positioned after everything else, so a
+  // long headline pushed it off the bottom edge.
+  //
+  // So: measure the WHOLE block at a scale, check width AND height, and step
+  // the scale down until it genuinely fits. The CTA is reserved before the body
+  // is laid out, because it is the one element that must never be lost.
+  const padX = Math.round(g.panel.w * 0.085);
+  const padY = Math.round(g.panel.h * 0.085);
+  const x = g.panel.x + padX;
+  const maxW = g.panel.w - padX*2;
+  const floor = Math.round(H * 0.030);
+  const top = g.panel.y + padY;
+  const hardBottom = g.panel.y + g.panel.h - padY;
+  ctx.textBaseline = 'alphabetic';
+
+  const RULE_GAP = Math.round(H * 0.026);
+
+  function measureAt(scale){
+    const blocks = [];
+    let total = 0, tooWide = false;
+    const add = function(text, fam, weight, basePx, lh, colour, gapBefore, rule){
+      if(!text) return;
+      const px = Math.max(floor, Math.round(basePx * scale));
+      ctx.font = weight + ' ' + px + 'px ' + fam;
+      const lines = composeWrap(ctx, text, maxW);
+      for(const l of lines){ if(ctx.measureText(l).width > maxW) tooWide = true; }
+      const h = lines.length * px * lh;
+      blocks.push({lines:lines, px:px, lh:lh, fam:fam, weight:weight, colour:colour, gapBefore:gapBefore, rule:rule});
+      total += gapBefore + h + (rule ? RULE_GAP : 0);
+    };
+    add(brand.upper ? head.toUpperCase() : head, brand.head, brand.headWeight, H*0.060, 1.12, brand.ink, 0, false);
+    add(stat,      brand.head, brand.headWeight, H*0.082, 1.05, brand.accent, RULE_GAP, true);
+    add(statLabel, brand.body, '500',            H*0.032, 1.30, brand.ink,    Math.round(H*0.008), false);
+    add(line,      brand.body, '500',            H*0.034, 1.34, brand.ink,    Math.round(H*0.018), false);
+    return {blocks:blocks, total:total, tooWide:tooWide};
+  }
+
+  // Reserve the CTA first. It is an instruction, and a post that loses it is
+  // unfinished - so it is never the thing that gets squeezed out.
+  let ctaFit = null, ctaReserve = 0;
+  if(cta){
+    for(let scale = 1; scale >= 0.6; scale -= 0.05){
+      const px = Math.max(floor, Math.round(H*0.032*scale));
+      ctx.font = '700 ' + px + 'px ' + brand.body;
+      const lines = composeWrap(ctx, cta, maxW);
+      let wide = false;
+      for(const l of lines){ if(ctx.measureText(l).width > maxW) wide = true; }
+      if(!wide || scale <= 0.6){ ctaFit = {lines:lines, px:px}; break; }
+    }
+    ctaReserve = ctaFit.lines.length * ctaFit.px * 1.26 + RULE_GAP * 2;
+  }
+  const bodyBottom = hardBottom - ctaReserve;
+  const avail = bodyBottom - top;
+
+  let fit = null;
+  for(let scale = 1; scale >= 0.45; scale -= 0.04){
+    const m = measureAt(scale);
+    if(!m.tooWide && m.total <= avail){ fit = m; break; }
+  }
+  if(!fit){
+    fit = measureAt(0.45);
+    say('That is a lot of copy for this layout \u2014 shorten the headline or the label if it looks tight.');
+  }
+
+  let y = top;
+  for(const b of fit.blocks){
+    y += b.gapBefore;
+    if(b.rule){
+      ctx.strokeStyle = brand.accent; ctx.lineWidth = Math.max(2, Math.round(H*0.0022));
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + maxW, y); ctx.stroke();
+      y += RULE_GAP;
+    }
+    ctx.fillStyle = b.colour; ctx.font = b.weight + ' ' + b.px + 'px ' + b.fam;
+    y = composeDrawLines(ctx, b.lines, x, y, b.px, b.lh);
+  }
+
+  if(ctaFit){
+    const ctaH = ctaFit.lines.length * ctaFit.px * 1.26;
+    const ctaY = hardBottom - ctaH;
+    ctx.strokeStyle = brand.accent; ctx.lineWidth = Math.max(2, Math.round(H*0.0022));
+    ctx.beginPath(); ctx.moveTo(x, ctaY - RULE_GAP); ctx.lineTo(x + maxW, ctaY - RULE_GAP); ctx.stroke();
+    ctx.fillStyle = brand.accent; ctx.font = '700 ' + ctaFit.px + 'px ' + brand.body;
+    composeDrawLines(ctx, ctaFit.lines, x, ctaY, ctaFit.px, 1.26);
+  }
+
+  say('Uploading\u2026');
+  let blob;
+  try{
+    blob = await new Promise(function(res, rej){ cv.toBlob(function(b){ b ? res(b) : rej(new Error('Could not read the canvas.')); }, 'image/png'); });
+  }catch(e){ say('The photo would not release for composing (CORS). Try the \u201cfrom catalog\u201d photos, which are served from our own bucket.'); return; }
+
+  try{
+    const up = await uploadImage(new File([blob], 'composed.png', {type:'image/png'}));
+    imageChatCommit(imageChatPostId, function(next){
+      const s2 = next.imageChat = imageChatState(next);
+      const vid = crypto.randomUUID();
+      s2.versions = (s2.versions||[]).concat([{id:vid, url:up.url, size:W+'x'+H, label:'Composed '+(s2.versions.filter(function(v){return /^Composed/.test(v.label||'');}).length+1), createdAt:Date.now(), parentId:active.id, composed:true}]);
+      s2.activeId = vid;
+    });
+    renderImageChat();
+    say('Composed from your photograph \u2014 it was not regenerated. Review it, then \u201cUse for this post\u201d.');
+  }catch(e){ say('Composed, but the upload failed: '+e.message); }
+}
+
+// Claude writes the words; the canvas draws them. Text-only, so no image credits.
+async function composeWriteCopy(){
+  const status = document.getElementById('ic-compose-status');
+  const say = function(m){ if(status) status.textContent = m; };
+  const it = library.find(x=>x.id===imageChatPostId);
+  if(!it){ say('Open a post first.'); return; }
+  const voice = imageVisualVoice(it);
+  const src = imageSourcePost(it);
+  const el = document.createElement('div');
+  el.innerHTML = String(src.blog_text || src.linkedin_text || it.linkedin_text || '');
+  const post = ((it.title||'') + '\n\n' + (el.textContent||'')).slice(0, 4000);
+  if(!post.trim()){ say('This post has no copy to read yet.'); return; }
+  say('Reading the post\u2026');
+  const prompt = (voicePrompts[voice]||'') + '\n' + HOUSE_STYLE
+    + '\n\nWrite the on-image copy for a social graphic built on a photograph of our own finished work.\n\nTHE POST:\n---\n' + post + '\n---\n\n'
+    + 'Return ONLY this JSON, no fences and no commentary:\n'
+    + '{"headline":"", "stat":"", "stat_label":"", "line":"", "cta":""}\n\n'
+    + 'headline: the post\u2019s own payoff, 4-9 words, in its voice.\n'
+    + 'stat: ONE figure that is ALREADY IN THE POST, written as it appears (e.g. "$3,750", "4-6 weeks"). Empty string if the post has no figure \u2014 never invent one.\n'
+    + 'stat_label: 4-9 words saying what that figure is. Empty if stat is empty.\n'
+    + 'line: one supporting sentence, under 12 words. May be empty.\n'
+    + 'cta: an INSTRUCTION naming one action, not a question, e.g. "Read the full post \u2014 link in bio."\n'
+    + 'Every word must be supported by the post. Add no claim that is not in it.';
+  try{
+    const data = await callClaude({model:MODEL_CREATIVE, max_tokens:700, messages:[{role:'user', content:prompt}]});
+    const d = extractJSONFromResponse(data);
+    document.getElementById('ic-compose-head').value = d.headline || '';
+    document.getElementById('ic-compose-stat').value = d.stat || '';
+    document.getElementById('ic-compose-statlabel').value = d.stat_label || '';
+    document.getElementById('ic-compose-line').value = d.line || '';
+    document.getElementById('ic-compose-cta').value = d.cta || '';
+    say('Copy written from the post \u2014 edit anything, then compose.');
+  }catch(e){ say('Could not write the copy: '+e.message); }
+}
+
 // ── THE JOB-PHOTO CATALOG ──
 // 946 tagged photos of real Eridion work sit on R2 already, 409 of them graded
 // "hero", product-tagged and captioned. Erika, 2026-11-13: pull from it, and
@@ -13245,14 +13539,30 @@ let _catalogGroup = null;
 // Was a hard .slice(0,24) with a fixed sort, so the same two dozen photos
 // came up every time out of hundreds. Erika: "the images listed to choose
 // from catalog are limited and never change."
-let _catalogLimit = 24;
+let _catalogLimit = 36;
 let _catalogQuery = '';
+// Search and "show more" were only half the fix. The sort was still
+// deterministic, so the DEFAULT view showed the identical first 24 on every
+// open -- which is what Erika reported twice: "limited and never change".
+// A seed per open reshuffles the set, so a different mix of her 283 shower
+// photos comes up each time, while staying stable across show-more and typing
+// in the search box within that open.
+let _catalogSeed = 1;
+function catalogReshuffle(){ _catalogSeed = (Date.now() ^ Math.floor(Math.random()*1e9)) >>> 0; }
+// Cheap deterministic hash of id+seed: same seed gives the same order.
+function catalogRank(id){
+  let h = _catalogSeed >>> 0;
+  const t = String(id);
+  for(let i=0;i<t.length;i++) h = Math.imul(h ^ t.charCodeAt(i), 16777619) >>> 0;
+  return h;
+}
 function catalogSearchChanged(){
   _catalogQuery = (document.getElementById('ic-catalog-q')||{}).value || '';
   _catalogLimit = 24;
   renderCatalogPicker();
 }
 function catalogShowMore(){ _catalogLimit += 36; renderCatalogPicker(); }
+function catalogShuffle(){ catalogReshuffle(); _catalogLimit = 36; renderCatalogPicker(); }
 
 async function toggleCatalogPicker(){
   const panel = document.getElementById('ic-catalog');
@@ -13264,6 +13574,8 @@ async function toggleCatalogPicker(){
     sel.innerHTML = PHOTO_LAYOUTS.map(function(l){ return '<option value="'+l.id+'">'+escapeHTML(l.label)+'</option>'; }).join('');
   }
   if(!_catalogGroup) _catalogGroup = detectCatalogGroup();
+  catalogReshuffle();   // a different mix every time it opens
+  _catalogLimit = 36;
   await renderCatalogPicker();
 }
 
@@ -13295,7 +13607,12 @@ async function renderCatalogPicker(){
     if(!words.length) return true;
     const h = hay(a);
     return words.every(function(w){ return h.indexOf(w) >= 0; });
-  }).sort(function(a,b){ return (b.grade==='hero') - (a.grade==='hero'); });
+  }).sort(function(a,b){
+    // Hero still outranks ok, but WITHIN a grade the order is reshuffled per
+    // open so the same two dozen do not come up for ever.
+    const g = (b.grade==='hero') - (a.grade==='hero');
+    return g !== 0 ? g : (catalogRank(a.id) - catalogRank(b.id));
+  });
   const match = all.slice(0, _catalogLimit);
   if(!match.length){ grid.innerHTML = '<span style="font-size:11px;color:var(--text-muted)">' + (q ? 'Nothing matches “'+escapeHTML(q)+'” in this group.' : 'Nothing tagged for that yet.') + '</span>'; if(status) status.textContent=''; return; }
   grid.innerHTML = match.map(function(a){
@@ -13310,7 +13627,8 @@ async function renderCatalogPicker(){
   if(status){
     status.innerHTML = 'Showing ' + match.length + ' of ' + all.length
       + ' \u00b7 Ref = teach it the hardware \u00b7 Use = build the post ON this real photo'
-      + (all.length > match.length ? ' \u00b7 <a href="#" onclick="event.preventDefault();catalogShowMore()">show more</a>' : '');
+      + (all.length > match.length ? ' \u00b7 <a href="#" onclick="event.preventDefault();catalogShowMore()">show more</a>' : '')
+      + ' \u00b7 <a href="#" onclick="event.preventDefault();catalogShuffle()">shuffle</a>';
   }
 }
 
