@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 18:30</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 19:15</span></div>
     </div>
   </header>
 
@@ -12770,7 +12770,7 @@ function imageChatMount(){
   <div class="ic-controls"><button class="action-btn" id="ic-use" onclick="imageChatUse()">Use for this post</button><button class="action-btn" id="ic-reject" onclick="toggleRejectPanel()" title="Say what is wrong with it so the next one is better">✗ Not this — teach it</button><button class="action-btn" id="ic-undo" onclick="imageChatUndo()">Undo image selection</button></div>
   <details><summary class="ic-label">Source &amp; brand context</summary><div id="ic-source" class="ic-source"></div></details></section>
   <section aria-label="Image conversation"><div class="ic-idea"><h3>A starting idea for this post</h3><div id="ic-idea-copy" class="ic-idea-copy" aria-live="polite"></div><div class="ic-controls"><button class="action-btn" id="ic-create-idea" onclick="createImageChatIdea()">Create this idea</button><button class="action-btn" id="ic-suggest" onclick="suggestImageChat()">Suggest another direction</button><button class="action-btn" onclick="resetImageChatThread()" title="Forget this post’s image conversation and start from the post copy alone">↺ Start fresh</button></div></div><div id="ic-thread" class="ic-thread" role="log" aria-live="polite"></div>
-  <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea>
+  <label class="ic-label" for="ic-message">How would you like to adjust the idea or image?</label><textarea id="ic-message" maxlength="4000" placeholder="Try a photo instead, make it simpler, or tell me what to change…"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px"><label class="action-btn" style="font-size:12px;cursor:pointer;margin:0">📎 Add reference photo<input type="file" accept="image/*" multiple style="display:none" onchange="addCraftRefFiles(this.files);this.value=''"></label><span style="font-size:11px;color:var(--text-muted)">or paste / drop a photo into the box above</span></div><div id="ic-refs-attached" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div><div id="ic-ref-status" style="font-size:11px;line-height:1.5;color:var(--text-muted);margin-top:4px"></div>
   <div class="ic-controls"><select id="ic-action" aria-label="Image action" onchange="syncImageChatSendLabel()"><option value="discuss">Discuss direction</option><option value="create">Create a new image</option><option value="revise">Revise selected image</option></select><select id="ic-format" aria-label="Asset format" title="What KIND of asset to make"><option value="auto">✦ Format: Auto — read the post and choose</option><option value="image">Editorial photo</option><option value="quote">Quote card</option><option value="stat">Stat card</option><option value="infographic">Infographic / diagram</option><option value="chart">Chart (real numbers)</option><option value="carousel">Carousel slide</option><option value="reel">Reel cover frame</option><option value="freeform">Free-form — my words only</option></select><select id="ic-size" aria-label="Image dimensions"><option value="1024x1280">Portrait · 4:5 · 1024 × 1280</option><option value="1024x1024">Square · 1024 × 1024</option><option value="1536x1024">Landscape · 1536 × 1024</option><option value="1024x1536">Tall · 2:3 · 1024 × 1536</option></select></div>
   <div class="ic-controls"><button class="action-btn" id="ic-send" onclick="sendImageChat()">Send</button><button class="action-btn" id="ic-recover" onclick="recoverImageChat()" hidden>Check last request</button><button class="action-btn" id="ic-save-recovery" onclick="saveImageChatRecovery()" hidden>Save returned version</button></div>
   <div id="ic-status" role="status"></div>
@@ -12793,6 +12793,7 @@ async function openImageChat(id){
   // dialog opens usable.
   if(clearStalePending(id)) showToast('Cleared a stalled image request — you can generate again','success');
   document.getElementById('ic-message').value='';
+  wireCraftRefInput(); renderCraftRefs();
   // Was hardwired to 'discuss' on every open, so typing an adjustment and
   // pressing Send produced a paragraph ABOUT the change and left the image
   // untouched -- which reads as the field doing nothing. With an image
@@ -13169,6 +13170,132 @@ function syncImageChatSendLabel(){
   btn.textContent = {discuss:'Discuss', create:'Create image', revise:'Revise image'}[sel.value] || 'Send';
 }
 
+// ── REFERENCE PHOTOS ON THE MESSAGE ──
+// Erika, 2026-11-13, after the image creator kept getting glass wrong: "can we
+// add the ability to paste images of things (showers, wine rooms, other glass)
+// to help it build the images more realistically?" -- and then, seeing the UI,
+// "i feel it would go in the 'how would you like to adjust...' box."
+//
+// She had already tried. The transcript shows her typing "close but the door
+// would never be in that position" followed by a link to her image library,
+// and Studio answering as though nothing was attached: the model cannot open a
+// web page, and nothing in the app noticed. So two things are needed here --
+// a real way to attach the photos, and an honest word when she pastes a link
+// instead of a picture.
+//
+// These are CONSTRUCTION references, not the style exemplars in the Brand Refs
+// tab. The worker labels every reference "STYLE REFERENCE", so the per-image
+// note (1,000 chars, ours to write) has to say plainly that this one is about
+// the hardware and NOT about the look.
+const CRAFT_REF_NOTE =
+  'CONSTRUCTION REFERENCE \u2014 NOT a style reference. This is a photograph of REAL built work of the kind the new image must depict. '
++ 'Copy the PHYSICAL ASSEMBLY from it exactly: how each panel is supported, where hinges, clips, patches and standoffs sit and how many there are, '
++ 'which edge carries the hinges and which carries the pull, how the door meets the jamb and the curb, the thickness of the glass and its edgework, '
++ 'and how the hardware actually fastens. '
++ 'Do NOT copy its room, furniture, styling, colours, lighting, camera angle or composition, and do not reproduce any text or logo visible in it. '
++ 'Take ONLY the engineering. The finished image must be one a glazier would accept as buildable.';
+
+function craftRefs(it){
+  const st = imageChatState(it);
+  return Array.isArray(st.craftRefs) ? st.craftRefs : [];
+}
+
+function renderCraftRefs(){
+  const box = document.getElementById('ic-refs-attached');
+  if(!box) return;
+  const it = library.find(x=>x.id===imageChatPostId);
+  const list = it ? craftRefs(it) : [];
+  box.innerHTML = list.map(function(r,i){
+    return '<span style="position:relative;display:inline-block">'
+      + '<img src="'+escapeHTML(r.url)+'" alt="" style="width:64px;height:64px;object-fit:cover;border:1px solid var(--border);border-radius:4px;display:block">'
+      + '<button type="button" title="Remove" onclick="removeCraftRef('+i+')" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;line-height:16px;padding:0;border-radius:9px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:12px">\u00d7</button>'
+      + '</span>';
+  }).join('');
+  updateCraftRefStatus();
+}
+
+// The status line has ONE owner, so a transient message ("Uploading\u2026", "not an
+// image") cannot sit there stale, and the page-link warning is not swallowed
+// just because photos happen to be attached.
+function updateCraftRefStatus(transient){
+  const status = document.getElementById('ic-ref-status');
+  if(!status) return;
+  if(transient){ status.textContent = transient; return; }
+  const it = library.find(x=>x.id===imageChatPostId);
+  const list = it ? craftRefs(it) : [];
+  const ta = document.getElementById('ic-message');
+  const urls = (((ta && ta.value) || '').match(/https?:\/\/\S+/g) || []);
+  const pageLinks = urls.filter(function(u){ return !/\.(png|jpe?g|webp|gif)(\?|#|$)/i.test(u); });
+  const parts = [];
+  if(pageLinks.length) parts.push('Studio cannot open a web page \u2014 that link will be ignored. Save the photos you mean and attach them below, or paste them straight into this box.');
+  if(list.length){
+    const brandLeft = Math.max(0, REF_SOFT_CAP - list.length);
+    parts.push(list.length + ' reference photo' + (list.length===1?'':'s')
+      + ' \u2014 the model copies the hardware from '+(list.length===1?'it':'them')+', not the styling.'
+      + (brandLeft===0 ? ' Your Brand Refs will not ride along on this request (5 is the limit).' : ''));
+  }
+  status.textContent = parts.join(' ');
+}
+
+async function addCraftRefFiles(files){
+  const it = library.find(x=>x.id===imageChatPostId);
+  if(!it) return;
+  const list = Array.from(files||[]).filter(function(f){ return f && (f.type||'').startsWith('image/'); });
+  if(!list.length){ updateCraftRefStatus('That was not an image file.'); return; }
+  const room = REF_SOFT_CAP - craftRefs(it).length;
+  if(room <= 0){ updateCraftRefStatus('Five reference photos is the limit \u2014 remove one first.'); return; }
+  const take = list.slice(0, room);
+  updateCraftRefStatus('Uploading '+take.length+' photo'+(take.length===1?'':'s')+'\u2026');
+  for(const f of take){
+    try{
+      const up = await uploadImage(f);
+      imageChatCommit(imageChatPostId, function(next){
+        const st = next.imageChat = imageChatState(next);
+        st.craftRefs = (Array.isArray(st.craftRefs)?st.craftRefs:[]).concat([{url:up.url, at:Date.now()}]);
+      });
+    }catch(e){
+      renderCraftRefs();
+      updateCraftRefStatus('Could not attach that photo: '+e.message);
+      return;
+    }
+  }
+  renderCraftRefs();
+  if(list.length > take.length) updateCraftRefStatus('Added '+take.length+'; five is the limit.');
+}
+
+function removeCraftRef(i){
+  try{
+    imageChatCommit(imageChatPostId, function(next){
+      const st = next.imageChat = imageChatState(next);
+      const arr = Array.isArray(st.craftRefs)?st.craftRefs.slice():[];
+      arr.splice(i,1);
+      st.craftRefs = arr;
+    });
+  }catch(e){ imageChatNotice('Could not remove that photo: '+e.message); return; }
+  renderCraftRefs();
+}
+
+// Paste and drop, on the box she already reached for.
+function wireCraftRefInput(){
+  const ta = document.getElementById('ic-message');
+  if(!ta || ta.dataset.refsWired) return;
+  ta.dataset.refsWired = '1';
+  ta.addEventListener('paste', function(e){
+    const files = Array.from((e.clipboardData && e.clipboardData.files) || []);
+    const imgs = files.filter(function(f){ return (f.type||'').startsWith('image/'); });
+    if(imgs.length){ e.preventDefault(); addCraftRefFiles(imgs); }
+  });
+  ta.addEventListener('dragover', function(e){ e.preventDefault(); });
+  ta.addEventListener('drop', function(e){
+    const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+    const imgs = files.filter(function(f){ return (f.type||'').startsWith('image/'); });
+    if(imgs.length){ e.preventDefault(); addCraftRefFiles(imgs); }
+  });
+  // She pasted a link to her image library once and nothing said a word. A page
+  // URL is not an image, and the model cannot open one.
+  ta.addEventListener('input', function(){ updateCraftRefStatus(); });
+}
+
 async function sendImageChat(options={}){
   if(imageChatBusy)return;
   const id=imageChatPostId,it=library.find(x=>x.id===id),s=imageChatState(it),action=options.action||document.getElementById('ic-action').value;
@@ -13211,7 +13338,13 @@ async function sendImageChat(options={}){
   // where continuity is the point.
   // Pre-flight the URLs OpenAI will have to fetch. Dropping a dead reference
   // costs nothing; sending one costs the entire generation.
-  let refs=getBrandRefs(imageVisualVoice(it));
+  // Construction photos go FIRST and brand refs fill what is left: the worker
+  // hard-caps the array at five, and when glass is coming out wrong a real
+  // photo of the assembly is worth more than another look exemplar.
+  const craft = craftRefs(it).slice(0, REF_SOFT_CAP).map(function(r){
+    return {url:r.url, title:'Reference photo', note:CRAFT_REF_NOTE};
+  });
+  let refs = craft.concat(getBrandRefs(imageVisualVoice(it)).slice(0, Math.max(0, REF_SOFT_CAP - craft.length)));
   let wantBase=formatted?null:(base?.url||null);
   if(refs.length||wantBase){
     imageChatNotice('Checking your brand references are still reachable…');
