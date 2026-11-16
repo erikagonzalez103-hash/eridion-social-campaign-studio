@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-13 22:30</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-16 10:20</span></div>
     </div>
   </header>
 
@@ -12015,14 +12015,72 @@ function probeImageUrl(url,timeoutMs){
     const timer=setTimeout(()=>finish(false),timeoutMs||6000);
     img.onload=()=>{ clearTimeout(timer); finish(img.naturalWidth>0); };
     img.onerror=()=>{ clearTimeout(timer); finish(false); };
-    img.src=url;
+    // CACHE-BUSTED, deliberately. Without this the probe loads from the browser
+    // cache -- and the Brand Refs tab has already rendered these very
+    // thumbnails -- so a dead or unreachable origin passed every time. It was
+    // testing the cache, not the URL OpenAI actually has to fetch.
+    img.src = url + (url.indexOf('?')<0?'?':'&') + 'probe=' + Date.now();
   });
+}
+
+// OpenAI fetches every reference URL ITSELF, from its own servers, with a
+// short timeout -- "Unable to download content from the provided URL before the
+// timeout". Our R2 bucket answers quickly and is the host the worker is built
+// around; a third-party host is a liability we cannot fix from here. ImgBB in
+// particular serves no CORS headers and its old links are the known legacy:
+// they were already rejected by Buffer and by Wix.
+//
+// So anything not on R2 is copied onto R2 once and remembered. Where the source
+// forbids CORS we cannot copy it, and the reference is dropped BY NAME rather
+// than failing the whole generation.
+// Derived from the manifest URL rather than written out again, so there is one
+// place the bucket host lives. LAZY, not a top-level const: this block sits
+// ABOVE where CATALOG_MANIFEST_URL is declared, so evaluating it at load hit
+// the temporal dead zone, the catch swallowed it, and every URL then looked
+// like a third-party one -- including our own.
+let _r2Host = null;
+function r2Host(){
+  if(_r2Host !== null) return _r2Host;
+  try{ _r2Host = new URL(CATALOG_MANIFEST_URL).hostname; }
+  catch(_){ _r2Host = 'pub-17160ed212d74341a64e62d4f71d7c34.r2.dev'; }
+  return _r2Host;
+}
+const REHOST_KEY = 'eridion_rehosted_refs_v1';
+function rehostMap(){ try{ return JSON.parse(localStorage.getItem(REHOST_KEY)||'{}')||{}; }catch(_){ return {}; } }
+function rememberRehost(from,to){
+  try{ const m=rehostMap(); m[from]=to; localStorage.setItem(REHOST_KEY, JSON.stringify(m)); }catch(_){}
+}
+function isOnR2(url){ try{ return new URL(url).hostname === r2Host(); }catch(_){ return false; } }
+
+async function rehostForOpenAI(url){
+  if(!url) return null;
+  if(isOnR2(url)) return url;
+  const known = rehostMap()[url];
+  if(known) return known;
+  try{
+    const r = await fetch(url + (url.indexOf('?')<0?'?':'&') + 'rehost=' + Date.now(), {mode:'cors', cache:'no-store'});
+    if(!r.ok) return null;
+    const blob = await r.blob();
+    if(!blob || !/^image\//.test(blob.type||'')) return null;
+    const ext = (blob.type.split('/')[1]||'png').replace('jpeg','jpg');
+    const up = await uploadImage(new File([blob], 'ref.'+ext, {type:blob.type}));
+    rememberRehost(url, up.url);
+    return up.url;
+  }catch(_){ return null; }
 }
 
 // Splits picked references into the ones worth sending and the ones to report.
 // Probed in parallel so the pre-flight costs one timeout, not one per reference.
 async function liveReferences(refs){
-  const checked=await Promise.all((refs||[]).map(async r=>({ref:r,ok:await probeImageUrl(r.url)})));
+  // Copy off third-party hosts FIRST, then probe what will actually be sent.
+  const moved = await Promise.all((refs||[]).map(async function(r){
+    const url = await rehostForOpenAI(r.url);
+    return url ? Object.assign({}, r, {url:url}) : null;
+  }));
+  const checked = await Promise.all(moved.map(async function(r,i){
+    if(!r) return {ref:(refs||[])[i], ok:false};
+    return {ref:r, ok:await probeImageUrl(r.url)};
+  }));
   return {live:checked.filter(c=>c.ok).map(c=>c.ref),dead:checked.filter(c=>!c.ok).map(c=>c.ref)};
 }
 
