@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-16 10:20</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-17 14:05</span></div>
     </div>
   </header>
 
@@ -12874,9 +12874,19 @@ async function openImageChat(id){
   try{
     const r=await fetch(imageChatEndpoint(),{signal:AbortSignal.timeout(10000)});const d=await r.json();
     if(imageChatPostId!==id)return;
-    imageChatNotice(r.ok&&d.ready&&d.revision==='2026-09-27.1'?'Ready. Discuss a direction, or choose Create / Revise. New versions stay separate until you use one.':'Image chat is not enabled on the worker yet. Existing upload and prompt tools still work.');
-    document.getElementById('ic-send').disabled=!(r.ok&&d.ready&&d.revision==='2026-09-27.1')||!!imageChatState(it).pending;
-    if(r.ok&&d.ready&&d.revision==='2026-09-27.1'&&!imageChatState(it).pending&&document.getElementById('image-chat-dialog').open){
+    // DO NOT PIN THE WORKER REVISION HERE. This used to require exactly
+    // '2026-09-27.1', so the moment the worker was deployed the dialog said
+    // "Image chat is not enabled on the worker yet" and DISABLED Send -- the
+    // app disabling itself every time its own backend was updated. It cost
+    // Erika days: "it won't make any revisions". `ready` is the real signal
+    // (the route answered, and OpenAI, R2 and KV are all bound); the revision
+    // is for diagnosis, so it is shown, not enforced.
+    const chatReady = r.ok && !!d.ready;
+    imageChatNotice(chatReady
+      ? 'Ready. Discuss a direction, or choose Create / Revise. New versions stay separate until you use one.'
+      : 'Image chat is not available on the worker right now'+(d&&d.revision?(' (worker '+d.revision+')'):'')+'. Existing upload and prompt tools still work.');
+    document.getElementById('ic-send').disabled=!chatReady||!!imageChatState(it).pending;
+    if(chatReady&&!imageChatState(it).pending&&document.getElementById('image-chat-dialog').open){
       if(!imageChatState(it).suggestion||imageChatState(it).suggestionKey!==imageChatSuggestionKey(it))await suggestImageChat();
     }
   }catch(e){if(imageChatPostId===id){imageChatNotice('Cannot reach image chat. Your saved content is unchanged.');document.getElementById('ic-send').disabled=true;}}
