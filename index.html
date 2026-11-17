@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-17 15:40</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-17 17:15</span></div>
     </div>
   </header>
 
@@ -13955,9 +13955,46 @@ function reviseCraftBlock(it, activeVersion){
   return parts.join('\n\n');
 }
 
+// \u2500\u2500 "PLEASE USE THIS PHOTO" \u2500\u2500
+// Erika attached a photo, typed "Please use this photo instead of the one now"
+// and got back an invented image. Nothing was wrong with the request -- there
+// was simply no path from those words to the base image. An attached photo is
+// a REFERENCE (copy the hardware from it); only the "Use as photo" button makes
+// it the thing the post is built on, and nothing said so.
+//
+// Asking in plain words is the obvious thing to do, so it now works: when the
+// message plainly says to use the attached photo and there is exactly one
+// candidate, it is promoted to the base. Anything less clear-cut gets told
+// what is actually happening instead of silently ignoring her.
+const USE_THIS_PHOTO_RE = /\b(use|swap in|switch to|replace .{0,20}with)\b[^.?!]{0,40}\b(this|that|the attached|the new|my|these)\b[^.?!]{0,20}\b(photo|photograph|image|picture|pic|shot)\b/i;
+
+function photoCandidates(it){
+  const st = imageChatState(it);
+  const refs = craftRefs(it);
+  const haveAsVersion = {};
+  (st.versions||[]).forEach(function(v){ haveAsVersion[v.url] = v; });
+  return {refs:refs, haveAsVersion:haveAsVersion};
+}
+
+// Returns true when it promoted a photo, so the caller can re-read the base.
+function maybeUseAttachedPhoto(it, message){
+  if(!USE_THIS_PHOTO_RE.test(String(message||''))) return false;
+  const st = imageChatState(it);
+  const refs = craftRefs(it);
+  const active = (st.versions||[]).find(function(v){ return v.id === st.activeId; });
+  // Already building on an attached photo? Nothing to do.
+  if(active && refs.some(function(r){ return r.url === active.url; })) return false;
+  if(refs.length !== 1) return false;   // ambiguous: say so rather than guess
+  return useAsBasePhoto(refs[0].url, 'Your photo');
+}
+
 async function sendImageChat(options={}){
   if(imageChatBusy)return;
-  const id=imageChatPostId,it=library.find(x=>x.id===id),s=imageChatState(it),action=options.action||document.getElementById('ic-action').value;
+  // `s` and `action` are LET, not const: "use this photo" can promote an
+  // attached photo to the base mid-flight, which re-reads the state and turns a
+  // create into a revise.
+  const id=imageChatPostId,it=library.find(x=>x.id===id);
+  let s=imageChatState(it),action=options.action||document.getElementById('ic-action').value;
   // let, not const: a selected format REPLACES this with the generated brief.
   let message=(options.message||document.getElementById('ic-message').value).trim();
   // BEFORE anything else: a photo-edit direction sent as a CREATE drops the
@@ -13985,7 +14022,21 @@ async function sendImageChat(options={}){
     imageChatNotice('A request from '+mins+' minute'+(mins===1?'':'s')+' ago is still outstanding. Press “Check last request” to collect it — that does not start a second generation. After six minutes it is dropped automatically and Send comes back.');
     return;
   }
-  const base=s.versions.find(v=>v.id===s.activeId);if(action==='revise'&&!base){imageChatNotice('Choose an existing image, or create one first.');return;}
+  let base=s.versions.find(v=>v.id===s.activeId);
+  // Honour "use this photo" before deciding there is nothing to revise.
+  if(action!=='discuss' && maybeUseAttachedPhoto(it, message)){
+    s = imageChatState(library.find(x=>x.id===id));
+    base = s.versions.find(v=>v.id===s.activeId);
+    action = 'revise';
+    const act=document.getElementById('ic-action'); if(act){ act.value='revise'; if(typeof syncImageChatSendLabel==='function') syncImageChatSendLabel(); }
+    showToast('Building the post on your attached photo.','success');
+  } else if(action!=='discuss' && craftRefs(it).length && !(base && craftRefs(it).some(function(r){ return r.url===base.url; }))){
+    // Attached but NOT being built on. Say it, rather than letting her think
+    // the photo was ignored -- which is exactly how this looked.
+    const n=craftRefs(it).length;
+    updateCraftRefStatus(n+' attached photo'+(n===1?' is':'s are')+' riding along as a REFERENCE (the model copies the hardware). To build the post ON one, press \u201cUse as photo\u201d under its thumbnail.');
+  }
+  if(action==='revise'&&!base){imageChatNotice('Choose an existing image, or create one first.');return;}
   let formatNote='';
   if(formatted){
     imageChatBusy=true; document.getElementById('ic-send').disabled=true;
