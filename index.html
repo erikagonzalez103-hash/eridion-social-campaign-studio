@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-17 14:05</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-17 15:40</span></div>
     </div>
   </header>
 
@@ -13759,8 +13759,14 @@ function useAsBasePhoto(url, label){
   const act = document.getElementById('ic-action');
   if(act){ act.value = 'revise'; }
   if(typeof syncImageChatSendLabel === 'function') syncImageChatSendLabel();
+  // It used to paste a 1,200-character brief into the message box, unasked,
+  // overwriting whatever she had typed. Erika: "maybe we don't need that
+  // unsolicited brief". The box is hers. The photo direction is REMEMBERED on
+  // the post and attached at send time instead, so it still rides along
+  // without taking over the thing she types into.
+  try{ imageChatCommit(imageChatPostId, function(next){ (next.imageChat = imageChatState(next)).baseLayout = layoutId; }); }catch(_){}
   const ta = document.getElementById('ic-message');
-  if(ta){ ta.value = photoBaseBrief(layoutId); ta.focus(); }
+  if(ta) ta.focus();
   const panel = document.getElementById('ic-catalog'); if(panel) panel.style.display = 'none';
   const lay = PHOTO_LAYOUTS.find(function(l){ return l.id === layoutId; }) || PHOTO_LAYOUTS[0];
   updateCraftRefStatus('Using that photo as the base \u00b7 layout: ' + lay.label + ' \u00b7 press \u201cRevise image\u201d (not Create).');
@@ -13922,6 +13928,33 @@ function wireCraftRefInput(){
   ta.addEventListener('input', function(){ updateCraftRefStatus(); });
 }
 
+// \u2500\u2500 CRAFT ON A REVISION \u2500\u2500
+// The full brief -- type floors, the CTA rule, the layout tests, the brand
+// register -- is built by imageChatFormatBrief, which ONLY runs on a formatted
+// CREATE. A plain revise sent her typed words and nothing else, so every
+// revision was typographically unguided. That is why revision 1 came back with
+// a smaller headline, no figure at all and a call to action set like a caption,
+// while the original had real hierarchy. It was never about the photo.
+//
+// These ride along at SEND time, not in the message box, so what she sees is
+// what she wrote.
+function reviseCraftBlock(it, activeVersion){
+  const voice = imageVisualVoice(it);
+  const parts = [];
+  // Only when the base is a photograph SHE chose. On an ordinary revise of a
+  // generated image, "do not redraw" would fight the very thing she asked for.
+  if(activeVersion && activeVersion.fromCatalog){
+    const st = imageChatState(it);
+    parts.push(photoBaseBrief(st.baseLayout || PHOTO_LAYOUTS[0].id));
+  }
+  const reg = (typeof brandRegisterShort === 'function' && brandRegisterShort(voice)) || '';
+  if(reg) parts.push(reg);
+  const glass = (typeof glassTruthCore === 'function' && glassTruthCore(voice)) || '';
+  if(glass) parts.push(glass);
+  parts.push(ideaCraftRules());
+  return parts.join('\n\n');
+}
+
 async function sendImageChat(options={}){
   if(imageChatBusy)return;
   const id=imageChatPostId,it=library.find(x=>x.id===id),s=imageChatState(it),action=options.action||document.getElementById('ic-action').value;
@@ -13964,6 +13997,19 @@ async function sendImageChat(options={}){
       formatNote=(ASSET_FMT_LABEL[b.format]||b.format)+(b.rationale?' — '+b.rationale:'');
     }catch(e){ imageChatBusy=false; document.getElementById('ic-send').disabled=false; imageChatNotice('Could not build the brief: '+e.message); return; }
     imageChatBusy=false; document.getElementById('ic-send').disabled=false;
+  }
+  // A revise or a freeform create carries no generated brief, so the craft
+  // rules are appended here. The server rejects anything over 4,000, so her
+  // words come FIRST and keep their room; the rules take what is left, and if
+  // they will not fit at all the request still goes rather than failing.
+  if(action==='revise' || (action==='create' && !formatted)){
+    try{
+      const craft = reviseCraftBlock(it, base);
+      const room = 3900 - message.length - 2;
+      if(craft && room > 400){
+        message = message + '\n\n' + (craft.length <= room ? craft : craft.slice(0, room));
+      }
+    }catch(_){}
   }
   const pending={requestId:crypto.randomUUID(),message,action,baseId:base?.id||null,startedAt:Date.now(),kind:options.kind||'chat',suggestionKey:action==='discuss'?imageChatSuggestionKey(it):null};
   // A format brief is self-contained and deliberately a NEW direction. Sending
