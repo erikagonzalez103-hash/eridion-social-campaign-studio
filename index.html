@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-17 17:15</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-24 11:30</span></div>
     </div>
   </header>
 
@@ -8497,7 +8497,7 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
     const body=mainText.replace(/(?:\n\s*)?#[A-Za-z][A-Za-z0-9_]*(?:\s*#[A-Za-z][A-Za-z0-9_]*)*\s*$/,'').trim();
     const hashtags=hashMatches.slice(0,5);
 
-    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags,crossVoice,bridgeFrom:crossVoice?sourceVoice:null,ig_intro:igIntro}];
+    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags,crossVoice,bridgeFrom:crossVoice?sourceVoice:null,ig_intro:igIntro,first_comment:defaultFirstComment(getBlogUrl(spinSource))}];
     renderSpinSnippetResult();
     showToast(crossVoice?`Snippet ready (with bridge to ${sourceVoice})`:'Snippet ready','success');
   }catch(e){
@@ -8542,11 +8542,13 @@ function renderSpinSnippetResult(){
   const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[r.voice];
   const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'}[r.bridgeFrom]:'';
   const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
-  const igBlock=r.ig_intro!==undefined?`
+  // Was the retired IG Intro. Now the first comment, which Buffer posts under
+  // the post itself on LinkedIn, Instagram and Facebook.
+  const igBlock=`
       <div style="margin-top:10px;padding:10px 12px;background:rgba(67,176,71,0.06);border:1px solid var(--green-faint);border-radius:4px">
-        <span class="spin-edit-lbl" style="color:var(--green-deep)">📷 IG Intro (prepended for @eridion cross-post)</span>
-        <textarea class="spin-edit-igintro" oninput="updateSpinResult(0, 'ig_intro', this.value, 'snippet')">${escapeHTML(r.ig_intro||'')}</textarea>
-      </div>`:'';
+        <span class="spin-edit-lbl" style="color:var(--green-deep)">💬 First comment — posted under this by Buffer</span>
+        <textarea class="spin-edit-igintro" placeholder="Goes in the first comment, not the post. LinkedIn will not hyperlink text, so the link belongs here." oninput="updateSpinResult(0, 'first_comment', this.value, 'snippet')">${escapeHTML(r.first_comment||'')}</textarea>
+      </div>`;
   resultsEl.style.display='block';
   resultsEl.innerHTML=`
     <div class="spin-result-card" id="spin-card-snippet-0">
@@ -8597,12 +8599,34 @@ function saveSpinSnippetToLibrary(idx){
     entry.bridge_from=r.bridgeFrom;
   }
   if(r.ig_intro) entry.ig_intro=r.ig_intro;
+  // This is the field createBufferPost already sends as firstComment.
+  if(r.first_comment && r.first_comment.trim()) entry.first_comment=r.first_comment.trim();
   persistLibrary();
   renderLibrary();
   showToast('Snippet saved to library','success');
 }
 
-// ── Spin a full week of snippets ──
+// \u2500\u2500 FIRST COMMENT \u2500\u2500
+// The green box on a spun snippet used to be an "IG Intro", which existed when
+// Erika's other voices cross-posted onto the @eridion handle. They each have
+// their own handle now, needsIgIntro() returns false for every voice, and the
+// model stopped filling it -- so it had become an empty green box that did
+// nothing. She asked for it to be the FIRST COMMENT instead, wired to Buffer's.
+//
+// Buffer's first comment is already plumbed: createBufferPost sends
+// firstComment for every channel whose CHANNEL_KINDS row has firstComment:true
+// (LinkedIn, Instagram, Facebook), and the Library already stores
+// it.first_comment. This only had to point the box at that field.
+//
+// The default is the back-link, because that is what a first comment is FOR on
+// LinkedIn: a post cannot hyperlink its own text, and a bare URL in the body
+// suppresses reach. See the social-linking note.
+function defaultFirstComment(url){
+  const u = String(url||'').trim();
+  return u ? ('Full post here: ' + u) : '';
+}
+
+// \u2500\u2500 Spin a full week of snippets \u2500\u2500
 async function runSpinWeek(){
   if(!spinSource){showToast('No source selected','error');return;}
   const strategy=document.getElementById('spin-week-voice-strategy').value;
@@ -8806,6 +8830,7 @@ ${igIntroBlock?'For Eridion-voice snippets, set ig_intro to empty string "". For
       crossVoice:dayDefs[i]?.crossVoice||false,
       bridgeFrom:dayDefs[i]?.crossVoice?(sourceVoice):null,
       ig_intro:String(x.ig_intro||'').trim(),
+      first_comment:String(x.first_comment||'').trim() || defaultFirstComment(getBlogUrl(spinSource)),
     }));
     renderSpinWeekResults();
     showToast(`${spinWeekResults.length} snippets generated`,'success');
@@ -8837,11 +8862,13 @@ function renderSpinWeekResults(){
     const voiceLabel={eridion:'Eridion Glass',erika:'Erika Harrison',quinta:'Quinta & Co',practice:'The Practice'}[r.voice]||r.voice;
     const bridgeLabel=r.crossVoice?{eridion:'Eridion',erika:'Erika',quinta:'Quinta & Co',practice:'Practice'}[r.bridgeFrom]:'';
     const bridgeTag=r.crossVoice?`<span class="bridge-tag" title="This snippet credits and amplifies the original ${bridgeLabel} post">↳ amplifying ${bridgeLabel}</span>`:'';
-    const igBlock=r.ig_intro!==undefined?`
+    // Same change as the single-snippet card: the retired IG Intro becomes the
+    // first comment Buffer posts underneath, one per day of the week.
+    const igBlock=`
         <div style="margin-top:10px;padding:10px 12px;background:rgba(67,176,71,0.06);border:1px solid var(--green-faint);border-radius:4px">
-          <span class="spin-edit-lbl" style="color:var(--green-deep)">📷 IG Intro (prepended for @eridion cross-post)</span>
-          <textarea class="spin-edit-igintro" oninput="updateSpinResult(${i}, 'ig_intro', this.value, 'week')">${escapeHTML(r.ig_intro||'')}</textarea>
-        </div>`:'';
+          <span class="spin-edit-lbl" style="color:var(--green-deep)">💬 First comment — posted under this by Buffer</span>
+          <textarea class="spin-edit-igintro" placeholder="Goes in the first comment, not the post. LinkedIn will not hyperlink text, so the link belongs here." oninput="updateSpinResult(${i}, 'first_comment', this.value, 'week')">${escapeHTML(r.first_comment||'')}</textarea>
+        </div>`;
     return `
       <div class="spin-result-card" id="spin-card-week-${i}">
         <div class="spin-result-head">
@@ -8909,6 +8936,7 @@ async function rerollSpinDay(idx){
     r.text=text;
     r.hashtags=Array.isArray(parsed.hashtags)?parsed.hashtags.filter(h=>typeof h==='string'&&h.startsWith('#')).slice(0,5):[];
     r.ig_intro=String(parsed.ig_intro||'').trim();
+    if(parsed.first_comment!==undefined) r.first_comment=String(parsed.first_comment||'').trim();
     // Any auto-built asset was made for the trashed text — drop it so a stale
     // image doesn't ride along with the new snippet.
     delete r.imageUrl; delete r.imageUrls; delete r.imageCredit; delete r.assetFormat; delete r.assetSpec;
@@ -8944,6 +8972,8 @@ function saveOneSpinWeek(i){
     entry.bridge_from=r.bridgeFrom;
   }
   if(r.ig_intro) entry.ig_intro=r.ig_intro;
+  // This is the field createBufferPost already sends as firstComment.
+  if(r.first_comment && r.first_comment.trim()) entry.first_comment=r.first_comment.trim();
   // Attach the auto-built asset (if Auto-build was run) so it's pushable to Buffer.
   if(r.imageUrl){
     entry.selectedImageUrl=r.imageUrl;
@@ -9003,6 +9033,7 @@ function saveAndScheduleSpinWeek(){
       entry.bridge_from=r.bridgeFrom;
     }
     if(r.ig_intro) entry.ig_intro=r.ig_intro;
+    if(r.first_comment && r.first_comment.trim()) entry.first_comment=r.first_comment.trim();
     // Schedule it
     const dayOffset=dayIndex[r.day];
     if(dayOffset!==undefined){
