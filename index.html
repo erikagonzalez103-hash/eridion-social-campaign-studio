@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-24 15:20</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-24 16:35</span></div>
     </div>
   </header>
 
@@ -8654,19 +8654,26 @@ function splitSpinSections(raw){
   return out;
 }
 
+// The first comment POINTS AT THE BLOG. That is the whole job.
+//
+// It used to demand "one thing the post did not say", which was my invention,
+// not a requirement -- a bare link looked like dead weight to me, so I set a
+// quality bar nothing supported. There is no evidence a substantive first
+// comment outperforms a link-only one; the link-in-first-comment tactic is
+// itself disputed and LinkedIn denies penalising link posts. That invented bar
+// cost a fabricated "$3M build in Dallas" claim, then an over-correction that
+// stripped every figure out of five comments. Erika, 2026-11-24: "I just wanted
+// the first comment to point to the blog."
+//
+// So it writes ONE sentence that refers to the post, then the link. It cannot
+// invent a fact, because it is not asked to supply one.
 function buildFirstCommentRule(url, eachSnippet){
+  if(!url) return '';
   return '\n\n\u2726 FIRST COMMENT (' + (eachSnippet ? 'one for EVERY snippet' : 'required') + '):\n'
-    + 'Write what goes UNDERNEATH the post as the first comment. It is not part of the post and is not a summary of it.\n'
-    + '- Add exactly ONE thing the post did not say: the number behind the claim, the caveat, who it is NOT for, the source, or the concrete next step. If the post already says it, pick something else.\n'
-    // A first run produced "On a $3M build in Dallas it tends to come in higher"
-    // -- plausible, absent from the source, and exactly the fabrication pattern
-    // that was stamped out of the blogs. "Say something new" needs this beside
-    // it or it reads as a licence to invent.
-    + '- EVERY CLAIM MUST BE SUPPORTED BY THE SOURCE POST. Do not introduce a number, a price, a timescale, a percentage, a place, a named source or a comparison that is not already in it. Something NEW means a different part of the post, or a plain consequence of it \u2014 never a new fact. If the only interesting addition would need a figure you do not have, write the next step instead.\n'
-    + '- 1 to 2 sentences, same voice as the post.\n'
-    + (url ? ('- REQUIRED: end with the link on its own final line, exactly as written, character for character: ' + url + '\nEvery first comment ends with that line. No exceptions, no shortening, no tracking parameters.\n') : '')
-    + '- No hashtags. Do not start with "P.S.", "Link below", "Full post:" or "In case you missed it" \u2014 open with the substance.\n'
-    + '- Never repeat the post\u2019s opening line.';
+    + 'This goes UNDERNEATH the post as the first comment. Its only job is to point the reader at the full post.\n'
+    + '- ONE short sentence naming what the full post covers, in the post\u2019s own voice. Refer to what is already in it \u2014 do not add a fact, a figure, a claim or an opinion of your own.\n'
+    + '- Then the link on its own final line, exactly as written, character for character: ' + url + '\n'
+    + '- No hashtags, no sign-off, no second sentence. Vary the wording across the days; do not use the same opener twice.';
 }
 
 // Asking for the link is not the same as having it. Erika: "every one needs to
