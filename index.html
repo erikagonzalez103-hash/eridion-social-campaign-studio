@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-24 12:45</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-24 15:20</span></div>
     </div>
   </header>
 
@@ -8499,7 +8499,7 @@ NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The 
     const body=mainText.replace(/(?:\n\s*)?#[A-Za-z][A-Za-z0-9_]*(?:\s*#[A-Za-z][A-Za-z0-9_]*)*\s*$/,'').trim();
     const hashtags=hashMatches.slice(0,5);
 
-    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags,crossVoice,bridgeFrom:crossVoice?sourceVoice:null,ig_intro:igIntro,first_comment:writtenFirstComment||defaultFirstComment(getBlogUrl(spinSource))}];
+    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags,crossVoice,bridgeFrom:crossVoice?sourceVoice:null,ig_intro:igIntro,first_comment:ensureFirstCommentLink(writtenFirstComment, getBlogUrl(spinSource))||defaultFirstComment(getBlogUrl(spinSource))}];
     renderSpinSnippetResult();
     showToast(crossVoice?`Snippet ready (with bridge to ${sourceVoice})`:'Snippet ready','success');
   }catch(e){
@@ -8658,10 +8658,27 @@ function buildFirstCommentRule(url, eachSnippet){
   return '\n\n\u2726 FIRST COMMENT (' + (eachSnippet ? 'one for EVERY snippet' : 'required') + '):\n'
     + 'Write what goes UNDERNEATH the post as the first comment. It is not part of the post and is not a summary of it.\n'
     + '- Add exactly ONE thing the post did not say: the number behind the claim, the caveat, who it is NOT for, the source, or the concrete next step. If the post already says it, pick something else.\n'
+    // A first run produced "On a $3M build in Dallas it tends to come in higher"
+    // -- plausible, absent from the source, and exactly the fabrication pattern
+    // that was stamped out of the blogs. "Say something new" needs this beside
+    // it or it reads as a licence to invent.
+    + '- EVERY CLAIM MUST BE SUPPORTED BY THE SOURCE POST. Do not introduce a number, a price, a timescale, a percentage, a place, a named source or a comparison that is not already in it. Something NEW means a different part of the post, or a plain consequence of it \u2014 never a new fact. If the only interesting addition would need a figure you do not have, write the next step instead.\n'
     + '- 1 to 2 sentences, same voice as the post.\n'
-    + (url ? ('- Then the link on its own final line, exactly as written, character for character: ' + url + '\n') : '')
+    + (url ? ('- REQUIRED: end with the link on its own final line, exactly as written, character for character: ' + url + '\nEvery first comment ends with that line. No exceptions, no shortening, no tracking parameters.\n') : '')
     + '- No hashtags. Do not start with "P.S.", "Link below", "Full post:" or "In case you missed it" \u2014 open with the substance.\n'
     + '- Never repeat the post\u2019s opening line.';
+}
+
+// Asking for the link is not the same as having it. Erika: "every one needs to
+// include the blog URL" -- so it is enforced here rather than hoped for in the
+// prompt. If the model left it out, it is appended; if it is already there in
+// any position, nothing is touched.
+function ensureFirstCommentLink(text, url){
+  const u = String(url||'').trim();
+  const t = String(text||'').trim();
+  if(!u) return t;
+  if(!t) return defaultFirstComment(u);
+  return t.indexOf(u) >= 0 ? t : (t + '\n' + u);
 }
 
 function defaultFirstComment(url){
@@ -8873,7 +8890,7 @@ ${igIntroBlock?'For Eridion-voice snippets, set ig_intro to empty string "". For
       crossVoice:dayDefs[i]?.crossVoice||false,
       bridgeFrom:dayDefs[i]?.crossVoice?(sourceVoice):null,
       ig_intro:String(x.ig_intro||'').trim(),
-      first_comment:String(x.first_comment||'').trim() || defaultFirstComment(getBlogUrl(spinSource)),
+      first_comment:ensureFirstCommentLink(String(x.first_comment||'').trim(), getBlogUrl(spinSource)) || defaultFirstComment(getBlogUrl(spinSource)),
     }));
     renderSpinWeekResults();
     showToast(`${spinWeekResults.length} snippets generated`,'success');
