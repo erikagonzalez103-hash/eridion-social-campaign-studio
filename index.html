@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-24 11:30</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-24 12:45</span></div>
     </div>
   </header>
 
@@ -8475,29 +8475,31 @@ Voice-natural patterns (study cadence — never copy verbatim):
 NEVER use formatted header lines like "↳ From: ${voice}" or "Posted by:". The intro must read as natural opening flow, not a tag.`:'';
 
   const wordRange=crossVoice?'90-220 words total (allowance for the narrative bridge)':'80-200 words total';
-  const igOutputRule=(voice!=='eridion')?`\n\n✦ OUTPUT FORMAT:\nReturn the post text + hashtags FIRST. Then on a new line, the literal separator "===IG_INTRO===" followed by the 1-2 sentence IG channel intro. No other commentary anywhere.`:'';
+  // The first comment is always asked for; the IG intro only when a voice
+  // genuinely cross-posts (needsIgIntro), which currently none do.
+  const wantsIg = voice!=='eridion' && !!igIntroRule;
+  const igOutputRule='\n\n✦ OUTPUT FORMAT:\nReturn the post text + hashtags FIRST. Then on a new line the literal separator "===FIRST_COMMENT===" followed by the first comment.'
+    + (wantsIg ? ' Then on a new line "===IG_INTRO===" followed by the 1-2 sentence IG channel intro.' : '')
+    + ' No other commentary anywhere.';
 
-  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(voice)}\n\nBUSINESS FACTS FOR ${voice.toUpperCase()}:\n${getKB(voice)}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. A snippet is NOT a summary of the source — it is the single most interesting claim in it, picked out and sharpened. Deliver the surprise in line one; make the reader feel smarter by line three. If your draft reads like a book report of the post, start over from the post's best sentence.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRuleFinal}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\n${voice==='eridion'?'Return the post text + hashtags only. No preamble, no meta-commentary.':'Follow the OUTPUT FORMAT above exactly.'}`;
+  const prompt=`${voicePrompt}\n${HOUSE_STYLE}\n${buildGEO(voice)}\n\nBUSINESS FACTS FOR ${voice.toUpperCase()}:\n${getKB(voice)}\n\nSOURCE POST (originally in the ${sourceVoice.toUpperCase()} voice):\n---\n${getSpinSourceText(spinSource)}\n---\n\nORIGINAL TOPIC: ${spinSource.title||''}\nSOURCE VOICE: ${sourceVoice.toUpperCase()}\nYOUR ASSIGNED VOICE: ${voice.toUpperCase()}${bridgeRule}${igIntroRule}${buildFirstCommentRule(getBlogUrl(spinSource), false)}\n\n✦ YOUR TASK:\nCreate a single short LinkedIn snippet derived from the source post above.\n\nANGLE (${angle.label}): ${angle.instruction}\n\nRULES:\n- ${wordRange}. A snippet is NOT a summary of the source — it is the single most interesting claim in it, picked out and sharpened. Deliver the surprise in line one; make the reader feel smarter by line three. If your draft reads like a book report of the post, start over from the post's best sentence.\n- Stay factually consistent with the source — do not invent new data or claims\n- Use the ${voice.toUpperCase()} voice defined above — do not drift from it\n- ${ctaRuleFinal}\n- Include 4 relevant hashtags at the end, on separate lines, starting with #${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}${igOutputRule}\n\nFollow the OUTPUT FORMAT above exactly. No preamble, no meta-commentary.`;
 
   try{
     const data=await callClaude({model:MODEL_CREATIVE,max_tokens:900,messages:[{role:'user',content:prompt}]},m=>{resultsEl.innerHTML=`<div class="spin-loading">${escapeHTML(m)}</div>`;});
     const rawText=claudeText(data);
     if(!rawText) throw new Error('Empty response');
 
-    // Split off IG intro if present
-    let mainText=rawText, igIntro='';
-    const igMatch=rawText.match(/^([\s\S]*?)\n\s*===\s*IG_INTRO\s*===\s*\n([\s\S]+)$/);
-    if(igMatch){
-      mainText=igMatch[1].trim();
-      igIntro=igMatch[2].trim();
-    }
+    // Split the post, the first comment and any IG intro apart.
+    const sections = splitSpinSections(rawText);
+    let mainText = sections.text, igIntro = sections.ig_intro;
+    const writtenFirstComment = sections.first_comment;
 
     // Split off trailing hashtags from main text
     const hashMatches=mainText.match(/#[A-Za-z][A-Za-z0-9_]*/g)||[];
     const body=mainText.replace(/(?:\n\s*)?#[A-Za-z][A-Za-z0-9_]*(?:\s*#[A-Za-z][A-Za-z0-9_]*)*\s*$/,'').trim();
     const hashtags=hashMatches.slice(0,5);
 
-    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags,crossVoice,bridgeFrom:crossVoice?sourceVoice:null,ig_intro:igIntro,first_comment:defaultFirstComment(getBlogUrl(spinSource))}];
+    spinSnippetResults=[{voice,angle:angle.label,angleKey,text:body,hashtags,crossVoice,bridgeFrom:crossVoice?sourceVoice:null,ig_intro:igIntro,first_comment:writtenFirstComment||defaultFirstComment(getBlogUrl(spinSource))}];
     renderSpinSnippetResult();
     showToast(crossVoice?`Snippet ready (with bridge to ${sourceVoice})`:'Snippet ready','success');
   }catch(e){
@@ -8621,6 +8623,47 @@ function saveSpinSnippetToLibrary(idx){
 // The default is the back-link, because that is what a first comment is FOR on
 // LinkedIn: a post cannot hyperlink its own text, and a bare URL in the body
 // suppresses reach. See the social-linking note.
+// What the model is told to write. Shared by the single snippet and the week so
+// the two cannot drift apart.
+//
+// Deliberately NOT "here is the link": the back-link is already worked into the
+// post body by buildBlogLinkRule, so a first comment that only repeats it is
+// dead weight. It has to EARN the slot by adding something the post did not
+// say, and it carries the link again because that is where a reader who skimmed
+// will look for it.
+// The snippet reply comes back as plain text with literal separators. Written
+// to survive either order and either section being absent, because a missing
+// separator used to mean the whole reply landed in the post body.
+function splitSpinSections(raw){
+  const t = String(raw||'');
+  const FC = /\n\s*===\s*FIRST_COMMENT\s*===\s*\n/;
+  const IG = /\n\s*===\s*IG_INTRO\s*===\s*\n/;
+  const iFC = t.search(FC), iIG = t.search(IG);
+  const cuts = [iFC, iIG].filter(function(i){ return i >= 0; });
+  const out = { text: (cuts.length ? t.slice(0, Math.min.apply(null, cuts)) : t).trim(), first_comment:'', ig_intro:'' };
+  if(iFC >= 0){
+    const after = t.slice(iFC).replace(FC, '');
+    const end = after.search(IG);
+    out.first_comment = (end >= 0 ? after.slice(0, end) : after).trim();
+  }
+  if(iIG >= 0){
+    const after = t.slice(iIG).replace(IG, '');
+    const end = after.search(FC);
+    out.ig_intro = (end >= 0 ? after.slice(0, end) : after).trim();
+  }
+  return out;
+}
+
+function buildFirstCommentRule(url, eachSnippet){
+  return '\n\n\u2726 FIRST COMMENT (' + (eachSnippet ? 'one for EVERY snippet' : 'required') + '):\n'
+    + 'Write what goes UNDERNEATH the post as the first comment. It is not part of the post and is not a summary of it.\n'
+    + '- Add exactly ONE thing the post did not say: the number behind the claim, the caveat, who it is NOT for, the source, or the concrete next step. If the post already says it, pick something else.\n'
+    + '- 1 to 2 sentences, same voice as the post.\n'
+    + (url ? ('- Then the link on its own final line, exactly as written, character for character: ' + url + '\n') : '')
+    + '- No hashtags. Do not start with "P.S.", "Link below", "Full post:" or "In case you missed it" \u2014 open with the substance.\n'
+    + '- Never repeat the post\u2019s opening line.';
+}
+
 function defaultFirstComment(url){
   const u = String(url||'').trim();
   return u ? ('Full post here: ' + u) : '';
@@ -8804,10 +8847,10 @@ RULES FOR EVERY SNIPPET:
 ${spinMode==='sections'
   ? '- Each snippet must focus on its assigned section ONLY — do not bleed content from other sections\n- Reference the section by its actual subject (the standard name, the claim, the item) so it feels self-contained'
   : '- Each snippet must be distinct — different primary beat (per the BEAT LEDGER), different opener shape, different factual pull. Leading with a beat that belongs to another day is a failed draft.'}
-- For cross-voice snippets: bridge MUST be in the voice doing the reposting, not the source voice${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}
+- For cross-voice snippets: bridge MUST be in the voice doing the reposting, not the source voice${buildFirstCommentRule(getBlogUrl(spinSource), true)}${direction?`\n\nADDITIONAL DIRECTION FROM THE AUTHOR: ${direction}`:''}
 
 Return ONLY valid JSON, no preamble, no markdown fences:
-{"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","beat":"3-8 word name of this day's primary beat","cross_voice":true,"bridge_from":"erika","text":"full post text here","ig_intro":"","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}
+{"snippets":[{"day":"Monday","voice":"eridion","angle_label":"...","beat":"3-8 word name of this day's primary beat","cross_voice":true,"bridge_from":"erika","text":"full post text here","ig_intro":"","first_comment":"the first comment for this day","hashtags":["#foo","#bar","#baz","#qux"]}, ...5 items total...]}
 
 For same-voice snippets, set cross_voice:false and bridge_from:null.
 ${igIntroBlock?'For Eridion-voice snippets, set ig_intro to empty string "". For Erika or Quinta & Co-voice snippets, ig_intro must be a 1-2 sentence channel intro per the rules above.':'Set ig_intro to empty string "" for every snippet.'}`;
@@ -9919,7 +9962,8 @@ function insertMention(i, fmt){
 }
 
 // Copy a staged first comment. Buffer posts it on LinkedIn automatically, so
-// this is really the Instagram path (Buffer silently drops firstComment there).
+// Erika confirmed 2026-11-24 that Buffer does NOT drop firstComment on
+// Instagram, contrary to the note that used to sit here.
 function copyFirstComment(id){
   const it=library.find(x=>x.id===id);
   if(!it||!it.first_comment){ showToast('No first comment saved on this post','error'); return; }
