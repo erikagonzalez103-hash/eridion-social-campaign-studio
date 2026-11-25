@@ -2678,7 +2678,7 @@ textarea { min-height: 80px; line-height: 1.6; }
     </div>
     <div class="header-meta">
       <div id="current-date"></div>
-      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-24 16:35</span></div>
+      <div style="margin-top:2px">v3.4 · build <span id="build-stamp">2026-11-25 10:15</span></div>
     </div>
   </header>
 
@@ -14037,6 +14037,28 @@ function wireCraftRefInput(){
 //
 // These ride along at SEND time, not in the message box, so what she sees is
 // what she wrote.
+// The typefaces, the palette hexes and the icon style live ONLY in
+// BRAND_IMAGE_BRIEFS, which travels as context.brandBrief. Nothing in a photo
+// revise's MESSAGE named them -- not photoBaseBrief, not glassTruthCore, not
+// ideaCraftRules -- so the model fell back to a generic sans and generic icons.
+// Erika, 2026-11-25: "specifically on the Eridion posts where I use our own
+// images, the tool stops using the brand fonts and icons."
+//
+// Context is weaker than the message; a rule only binds when it is IN the
+// message. Short enough to ride on every path without crowding anything out.
+function brandMarksSpec(voice){
+  switch(voice){
+    case 'eridion':
+      return 'BRAND MARKS — NON-NEGOTIABLE. Headlines in a squared, EXPANDED grotesque sans (Archivo Expanded); body and labels in a clean neutral sans (Inter). Never a serif, never a condensed or rounded face, never a default system font. Palette: navy #153862 and off-white/light grounds, with brand green #32A200 as an ACCENT ONLY — one green element per layout, never a green field; grey #C4C4C4 for anything secondary. Any icon or rule is drawn in uniform 2px lines with SQUARE joins and square ends — never rounded, never filled, never a stock glyph.';
+    case 'quinta':
+      return 'BRAND MARKS — NON-NEGOTIABLE. Headlines in a classical serif (Fraunces), set big, tight and decisive; labels and eyebrows in letter-spaced UPPERCASE serif (Cinzel); body in a clean sans (Inter). Never a geometric or techy sans. Palette ONLY: cream #FAFAF6, sage #6E8B7A, sage-deep #4F6B5C, moss #3D544A — no other colour, including for accents.';
+    case 'practice':
+      return 'BRAND MARKS — NON-NEGOTIABLE. Serif headlines (Fraunces) with letter-spaced UPPERCASE serif labels (Cinzel); body in a clean sans (Inter). Palette ONLY: cream #FAFAF6, sage #6E8B7A, moss #3D544A.';
+    default:
+      return '';
+  }
+}
+
 function reviseCraftBlock(it, activeVersion){
   const voice = imageVisualVoice(it);
   const parts = [];
@@ -14050,6 +14072,8 @@ function reviseCraftBlock(it, activeVersion){
   if(reg) parts.push(reg);
   const glass = (typeof glassTruthCore === 'function' && glassTruthCore(voice)) || '';
   if(glass) parts.push(glass);
+  const marks = brandMarksSpec(voice);
+  if(marks) parts.push(marks);
   parts.push(ideaCraftRules());
   return parts.join('\n\n');
 }
